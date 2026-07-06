@@ -6,21 +6,15 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "joblib>=1.4.2",
+    "matplotlib>=3.9.0",
+    "momentfm>=0.1.4",
     "numpy==1.25.2",
+    "openpyxl>=3.1.5",
     "pandas>=2.2.2",
     "pyyaml>=6.0.2",
     "scikit-learn>=1.5.0",
+    "torch>=2.7",
     "tqdm>=4.66.4",
-]
-
-[project.optional-dependencies]
-moment = [
-    "momentfm>=0.1.4",
-    "torch==2.3.1",
-]
-plots = [
-    "matplotlib>=3.9.0",
-    "openpyxl>=3.1.5",
 ]
 
 [project.scripts]

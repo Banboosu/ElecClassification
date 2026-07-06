@@ -26,26 +26,37 @@ The original TCN scripts and outputs are preserved, while the new project layout
 
 ## Environment
 
-This project is locked for a reproducible MOMENT run:
+The stable branch is locked for a reproducible MOMENT run:
 
 - Python `3.11`
 - `momentfm 0.1.4`
 - `torch 2.3.1`
 - `numpy 1.25.2`
 
+The `experiment/latest-software` branch is for dependency experiments that still resolve with
+the current `momentfm 0.1.4` package:
+
+- Python `3.11`
+- `momentfm >=0.1.4`
+- `torch >=2.7`
+- `numpy 1.25.2`
+
 Install all project dependencies with one command:
 
 ```powershell
-uv sync --extra moment --extra plots
+uv sync
 ```
 
-Use this same command when re-syncing the environment. A later plain `uv sync` intentionally
-removes the optional MOMENT and plotting packages.
+The project does not use optional dependency groups. `uv sync` installs the data, MOMENT,
+PyTorch, and plotting dependencies together.
 
-Newer Python, PyTorch, and CUDA versions may work, but they are not the pinned reproducible
-environment for this project. Treat them as an upgrade experiment: change `pyproject.toml`,
-regenerate `uv.lock`, then verify that `momentfm`, `transformers`, and the training entrypoint
-still import and run correctly.
+Newer Python, PyTorch, and CUDA versions may work, but they are not the stable reproducible
+environment yet. Treat them as an upgrade experiment: regenerate `uv.lock`, then verify that
+`momentfm`, `transformers`, and the training entrypoint still import and run correctly.
+NumPy is still pinned to `1.25.2` because `momentfm 0.1.4` requires that exact version.
+Python 3.12 was tested as an experiment, but dependency resolution failed because current
+pandas builds for Python 3.12 require a newer NumPy than MOMENT allows.
+This machine has no CUDA GPU, so the experiment uses the CPU PyTorch wheel.
 
 ## Inspect Data
 
