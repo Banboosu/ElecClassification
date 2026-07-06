@@ -47,17 +47,6 @@ Install all project dependencies with one command:
 uv sync
 ```
 
-The project does not use optional dependency groups. `uv sync` installs the data, MOMENT,
-PyTorch, and plotting dependencies together.
-
-Newer Python, PyTorch, and CUDA versions may work, but they are not the stable reproducible
-environment yet. Treat them as an upgrade experiment: regenerate `uv.lock`, then verify that
-`momentfm`, `transformers`, and the training entrypoint still import and run correctly.
-NumPy is still pinned to `1.25.2` because `momentfm 0.1.4` requires that exact version.
-Python 3.12 was tested as an experiment, but dependency resolution failed because current
-pandas builds for Python 3.12 require a newer NumPy than MOMENT allows.
-This machine has no CUDA GPU, so the experiment uses the CPU PyTorch wheel.
-
 ## Inspect Data
 
 This command does not require MOMENT or PyTorch:
