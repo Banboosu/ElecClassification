@@ -1,0 +1,25 @@
+data:
+  csv_path: data/raw/最新多.csv
+  delimiter: " "
+  sequence_column: charging_powers_str
+  label_column: InsertedColumn
+  invalid_labels: ["5"]
+  max_length: 1024
+  min_length: 18
+  normalize: zscore
+  test_size: 0.2
+  random_state: 42
+
+model:
+  model_id: AutonLab/MOMENT-1-small
+  num_channels: 1
+  freeze_backbone: true
+
+training:
+  output_dir: artifacts/moment
+  epochs: 1
+  batch_size: 32
+  learning_rate: 0.00001
+  weight_decay: 0.01
+  num_workers: 0
+  device: auto
