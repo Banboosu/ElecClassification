@@ -11,13 +11,13 @@ data:
   random_state: 42
 
 model:
-  model_id: AutonLab/MOMENT-1-small
+  model_id: AutonLab/MOMENT-1-large
   num_channels: 1
   freeze_backbone: true
 
 training:
   output_dir: artifacts/moment
-  epochs: 1
+  epochs: 5
   batch_size: 32
   learning_rate: 0.00001
   weight_decay: 0.01

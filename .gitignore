@@ -9,3 +9,5 @@ artifacts/
 *.pth
 *.ckpt
 *.h5
+
+data/raw
