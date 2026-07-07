@@ -10,5 +10,5 @@ artifacts/
 *.ckpt
 *.h5
 
-data/raw/
-legacy/
+/data/raw/
+/legacy/
