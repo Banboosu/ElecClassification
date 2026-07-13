@@ -1,6 +1,7 @@
 data:
   csv_path: data/raw/最新多.csv
   delimiter: " "
+  id_column: charging_station_id
   sequence_column: charging_powers_str
   label_column: InsertedColumn
   invalid_labels: ["5"]
@@ -10,6 +11,7 @@ data:
   validation_size: 0.1
   test_size: 0.2
   random_state: 42
+  split_path: artifacts/splits/unified_split.json
 
 model:
   model_id: AutonLab/MOMENT-1-large
@@ -31,7 +33,7 @@ tcn_model:
   dropout: 0.3
 
 tcn_training:
-  output_dir: artifacts/tcn_unified
+  output_dir: artifacts/tcn
   epochs: 50
   batch_size: 32
   learning_rate: 0.001

@@ -37,13 +37,13 @@ dependencies = [
 requires-dist = [
     { name = "joblib", specifier = ">=1.4.2" },
     { name = "matplotlib", specifier = ">=3.9.0" },
-    { name = "momentfm", specifier = ">=0.1.4" },
+    { name = "momentfm", specifier = "==0.1.4" },
     { name = "numpy", specifier = "==1.25.2" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.2.2" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "scikit-learn", specifier = ">=1.5.0" },
-    { name = "torch", specifier = ">=2.7" },
+    { name = "torch", specifier = "==2.12.1" },
     { name = "tqdm", specifier = ">=4.66.4" },
 ]
 

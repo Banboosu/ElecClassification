@@ -2,7 +2,7 @@
 
 > 更新日期：2026-07-13  
 > 原则：模型训练统一在远程 CUDA 环境完成；本地只进行代码检查、数据检查和小规模单元测试。  
-> 当前阶段：统一数据、划分和指标已经完成，下一步先保证远程实验可靠，再做模型优化。
+> 当前阶段：P0 程序改造已完成；在远程 CUDA 主机完成环境验收后进入 P1。
 
 ## 已完成
 
@@ -20,51 +20,51 @@
 
 ### 1. 防止实验结果相互覆盖
 
-- [ ] 为每次运行增加唯一的 `run_name`，建议格式为“模型_预处理_随机种子_时间”。
-- [ ] 输出到 `artifacts/<model>/<run_name>/`，不再固定覆盖 `artifacts/moment/metrics.json`。
-- [ ] 每个运行目录保存实际生效的配置副本。
-- [ ] 自动记录开始时间、结束时间、Git commit、Python/PyTorch/CUDA/GPU 信息。
-- [ ] 保存运行状态：`running`、`completed`、`interrupted` 或 `failed`。
+- [x] 为每次运行增加唯一的 `run_name`，建议格式为“模型_预处理_随机种子_时间”。
+- [x] 输出到 `artifacts/<model>/<run_name>/`，不再固定覆盖 `artifacts/moment/metrics.json`。
+- [x] 每个运行目录保存实际生效的配置副本。
+- [x] 自动记录开始时间、结束时间、Git commit、Python/PyTorch/CUDA/GPU 信息。
+- [x] 保存运行状态：`running`、`completed`、`interrupted` 或 `failed`。
 
 验收标准：连续运行两个配置后生成两个独立目录，任一目录都能单独还原实验条件。
 
 ### 2. 固化数据划分
 
-- [ ] 数据加载时保留 `charging_station_id` 或原始行号。
-- [ ] 第一次划分后保存 train/validation/test 的样本 ID 清单。
-- [ ] 后续 TCN、MOMENT 和传统基线都读取同一份划分清单。
-- [ ] 记录数据文件哈希、过滤前后数量及各集合类别分布。
-- [ ] 检查三个集合的样本 ID 不相交，并在代码中加入断言。
+- [x] 数据加载时保留 `charging_station_id` 或原始行号。
+- [x] 第一次划分后保存 train/validation/test 的样本 ID 清单。
+- [x] 后续 TCN、MOMENT 和传统基线都读取同一份划分清单。
+- [x] 记录数据文件哈希、过滤前后数量及各集合类别分布。
+- [x] 检查三个集合的样本 ID 不相交，并在代码中加入断言。
 
 验收标准：即使调整归一化或模型代码，同一实验协议中的样本归属仍完全一致。
 
 ### 3. 正确处理变长序列和 padding
 
-- [ ] `DatasetBundle` 返回每条序列的有效长度或布尔 mask。
-- [ ] 查明当前 `momentfm` 版本接受 padding mask 的准确参数，并在 MOMENT 前向传播中传入。
-- [ ] TCN 的全局池化改为 mask-aware pooling，避免将尾部填充 0 当作真实功率。
-- [ ] 验证截断前归一化、填充后 mask 的处理顺序。
-- [ ] 在指标文件中记录因 `min_length` 和 `max_length` 被过滤或截断的数量。
+- [x] `DatasetBundle` 返回每条序列的有效长度或布尔 mask。
+- [x] 查明当前 `momentfm` 版本接受 padding mask 的准确参数，并在 MOMENT 前向传播中传入。
+- [x] TCN 的全局池化改为 mask-aware pooling，避免将尾部填充 0 当作真实功率。
+- [x] 验证截断前归一化、填充后 mask 的处理顺序。
+- [x] 在指标文件中记录因 `min_length` 和 `max_length` 被过滤或截断的数量。
 
 验收标准：同一条序列仅改变尾部 padding 长度时，模型有效特征基本不变。
 
 ### 4. 修正环境与文档不一致
 
-- [ ] 统一 README、`pyproject.toml` 和 `uv.lock` 中的 PyTorch/MOMENT 版本说明。
-- [ ] 修正 `train_moment.py` 中不存在的 `uv sync --extra moment` 提示。
+- [x] 统一 README、`pyproject.toml` 和 `uv.lock` 中的 PyTorch/MOMENT 版本说明。
+- [x] 修正 `train_moment.py` 中不存在的 `uv sync --extra moment` 提示。
 - [ ] 在远程 CUDA 主机执行一次全新环境安装验证。
-- [ ] 记录远程驱动、CUDA 和显卡型号。
-- [ ] 增加 Linux CUDA 环境的完整启动命令。
+- [x] 运行时自动记录远程驱动、CUDA 和显卡型号。
+- [x] 增加 Linux CUDA 环境的完整启动与环境自检命令。
 
 验收标准：在空目录克隆项目并补充数据后，按照 README 命令可以直接开始训练。
 
 ### 5. 增强训练中断与恢复能力
 
-- [ ] MOMENT 增加 `--resume`，恢复模型、优化器、epoch、历史指标和最佳分数。
-- [ ] TCN 同样保存 latest checkpoint 并支持 `--resume`。
-- [ ] TCN 捕获 `KeyboardInterrupt`，确保中断后仍保存已完成 epoch 的结果。
-- [ ] 保存随机数状态，尽可能保证恢复训练连续性。
-- [ ] 写入临时文件后原子替换正式指标文件，避免中断产生损坏 JSON。
+- [x] MOMENT 增加 `--resume`，恢复模型、优化器、epoch、历史指标和最佳分数。
+- [x] TCN 同样保存 latest checkpoint 并支持 `--resume`。
+- [x] TCN 捕获 `KeyboardInterrupt`，确保中断后仍保存已完成 epoch 的结果。
+- [x] 保存随机数状态，尽可能保证恢复训练连续性。
+- [x] 写入临时文件后原子替换正式指标文件，避免中断产生损坏 JSON。
 
 验收标准：训练中断后重新执行命令，可从上一个完整 epoch 继续，而不是从头开始。
 

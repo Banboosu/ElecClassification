@@ -11,6 +11,7 @@ import yaml
 class DataConfig:
     csv_path: Path
     delimiter: str = " "
+    id_column: str = "charging_station_id"
     sequence_column: str = "charging_powers_str"
     label_column: str = "InsertedColumn"
     invalid_labels: tuple[str, ...] = ("5",)
@@ -20,6 +21,7 @@ class DataConfig:
     validation_size: float = 0.1
     test_size: float = 0.2
     random_state: int = 42
+    split_path: Path = Path("artifacts/splits/unified_split.json")
 
 
 @dataclass(frozen=True)
@@ -49,7 +51,7 @@ class TCNModelConfig:
 
 @dataclass(frozen=True)
 class TCNTrainingConfig:
-    output_dir: Path = Path("artifacts/tcn_unified")
+    output_dir: Path = Path("artifacts/tcn")
     epochs: int = 50
     batch_size: int = 32
     learning_rate: float = 1e-3
@@ -81,6 +83,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
     data = DataConfig(
         csv_path=Path(data_raw.get("csv_path", "data/raw/最新多.csv")),
         delimiter=str(data_raw.get("delimiter", " ")),
+        id_column=str(data_raw.get("id_column", "charging_station_id")),
         sequence_column=str(data_raw.get("sequence_column", "charging_powers_str")),
         label_column=str(data_raw.get("label_column", "InsertedColumn")),
         invalid_labels=tuple(str(label) for label in data_raw.get("invalid_labels", ["5"])),
@@ -90,6 +93,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         validation_size=float(data_raw.get("validation_size", 0.1)),
         test_size=float(data_raw.get("test_size", 0.2)),
         random_state=int(data_raw.get("random_state", 42)),
+        split_path=Path(data_raw.get("split_path", "artifacts/splits/unified_split.json")),
     )
     model = ModelConfig(
         model_id=str(model_raw.get("model_id", "AutonLab/MOMENT-1-large")),
@@ -111,7 +115,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         dropout=float(tcn_model_raw.get("dropout", 0.3)),
     )
     tcn_training = TCNTrainingConfig(
-        output_dir=Path(tcn_training_raw.get("output_dir", "artifacts/tcn_unified")),
+        output_dir=Path(tcn_training_raw.get("output_dir", "artifacts/tcn")),
         epochs=int(tcn_training_raw.get("epochs", 50)),
         batch_size=int(tcn_training_raw.get("batch_size", 32)),
         learning_rate=float(tcn_training_raw.get("learning_rate", 1e-3)),
