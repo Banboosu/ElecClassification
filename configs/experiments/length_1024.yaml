@@ -1,0 +1,3 @@
+extends: ../moment.yaml
+data:
+  max_length: 1024

@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-from tcn_moment.config import ExperimentConfig, load_config
+from tcn_moment.config import ExperimentConfig, load_config, with_random_seed
 from tcn_moment.data import DatasetBundle, load_dataset, save_label_encoder
 from tcn_moment.experiment import RunContext, prepare_run
 from tcn_moment.io_utils import atomic_torch_save, atomic_write_json
@@ -68,6 +69,50 @@ def set_num_classes(model: Any, num_classes: int) -> None:
             model.config.num_class = num_classes
         if hasattr(model.config, "num_classes"):
             model.config.num_classes = num_classes
+
+
+def configure_trainable_parameters(model: Any, config: ExperimentConfig) -> None:
+    if not config.model.freeze_backbone:
+        for parameter in model.parameters():
+            parameter.requires_grad = True
+        return
+
+    for name, parameter in model.named_parameters():
+        parameter.requires_grad = "head" in name or "classification" in name
+    layers_to_unfreeze = config.model.unfreeze_last_n_layers
+    if layers_to_unfreeze <= 0:
+        return
+    blocks = getattr(getattr(model, "encoder", None), "block", None)
+    if blocks is None:
+        raise ValueError("Unable to locate model.encoder.block for partial unfreezing.")
+    for block in list(blocks)[-layers_to_unfreeze:]:
+        for parameter in block.parameters():
+            parameter.requires_grad = True
+
+
+def build_optimizer(torch: Any, model: Any, config: ExperimentConfig) -> Any:
+    head_parameters = []
+    backbone_parameters = []
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        if "head" in name or "classification" in name:
+            head_parameters.append(parameter)
+        else:
+            backbone_parameters.append(parameter)
+    groups = []
+    if head_parameters:
+        groups.append({"params": head_parameters, "lr": config.training.learning_rate})
+    if backbone_parameters:
+        groups.append(
+            {
+                "params": backbone_parameters,
+                "lr": config.training.backbone_learning_rate,
+            }
+        )
+    if not groups:
+        raise ValueError("No trainable MOMENT parameters were selected.")
+    return torch.optim.AdamW(groups, weight_decay=config.training.weight_decay)
 
 
 def forward_logits(model: Any, batch_x: Any, input_mask: Any) -> Any:
@@ -178,10 +223,7 @@ def _train_run(
     set_num_classes(model, bundle.num_classes)
     model.init()
     model.to(device)
-    if config.model.freeze_backbone:
-        for name, parameter in model.named_parameters():
-            if "head" not in name and "classification" not in name:
-                parameter.requires_grad = False
+    configure_trainable_parameters(model, config)
 
     data_generator = torch.Generator().manual_seed(config.data.random_state)
     loader_args = (torch, DataLoader, TensorDataset)
@@ -213,29 +255,41 @@ def _train_run(
         config.training.num_workers,
         shuffle=False,
     )
-    optimizer = torch.optim.AdamW(
-        [parameter for parameter in model.parameters() if parameter.requires_grad],
-        lr=config.training.learning_rate,
-        weight_decay=config.training.weight_decay,
-    )
+    optimizer = build_optimizer(torch, model, config)
     loss_fn = torch.nn.CrossEntropyLoss()
     class_names = [str(name) for name in bundle.label_encoder.classes_.tolist()]
     history: list[dict[str, float]] = []
     best_macro_f1 = -1.0
+    epochs_without_improvement = 0
     start_epoch = 1
     latest_path = context.run_dir / "checkpoint_latest.pt"
     best_path = context.run_dir / "moment_classifier_best.pt"
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="max",
+        factor=config.training.scheduler_factor,
+        patience=config.training.scheduler_patience,
+    )
+    amp_enabled = bool(config.training.amp and device.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     if resume:
-        start_epoch, history, best_macro_f1 = resume_training_checkpoint(
-            torch=torch,
-            path=latest_path,
-            model=model,
-            optimizer=optimizer,
-            data_generator=data_generator,
-            device=device,
+        start_epoch, history, best_macro_f1, epochs_without_improvement = (
+            resume_training_checkpoint(
+                torch=torch,
+                path=latest_path,
+                model=model,
+                optimizer=optimizer,
+                data_generator=data_generator,
+                device=device,
+                scheduler=scheduler,
+                scaler=scaler,
+            )
         )
 
     for epoch in range(start_epoch, config.training.epochs + 1):
+        epoch_started = time.perf_counter()
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
         model.train()
         train_loss = 0.0
         for batch_x, batch_mask, batch_y in tqdm(
@@ -245,24 +299,51 @@ def _train_run(
             batch_mask = batch_mask.to(device)
             batch_y = batch_y.to(device)
             optimizer.zero_grad(set_to_none=True)
-            logits = forward_logits(model, batch_x, batch_mask)
-            loss = loss_fn(logits, batch_y)
-            loss.backward()
-            optimizer.step()
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                logits = forward_logits(model, batch_x, batch_mask)
+                loss = loss_fn(logits, batch_y)
+            if not torch.isfinite(loss):
+                raise FloatingPointError(f"Non-finite loss detected at epoch {epoch}.")
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), config.training.gradient_clip_norm
+            )
+            scaler.step(optimizer)
+            scaler.update()
             train_loss += float(loss.detach().cpu()) * len(batch_y)
 
         metrics = evaluate(torch, model, val_loader, loss_fn, device, class_names)
+        scheduler.step(metrics["macro_f1"])
         metrics["train_loss"] = train_loss / len(train_loader.dataset)
         metrics["epoch"] = float(epoch)
+        metrics["head_learning_rate"] = float(optimizer.param_groups[0]["lr"])
+        metrics["backbone_learning_rate"] = (
+            float(optimizer.param_groups[1]["lr"])
+            if len(optimizer.param_groups) > 1
+            else 0.0
+        )
+        metrics["epoch_seconds"] = time.perf_counter() - epoch_started
+        metrics["peak_gpu_memory_mb"] = (
+            float(torch.cuda.max_memory_allocated(device) / (1024**2))
+            if device.type == "cuda"
+            else 0.0
+        )
         history.append(metrics)
         print(
             f"epoch={epoch} train_loss={metrics['train_loss']:.4f} "
             f"val_loss={metrics['val_loss']:.4f} val_acc={metrics['accuracy']:.4f} "
             f"macro_f1={metrics['macro_f1']:.4f}"
         )
-        if metrics["macro_f1"] > best_macro_f1:
+        if (
+            metrics["macro_f1"]
+            > best_macro_f1 + config.training.early_stopping_min_delta
+        ):
             best_macro_f1 = metrics["macro_f1"]
+            epochs_without_improvement = 0
             atomic_torch_save(torch, model.state_dict(), best_path)
+        else:
+            epochs_without_improvement += 1
         save_training_checkpoint(
             torch=torch,
             path=latest_path,
@@ -271,9 +352,15 @@ def _train_run(
             optimizer=optimizer,
             history=history,
             best_macro_f1=best_macro_f1,
+            epochs_without_improvement=epochs_without_improvement,
             data_generator=data_generator,
+            scheduler=scheduler,
+            scaler=scaler,
         )
         atomic_write_json(context.run_dir / "metrics_partial.json", {"history": history})
+        if epochs_without_improvement >= config.training.early_stopping_patience:
+            print(f"Early stopping at epoch {epoch}.")
+            break
 
     if not best_path.exists():
         raise RuntimeError("No best model exists. Increase training.epochs before resuming.")
@@ -293,6 +380,16 @@ def _train_run(
         "data": _data_record(bundle, config),
         "history": history,
         "best_validation_macro_f1": best_macro_f1,
+        "training": {
+            "stopped_epoch": int(history[-1]["epoch"]),
+            "early_stopped": int(history[-1]["epoch"]) < config.training.epochs,
+            "amp_enabled": amp_enabled,
+            "total_parameters": sum(parameter.numel() for parameter in model.parameters()),
+            "trainable_parameters": sum(
+                parameter.numel() for parameter in model.parameters() if parameter.requires_grad
+            ),
+            "total_training_seconds": sum(item["epoch_seconds"] for item in history),
+        },
         "test_metrics": test_metrics,
     }
     atomic_write_json(context.run_dir / "metrics.json", result)
@@ -348,13 +445,17 @@ def train(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train MOMENT classifier on charging power data.")
     parser.add_argument("--config", default="configs/moment.yaml", help="Path to YAML config.")
+    parser.add_argument("--seed", type=int, help="Override random seed and use its split manifest.")
     run_group = parser.add_mutually_exclusive_group()
     run_group.add_argument("--run-name", help="Unique output directory name for a new run.")
     run_group.add_argument("--resume", type=Path, help="Existing run directory to resume.")
     args = parser.parse_args()
     config_path = Path(args.config)
+    config = load_config(config_path)
+    if args.seed is not None:
+        config = with_random_seed(config, args.seed)
     train(
-        load_config(config_path),
+        config,
         config_path,
         run_name=args.run_name,
         resume_dir=args.resume,

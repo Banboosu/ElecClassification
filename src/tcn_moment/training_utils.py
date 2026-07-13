@@ -47,7 +47,10 @@ def save_training_checkpoint(
     optimizer: Any,
     history: list[dict[str, float]],
     best_macro_f1: float,
+    epochs_without_improvement: int,
     data_generator: Any,
+    scheduler: Any = None,
+    scaler: Any = None,
 ) -> None:
     checkpoint = {
         "epoch": epoch,
@@ -55,6 +58,9 @@ def save_training_checkpoint(
         "optimizer_state_dict": optimizer.state_dict(),
         "history": history,
         "best_macro_f1": best_macro_f1,
+        "epochs_without_improvement": epochs_without_improvement,
+        "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
+        "scaler_state_dict": scaler.state_dict() if scaler is not None else None,
         "random_state": capture_random_state(torch, data_generator),
     }
     atomic_torch_save(torch, checkpoint, path)
@@ -68,15 +74,22 @@ def resume_training_checkpoint(
     optimizer: Any,
     data_generator: Any,
     device: Any,
-) -> tuple[int, list[dict[str, float]], float]:
+    scheduler: Any = None,
+    scaler: Any = None,
+) -> tuple[int, list[dict[str, float]], float, int]:
     if not path.exists():
         raise FileNotFoundError(f"Resume checkpoint does not exist: {path}")
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    if scheduler is not None and checkpoint.get("scheduler_state_dict") is not None:
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+    if scaler is not None and checkpoint.get("scaler_state_dict") is not None:
+        scaler.load_state_dict(checkpoint["scaler_state_dict"])
     restore_random_state(torch, checkpoint["random_state"], data_generator)
     return (
         int(checkpoint["epoch"]) + 1,
         list(checkpoint["history"]),
         float(checkpoint["best_macro_f1"]),
+        int(checkpoint.get("epochs_without_improvement", 0)),
     )

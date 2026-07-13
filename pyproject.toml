@@ -20,6 +20,11 @@ dependencies = [
 [project.scripts]
 moment-train = "tcn_moment.train_moment:main"
 tcn-train = "tcn_moment.train_tcn:main"
+cnn-train = "tcn_moment.train_cnn:main"
+baseline-train = "tcn_moment.train_baselines:main"
+experiment-suite = "tcn_moment.run_suite:main"
+moment-analyze-data = "tcn_moment.analyze_data:main"
+experiment-summarize = "tcn_moment.summarize_runs:main"
 moment-inspect-data = "tcn_moment.data:main"
 moment-check-environment = "tcn_moment.check_environment:main"
 

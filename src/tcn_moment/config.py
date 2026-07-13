@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +29,7 @@ class ModelConfig:
     model_id: str = "AutonLab/MOMENT-1-large"
     num_channels: int = 1
     freeze_backbone: bool = False
+    unfreeze_last_n_layers: int = 0
 
 
 @dataclass(frozen=True)
@@ -37,9 +38,16 @@ class TrainingConfig:
     epochs: int = 10
     batch_size: int = 16
     learning_rate: float = 1e-5
+    backbone_learning_rate: float = 1e-5
     weight_decay: float = 1e-2
     num_workers: int = 0
     device: str = "auto"
+    early_stopping_patience: int = 7
+    early_stopping_min_delta: float = 1e-4
+    scheduler_patience: int = 3
+    scheduler_factor: float = 0.5
+    gradient_clip_norm: float = 1.0
+    amp: bool = True
 
 
 @dataclass(frozen=True)
@@ -58,6 +66,12 @@ class TCNTrainingConfig:
     weight_decay: float = 1e-4
     num_workers: int = 0
     device: str = "auto"
+    early_stopping_patience: int = 7
+    early_stopping_min_delta: float = 1e-4
+    scheduler_patience: int = 3
+    scheduler_factor: float = 0.5
+    gradient_clip_norm: float = 1.0
+    amp: bool = True
 
 
 @dataclass(frozen=True)
@@ -69,10 +83,34 @@ class ExperimentConfig:
     tcn_training: TCNTrainingConfig
 
 
-def load_config(path: str | Path) -> ExperimentConfig:
-    config_path = Path(path)
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _load_raw_config(config_path: Path, seen: set[Path] | None = None) -> dict[str, Any]:
+    resolved = config_path.resolve()
+    visited = set() if seen is None else seen
+    if resolved in visited:
+        raise ValueError(f"Circular config inheritance detected at {resolved}")
+    visited.add(resolved)
     with config_path.open("r", encoding="utf-8") as file:
         raw = yaml.safe_load(file) or {}
+    parent = raw.pop("extends", None)
+    if parent is None:
+        return raw
+    parent_path = (config_path.parent / str(parent)).resolve()
+    return _deep_merge(_load_raw_config(parent_path, visited), raw)
+
+
+def load_config(path: str | Path) -> ExperimentConfig:
+    config_path = Path(path)
+    raw = _load_raw_config(config_path)
 
     data_raw: dict[str, Any] = raw.get("data", {})
     model_raw: dict[str, Any] = raw.get("model", {})
@@ -99,15 +137,23 @@ def load_config(path: str | Path) -> ExperimentConfig:
         model_id=str(model_raw.get("model_id", "AutonLab/MOMENT-1-large")),
         num_channels=int(model_raw.get("num_channels", 1)),
         freeze_backbone=bool(model_raw.get("freeze_backbone", False)),
+        unfreeze_last_n_layers=int(model_raw.get("unfreeze_last_n_layers", 0)),
     )
     training = TrainingConfig(
         output_dir=Path(training_raw.get("output_dir", "artifacts/moment")),
         epochs=int(training_raw.get("epochs", 10)),
         batch_size=int(training_raw.get("batch_size", 16)),
         learning_rate=float(training_raw.get("learning_rate", 1e-5)),
+        backbone_learning_rate=float(training_raw.get("backbone_learning_rate", 1e-5)),
         weight_decay=float(training_raw.get("weight_decay", 1e-2)),
         num_workers=int(training_raw.get("num_workers", 0)),
         device=str(training_raw.get("device", "auto")),
+        early_stopping_patience=int(training_raw.get("early_stopping_patience", 7)),
+        early_stopping_min_delta=float(training_raw.get("early_stopping_min_delta", 1e-4)),
+        scheduler_patience=int(training_raw.get("scheduler_patience", 3)),
+        scheduler_factor=float(training_raw.get("scheduler_factor", 0.5)),
+        gradient_clip_norm=float(training_raw.get("gradient_clip_norm", 1.0)),
+        amp=bool(training_raw.get("amp", True)),
     )
     tcn_model = TCNModelConfig(
         channels=tuple(int(value) for value in tcn_model_raw.get("channels", [64, 64, 128, 128])),
@@ -122,8 +168,13 @@ def load_config(path: str | Path) -> ExperimentConfig:
         weight_decay=float(tcn_training_raw.get("weight_decay", 1e-4)),
         num_workers=int(tcn_training_raw.get("num_workers", 0)),
         device=str(tcn_training_raw.get("device", "auto")),
+        early_stopping_patience=int(tcn_training_raw.get("early_stopping_patience", 7)),
+        early_stopping_min_delta=float(tcn_training_raw.get("early_stopping_min_delta", 1e-4)),
+        scheduler_patience=int(tcn_training_raw.get("scheduler_patience", 3)),
+        scheduler_factor=float(tcn_training_raw.get("scheduler_factor", 0.5)),
+        gradient_clip_norm=float(tcn_training_raw.get("gradient_clip_norm", 1.0)),
+        amp=bool(tcn_training_raw.get("amp", True)),
     )
-
     return ExperimentConfig(
         data=data,
         model=model,
@@ -131,3 +182,14 @@ def load_config(path: str | Path) -> ExperimentConfig:
         tcn_model=tcn_model,
         tcn_training=tcn_training,
     )
+
+
+def with_random_seed(config: ExperimentConfig, seed: int) -> ExperimentConfig:
+    split_path = config.data.split_path
+    seeded_name = f"{split_path.stem}_seed{seed}{split_path.suffix}"
+    seeded_data = replace(
+        config.data,
+        random_state=seed,
+        split_path=split_path.with_name(seeded_name),
+    )
+    return replace(config, data=seeded_data)

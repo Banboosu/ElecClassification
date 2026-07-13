@@ -19,6 +19,8 @@ The original TCN scripts and outputs are preserved, while the new project layout
 │       ├── config.py               # YAML config loader
 │       ├── data.py                 # CSV parsing and dataset preparation
 │       ├── metrics.py              # metrics shared by all classifiers
+│       ├── train_baselines.py      # majority and statistical baselines
+│       ├── train_cnn.py            # 1D-CNN baseline
 │       ├── train_moment.py         # MOMENT classifier training entrypoint
 │       └── train_tcn.py            # PyTorch TCN training entrypoint
 ├── artifacts/
@@ -90,8 +92,64 @@ The two trainers report the same metric set: accuracy, balanced accuracy, macro 
 weighted precision/recall/F1, confusion matrix, and per-class classification results. Outputs are
 written to unique subdirectories under `artifacts/moment/` and `artifacts/tcn/`.
 
+Training supports validation Macro-F1 early stopping, ReduceLROnPlateau, gradient clipping,
+non-finite-loss checks, CUDA AMP, and checkpoint resume. Metrics also record learning rates,
+parameter counts, epoch time, total time, and peak allocated GPU memory.
+
 The initial results recorded before protocol unification are documented in
 `docs/experiment_records/initial_baseline_results.md`.
+
+## P1 experiment presets and baselines
+
+Files under `configs/experiments/` inherit the shared protocol and change only the named variable.
+Available comparisons cover normalization, sequence length, MOMENT linear probing, partial/full
+fine-tuning, and classification-head learning rates.
+
+Run the non-neural and 1D-CNN baselines:
+
+```bash
+uv run baseline-train --config configs/moment.yaml --run-name statistical_seed42
+uv run cnn-train --config configs/experiments/cnn_baseline.yaml --run-name cnn_seed42
+```
+
+Run a preset for the standard five seeds. The same seed creates the same persisted split for every
+model, so TCN and MOMENT remain directly comparable:
+
+```bash
+uv run experiment-suite \
+  --model tcn \
+  --configs configs/experiments/normalization_none.yaml \
+            configs/experiments/normalization_minmax.yaml \
+            configs/experiments/normalization_zscore.yaml \
+  --seeds 42 43 44 45 46
+
+uv run experiment-suite \
+  --model moment \
+  --configs configs/experiments/moment_linear_probe.yaml \
+            configs/experiments/moment_partial_finetune.yaml \
+            configs/experiments/moment_full_finetune.yaml \
+  --seeds 42 43 44 45 46
+```
+
+Aggregate completed runs into mean, standard deviation, and count columns:
+
+```bash
+uv run experiment-summarize \
+  --runs artifacts/tcn/normalization_zscore_seed42 \
+         artifacts/tcn/normalization_zscore_seed43 \
+         artifacts/tcn/normalization_zscore_seed44 \
+         artifacts/tcn/normalization_zscore_seed45 \
+         artifacts/tcn/normalization_zscore_seed46
+```
+
+Generate the data-quality JSON and typical sequence figure without training a model:
+
+```bash
+uv run moment-analyze-data --config configs/moment.yaml
+```
+
+The label convention and information still requiring confirmation from the data provider are in
+`docs/data_dictionary.md`.
 
 Each run directory is self-contained:
 

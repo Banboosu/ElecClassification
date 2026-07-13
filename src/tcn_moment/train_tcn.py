@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import time
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,7 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm.auto import tqdm
 
-from tcn_moment.config import ExperimentConfig, load_config
+from tcn_moment.config import ExperimentConfig, load_config, with_random_seed
 from tcn_moment.data import DatasetBundle, load_dataset, save_label_encoder
 from tcn_moment.experiment import RunContext, prepare_run
 from tcn_moment.io_utils import atomic_torch_save, atomic_write_json
@@ -113,6 +114,43 @@ class TCNClassifier(nn.Module):
         return self.classifier(pooled)
 
 
+class CNNClassifier(nn.Module):
+    def __init__(
+        self,
+        num_classes: int,
+        channels: tuple[int, ...],
+        kernel_size: int,
+        dropout: float,
+    ) -> None:
+        super().__init__()
+        if not channels or kernel_size % 2 == 0:
+            raise ValueError("CNN requires non-empty channels and an odd kernel_size.")
+        layers: list[nn.Module] = []
+        in_channels = 1
+        for out_channels in channels:
+            layers.extend(
+                [
+                    nn.Conv1d(
+                        in_channels,
+                        out_channels,
+                        kernel_size,
+                        padding=kernel_size // 2,
+                    ),
+                    nn.ReLU(),
+                    nn.Dropout(dropout),
+                ]
+            )
+            in_channels = out_channels
+        self.encoder = nn.Sequential(*layers)
+        self.classifier = nn.Linear(in_channels, num_classes)
+
+    def forward(self, inputs: torch.Tensor, input_mask: torch.Tensor) -> torch.Tensor:
+        features = self.encoder(inputs)
+        expanded_mask = input_mask.unsqueeze(1).to(dtype=features.dtype)
+        pooled = (features * expanded_mask).sum(dim=-1) / expanded_mask.sum(dim=-1).clamp_min(1.0)
+        return self.classifier(pooled)
+
+
 def make_loader(
     x: np.ndarray,
     mask: np.ndarray,
@@ -191,6 +229,7 @@ def _train_run(
     context: RunContext,
     *,
     resume: bool,
+    model_name: str,
 ) -> None:
     training = config.tcn_training
     bundle = load_dataset(config.data)
@@ -225,7 +264,8 @@ def _train_run(
     )
 
     device = select_device(training.device)
-    model = TCNClassifier(
+    model_class = TCNClassifier if model_name == "TCN" else CNNClassifier
+    model = model_class(
         bundle.num_classes,
         config.tcn_model.channels,
         config.tcn_model.kernel_size,
@@ -240,20 +280,36 @@ def _train_run(
     class_names = [str(name) for name in bundle.label_encoder.classes_.tolist()]
     history: list[dict[str, float]] = []
     best_macro_f1 = -1.0
+    epochs_without_improvement = 0
     start_epoch = 1
     latest_path = context.run_dir / "checkpoint_latest.pt"
-    best_path = context.run_dir / "tcn_classifier_best.pt"
+    best_path = context.run_dir / f"{model_name.lower()}_classifier_best.pt"
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="max",
+        factor=training.scheduler_factor,
+        patience=training.scheduler_patience,
+    )
+    amp_enabled = bool(training.amp and device.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     if resume:
-        start_epoch, history, best_macro_f1 = resume_training_checkpoint(
+        start_epoch, history, best_macro_f1, epochs_without_improvement = (
+            resume_training_checkpoint(
             torch=torch,
             path=latest_path,
             model=model,
             optimizer=optimizer,
             data_generator=data_generator,
             device=device,
+            scheduler=scheduler,
+            scaler=scaler,
+            )
         )
 
     for epoch in range(start_epoch, training.epochs + 1):
+        epoch_started = time.perf_counter()
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
         model.train()
         train_loss = 0.0
         for batch_x, batch_mask, batch_y in tqdm(
@@ -263,24 +319,41 @@ def _train_run(
             batch_mask = batch_mask.to(device)
             batch_y = batch_y.to(device)
             optimizer.zero_grad(set_to_none=True)
-            logits = model(batch_x, batch_mask)
-            loss = loss_fn(logits, batch_y)
-            loss.backward()
-            optimizer.step()
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                logits = model(batch_x, batch_mask)
+                loss = loss_fn(logits, batch_y)
+            if not torch.isfinite(loss):
+                raise FloatingPointError(f"Non-finite loss detected at epoch {epoch}.")
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), training.gradient_clip_norm)
+            scaler.step(optimizer)
+            scaler.update()
             train_loss += float(loss.detach().cpu()) * len(batch_y)
 
         metrics = evaluate(model, val_loader, loss_fn, device, class_names)
+        scheduler.step(metrics["macro_f1"])
         metrics["train_loss"] = train_loss / len(train_loader.dataset)
         metrics["epoch"] = float(epoch)
+        metrics["learning_rate"] = float(optimizer.param_groups[0]["lr"])
+        metrics["epoch_seconds"] = time.perf_counter() - epoch_started
+        metrics["peak_gpu_memory_mb"] = (
+            float(torch.cuda.max_memory_allocated(device) / (1024**2))
+            if device.type == "cuda"
+            else 0.0
+        )
         history.append(metrics)
         print(
             f"epoch={epoch} train_loss={metrics['train_loss']:.4f} "
             f"val_loss={metrics['val_loss']:.4f} val_acc={metrics['accuracy']:.4f} "
             f"macro_f1={metrics['macro_f1']:.4f}"
         )
-        if metrics["macro_f1"] > best_macro_f1:
+        if metrics["macro_f1"] > best_macro_f1 + training.early_stopping_min_delta:
             best_macro_f1 = metrics["macro_f1"]
+            epochs_without_improvement = 0
             atomic_torch_save(torch, model.state_dict(), best_path)
+        else:
+            epochs_without_improvement += 1
         save_training_checkpoint(
             torch=torch,
             path=latest_path,
@@ -289,9 +362,15 @@ def _train_run(
             optimizer=optimizer,
             history=history,
             best_macro_f1=best_macro_f1,
+            epochs_without_improvement=epochs_without_improvement,
             data_generator=data_generator,
+            scheduler=scheduler,
+            scaler=scaler,
         )
         atomic_write_json(context.run_dir / "metrics_partial.json", {"history": history})
+        if epochs_without_improvement >= training.early_stopping_patience:
+            print(f"Early stopping at epoch {epoch}.")
+            break
 
     if not best_path.exists():
         raise RuntimeError("No best model exists. Increase training.epochs before resuming.")
@@ -305,11 +384,21 @@ def _train_run(
         include_details=True,
     )
     result = {
-        "model": "TCN",
+        "model": model_name,
         "run_name": context.run_name,
         "data": _data_record(bundle, config),
         "history": history,
         "best_validation_macro_f1": best_macro_f1,
+        "training": {
+            "stopped_epoch": int(history[-1]["epoch"]),
+            "early_stopped": int(history[-1]["epoch"]) < training.epochs,
+            "amp_enabled": amp_enabled,
+            "total_parameters": sum(parameter.numel() for parameter in model.parameters()),
+            "trainable_parameters": sum(
+                parameter.numel() for parameter in model.parameters() if parameter.requires_grad
+            ),
+            "total_training_seconds": sum(item["epoch_seconds"] for item in history),
+        },
         "test_metrics": test_metrics,
     }
     atomic_write_json(context.run_dir / "metrics.json", result)
@@ -323,10 +412,11 @@ def train(
     *,
     run_name: str | None = None,
     resume_dir: Path | None = None,
+    model_name: str = "TCN",
 ) -> None:
     seed_everything(torch, config.data.random_state)
     context = prepare_run(
-        model_name="TCN",
+        model_name=model_name,
         base_output_dir=config.tcn_training.output_dir,
         config=config,
         config_path=config_path,
@@ -335,7 +425,12 @@ def train(
         resume_dir=resume_dir,
     )
     try:
-        _train_run(config, context, resume=resume_dir is not None)
+        _train_run(
+            config,
+            context,
+            resume=resume_dir is not None,
+            model_name=model_name,
+        )
     except KeyboardInterrupt:
         resume_available = (context.run_dir / "checkpoint_latest.pt").exists()
         message = (
@@ -355,13 +450,17 @@ def train(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train TCN on the unified data protocol.")
     parser.add_argument("--config", default="configs/moment.yaml", help="Path to YAML config.")
+    parser.add_argument("--seed", type=int, help="Override random seed and use its split manifest.")
     run_group = parser.add_mutually_exclusive_group()
     run_group.add_argument("--run-name", help="Unique output directory name for a new run.")
     run_group.add_argument("--resume", type=Path, help="Existing run directory to resume.")
     args = parser.parse_args()
     config_path = Path(args.config)
+    config = load_config(config_path)
+    if args.seed is not None:
+        config = with_random_seed(config, args.seed)
     train(
-        load_config(config_path),
+        config,
         config_path,
         run_name=args.run_name,
         resume_dir=args.resume,

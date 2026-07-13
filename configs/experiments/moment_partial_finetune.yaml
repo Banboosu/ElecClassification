@@ -1,0 +1,7 @@
+extends: ../moment.yaml
+model:
+  freeze_backbone: true
+  unfreeze_last_n_layers: 2
+training:
+  learning_rate: 0.0001
+  backbone_learning_rate: 0.00001

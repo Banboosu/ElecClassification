@@ -65,7 +65,9 @@ def parse_power_sequence(value: object) -> list[float]:
         if not item:
             continue
         try:
-            powers.append(float(item))
+            power = float(item)
+            if np.isfinite(power):
+                powers.append(power)
         except ValueError:
             continue
     return powers
