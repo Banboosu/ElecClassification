@@ -7,6 +7,7 @@ data:
   max_length: 1024
   min_length: 18
   normalize: zscore
+  validation_size: 0.1
   test_size: 0.2
   random_state: 42
 
@@ -21,5 +22,19 @@ training:
   batch_size: 32
   learning_rate: 0.00001
   weight_decay: 0.01
+  num_workers: 0
+  device: auto
+
+tcn_model:
+  channels: [64, 64, 128, 128]
+  kernel_size: 3
+  dropout: 0.3
+
+tcn_training:
+  output_dir: artifacts/tcn_unified
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
   num_workers: 0
   device: auto

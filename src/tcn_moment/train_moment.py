@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-from sklearn.metrics import classification_report, precision_recall_fscore_support
 
 from tcn_moment.config import ExperimentConfig, load_config
 from tcn_moment.data import load_dataset, save_label_encoder
+from tcn_moment.metrics import classification_metrics
 
 
 def require_torch_and_moment() -> tuple[Any, Any, Any, Any, Any]:
@@ -34,6 +35,14 @@ def select_device(torch: Any, requested: str) -> Any:
     if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
         return torch.device("mps")
     return torch.device("cpu")
+
+
+def seed_everything(torch: Any, seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def build_model(config: ExperimentConfig, moment_pipeline: Any, num_classes: int) -> Any:
@@ -80,6 +89,7 @@ def forward_logits(model: Any, batch_x: Any) -> Any:
 
 def train(config: ExperimentConfig) -> None:
     torch, DataLoader, TensorDataset, tqdm, MOMENTPipeline = require_torch_and_moment()
+    seed_everything(torch, config.data.random_state)
 
     output_dir = config.training.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -100,6 +110,8 @@ def train(config: ExperimentConfig) -> None:
 
     x_train = torch.tensor(bundle.x_train[:, None, :], dtype=torch.float32)
     y_train = torch.tensor(bundle.y_train, dtype=torch.long)
+    x_val = torch.tensor(bundle.x_val[:, None, :], dtype=torch.float32)
+    y_val = torch.tensor(bundle.y_val, dtype=torch.long)
     x_test = torch.tensor(bundle.x_test[:, None, :], dtype=torch.float32)
     y_test = torch.tensor(bundle.y_test, dtype=torch.long)
 
@@ -107,6 +119,12 @@ def train(config: ExperimentConfig) -> None:
         TensorDataset(x_train, y_train),
         batch_size=config.training.batch_size,
         shuffle=True,
+        num_workers=config.training.num_workers,
+    )
+    val_loader = DataLoader(
+        TensorDataset(x_val, y_val),
+        batch_size=config.training.batch_size,
+        shuffle=False,
         num_workers=config.training.num_workers,
     )
     test_loader = DataLoader(
@@ -124,7 +142,10 @@ def train(config: ExperimentConfig) -> None:
     loss_fn = torch.nn.CrossEntropyLoss()
 
     history: list[dict[str, float]] = []
-    report: dict[str, Any] | None = None
+    test_metrics: dict[str, Any] | None = None
+    class_names = [str(name) for name in bundle.label_encoder.classes_.tolist()]
+    best_macro_f1 = -1.0
+    best_path = output_dir / "moment_classifier_best.pt"
     try:
         for epoch in range(1, config.training.epochs + 1):
             model.train()
@@ -141,25 +162,53 @@ def train(config: ExperimentConfig) -> None:
 
                 train_loss += float(loss.detach().cpu()) * len(batch_y)
 
-            metrics = evaluate(torch, model, test_loader, loss_fn, device)
+            metrics = evaluate(torch, model, val_loader, loss_fn, device, class_names)
             metrics["train_loss"] = train_loss / len(train_loader.dataset)
             metrics["epoch"] = float(epoch)
             history.append(metrics)
             print(
                 f"epoch={epoch} train_loss={metrics['train_loss']:.4f} "
                 f"val_loss={metrics['val_loss']:.4f} val_acc={metrics['accuracy']:.4f} "
-                f"f1={metrics['f1']:.4f}"
+                f"macro_f1={metrics['macro_f1']:.4f}"
             )
+            if metrics["macro_f1"] > best_macro_f1:
+                best_macro_f1 = metrics["macro_f1"]
+                torch.save(model.state_dict(), best_path)
             save_checkpoint(torch, model, optimizer, output_dir, epoch, history)
     except KeyboardInterrupt:
         print("\nTraining interrupted. Keeping the latest completed epoch checkpoint.")
 
     if history:
-        report = final_report(torch, model, test_loader, device, bundle.label_encoder.classes_.tolist())
+        model.load_state_dict(torch.load(best_path, map_location=device))
+        test_metrics = evaluate(
+            torch,
+            model,
+            test_loader,
+            loss_fn,
+            device,
+            class_names,
+            include_details=True,
+        )
+        print(json.dumps(test_metrics, indent=2, ensure_ascii=False))
         torch.save(model.state_dict(), output_dir / "moment_classifier.pt")
 
     (output_dir / "metrics.json").write_text(
-        json.dumps({"history": history, "report": report}, indent=2, ensure_ascii=False),
+        json.dumps(
+            {
+                "model": "MOMENT",
+                "split": {
+                    "train": len(bundle.y_train),
+                    "validation": len(bundle.y_val),
+                    "test": len(bundle.y_test),
+                    "random_state": config.data.random_state,
+                },
+                "history": history,
+                "best_validation_macro_f1": best_macro_f1,
+                "test_metrics": test_metrics,
+            },
+            indent=2,
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
     print(f"Saved artifacts to {output_dir}")
@@ -187,7 +236,16 @@ def save_checkpoint(
     )
 
 
-def evaluate(torch: Any, model: Any, loader: Any, loss_fn: Any, device: Any) -> dict[str, float]:
+def evaluate(
+    torch: Any,
+    model: Any,
+    loader: Any,
+    loss_fn: Any,
+    device: Any,
+    class_names: list[str],
+    *,
+    include_details: bool = False,
+) -> dict[str, Any]:
     model.eval()
     total_loss = 0.0
     y_true: list[int] = []
@@ -203,47 +261,16 @@ def evaluate(torch: Any, model: Any, loader: Any, loss_fn: Any, device: Any) -> 
             y_true.extend(batch_y.cpu().numpy().tolist())
             y_pred.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
 
-    precision, recall, f1, _ = precision_recall_fscore_support(
+    result = classification_metrics(
         y_true,
         y_pred,
-        average="weighted",
-        zero_division=1,
+        class_names,
+        include_details=include_details,
     )
-    accuracy = float(np.mean(np.asarray(y_true) == np.asarray(y_pred)))
-    return {
-        "val_loss": total_loss / len(loader.dataset),
-        "accuracy": accuracy,
-        "precision": float(precision),
-        "recall": float(recall),
-        "f1": float(f1),
-    }
-
-
-def final_report(
-    torch: Any,
-    model: Any,
-    loader: Any,
-    device: Any,
-    class_names: list[str],
-) -> dict[str, Any]:
-    model.eval()
-    y_true: list[int] = []
-    y_pred: list[int] = []
-    with torch.no_grad():
-        for batch_x, batch_y in loader:
-            logits = forward_logits(model, batch_x.to(device))
-            y_true.extend(batch_y.numpy().tolist())
-            y_pred.extend(torch.argmax(logits, dim=1).cpu().numpy().tolist())
-
-    report = classification_report(
-        y_true,
-        y_pred,
-        target_names=[str(name) for name in class_names],
-        zero_division=1,
-        output_dict=True,
-    )
-    print(classification_report(y_true, y_pred, target_names=[str(name) for name in class_names], zero_division=1))
-    return report
+    result["loss"] = total_loss / len(loader.dataset)
+    if not include_details:
+        result["val_loss"] = result.pop("loss")
+    return result
 
 
 def main() -> None:

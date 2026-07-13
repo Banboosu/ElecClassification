@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 moment-train = "tcn_moment.train_moment:main"
+tcn-train = "tcn_moment.train_tcn:main"
 moment-inspect-data = "tcn_moment.data:main"
 
 [build-system]

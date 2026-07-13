@@ -10,7 +10,7 @@ The original TCN scripts and outputs are preserved, while the new project layout
 ```text
 .
 ├── configs/
-│   └── moment.yaml                 # MOMENT experiment config
+│   └── moment.yaml                 # shared data protocol and model configs
 ├── data/
 │   └── raw/
 │       └── 最新多.csv              # source charging-power data
@@ -18,7 +18,9 @@ The original TCN scripts and outputs are preserved, while the new project layout
 │   └── tcn_moment/
 │       ├── config.py               # YAML config loader
 │       ├── data.py                 # CSV parsing and dataset preparation
-│       └── train_moment.py         # MOMENT classifier training entrypoint
+│       ├── metrics.py              # metrics shared by all classifiers
+│       ├── train_moment.py         # MOMENT classifier training entrypoint
+│       └── train_tcn.py            # PyTorch TCN training entrypoint
 ├── artifacts/
 │   └── tcn/                        # previous TCN models, metrics, and plots
 └── legacy/                         # previous standalone scripts
@@ -56,7 +58,12 @@ uv run moment-inspect-data --config configs/moment.yaml
 ```
 
 It parses `charging_powers_str`, filters short sequences, pads/truncates each series to
-`max_length`, encodes `InsertedColumn`, and prints the train/test shape and label counts.
+`max_length`, encodes `InsertedColumn`, and prints the train/validation/test shapes and label
+counts.
+
+Both TCN and MOMENT read the same `data` section in `configs/moment.yaml`. The default protocol
+uses a stratified 70%/10%/20% train/validation/test split with random state 42. Validation data is
+used during training; test data is reserved for the final report.
 
 Rows whose label is listed in `data.invalid_labels` are separated before training. By default,
 label `5` is treated as invalid/incomplete data and is not included as a classification class.
@@ -66,6 +73,21 @@ label `5` is treated as invalid/incomplete data and is not included as a classif
 ```powershell
 uv run moment-train --config configs/moment.yaml
 ```
+
+## Train TCN Baseline
+
+Run this command on the CUDA machine to train the TCN under exactly the same data protocol:
+
+```powershell
+uv run tcn-train --config configs/moment.yaml
+```
+
+The two trainers report the same metric set: accuracy, balanced accuracy, macro precision/recall/F1,
+weighted precision/recall/F1, confusion matrix, and per-class classification results. Outputs are
+written separately to `artifacts/moment/` and `artifacts/tcn_unified/`.
+
+The initial results recorded before protocol unification are documented in
+`docs/experiment_records/initial_baseline_results.md`.
 
 Outputs are written to:
 

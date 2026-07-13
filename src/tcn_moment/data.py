@@ -16,8 +16,10 @@ from tcn_moment.config import DataConfig, load_config
 @dataclass(frozen=True)
 class DatasetBundle:
     x_train: np.ndarray
+    x_val: np.ndarray
     x_test: np.ndarray
     y_train: np.ndarray
+    y_val: np.ndarray
     y_test: np.ndarray
     label_encoder: LabelEncoder
     invalid_label_counts: dict[str, int]
@@ -76,6 +78,13 @@ def prepare_sequence(sequence: list[float], max_length: int, normalize: str) -> 
 
 
 def load_dataset(config: DataConfig) -> DatasetBundle:
+    if not 0 < config.test_size < 1:
+        raise ValueError("test_size must be between 0 and 1.")
+    if not 0 < config.validation_size < 1:
+        raise ValueError("validation_size must be between 0 and 1.")
+    if config.test_size + config.validation_size >= 1:
+        raise ValueError("test_size + validation_size must be less than 1.")
+
     data = pd.read_csv(config.csv_path, delimiter=config.delimiter)
     required = {config.sequence_column, config.label_column}
     missing = required.difference(data.columns)
@@ -111,18 +120,28 @@ def load_dataset(config: DataConfig) -> DatasetBundle:
     label_encoder = LabelEncoder()
     y = label_encoder.fit_transform(labels).astype(np.int64)
 
-    x_train, x_test, y_train, y_test = train_test_split(
+    x_train_val, x_test, y_train_val, y_test = train_test_split(
         x,
         y,
         test_size=config.test_size,
         random_state=config.random_state,
         stratify=y if len(np.unique(y)) > 1 else None,
     )
+    validation_fraction_of_remainder = config.validation_size / (1.0 - config.test_size)
+    x_train, x_val, y_train, y_val = train_test_split(
+        x_train_val,
+        y_train_val,
+        test_size=validation_fraction_of_remainder,
+        random_state=config.random_state,
+        stratify=y_train_val if len(np.unique(y_train_val)) > 1 else None,
+    )
 
     return DatasetBundle(
         x_train=x_train,
+        x_val=x_val,
         x_test=x_test,
         y_train=y_train,
+        y_val=y_val,
         y_test=y_test,
         label_encoder=label_encoder,
         invalid_label_counts={str(key): int(value) for key, value in invalid_label_counts.items()},
@@ -146,12 +165,13 @@ def main() -> None:
     config = load_config(args.config)
     bundle = load_dataset(config.data)
     labels, counts = np.unique(
-        np.concatenate([bundle.y_train, bundle.y_test]),
+        np.concatenate([bundle.y_train, bundle.y_val, bundle.y_test]),
         return_counts=True,
     )
 
     print(f"CSV: {config.data.csv_path}")
     print(f"Train shape: {bundle.x_train.shape}")
+    print(f"Validation shape: {bundle.x_val.shape}")
     print(f"Test shape: {bundle.x_test.shape}")
     print(f"Classes: {bundle.label_encoder.classes_.tolist()}")
     print(f"Short sequences excluded: {bundle.short_sequence_count}")
