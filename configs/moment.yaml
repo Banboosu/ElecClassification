@@ -15,6 +15,7 @@ data:
 
 model:
   model_id: AutonLab/MOMENT-1-large
+  config_path: configs/models/moment-1-large.json
   num_channels: 1
   freeze_backbone: true
   unfreeze_last_n_layers: 0

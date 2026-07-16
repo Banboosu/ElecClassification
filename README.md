@@ -42,10 +42,13 @@ Install the exact lock-file environment on the Linux CUDA machine:
 ```bash
 uv sync --frozen
 uv run moment-check-environment --require-cuda
+uv run moment-check-model --config configs/moment.yaml
 ```
 
 The environment check prints the Python, package, CUDA, cuDNN, NVIDIA driver, and GPU details and
 fails early if the locked versions or CUDA are unavailable.
+The model check explicitly injects the bundled official MOMENT configuration, loads the pretrained
+weights, initializes the three-class head, and performs one forward pass without training.
 
 ## Inspect Data
 

@@ -27,6 +27,7 @@ moment-analyze-data = "tcn_moment.analyze_data:main"
 experiment-summarize = "tcn_moment.summarize_runs:main"
 moment-inspect-data = "tcn_moment.data:main"
 moment-check-environment = "tcn_moment.check_environment:main"
+moment-check-model = "tcn_moment.check_moment_model:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -22,16 +22,18 @@ def main() -> None:
     parser.add_argument("--model", choices=sorted(MODULES), required=True)
     parser.add_argument("--configs", nargs="+", type=Path, required=True)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 43, 44, 45, 46])
+    parser.add_argument("--suite-name", help="Tag included in every run name.")
     parser.add_argument("--continue-on-error", action="store_true")
     args = parser.parse_args()
 
     suite_started = datetime.now().isoformat()
+    suite_name = args.suite_name or datetime.now().strftime("%Y%m%d_%H%M%S")
     records = []
     for config_path in args.configs:
         if not config_path.is_file():
             raise FileNotFoundError(f"Config does not exist: {config_path}")
         for seed in args.seeds:
-            run_name = f"{config_path.stem}_seed{seed}"
+            run_name = f"{config_path.stem}_{suite_name}_seed{seed}"
             command = [
                 sys.executable,
                 "-m",
@@ -65,6 +67,7 @@ def main() -> None:
         {
             "started_at": suite_started,
             "finished_at": datetime.now().isoformat(),
+            "suite_name": suite_name,
             "records": records,
         },
     )

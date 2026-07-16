@@ -27,6 +27,7 @@ class DataConfig:
 @dataclass(frozen=True)
 class ModelConfig:
     model_id: str = "AutonLab/MOMENT-1-large"
+    config_path: Path = Path("configs/models/moment-1-large.json")
     num_channels: int = 1
     freeze_backbone: bool = False
     unfreeze_last_n_layers: int = 0
@@ -135,6 +136,9 @@ def load_config(path: str | Path) -> ExperimentConfig:
     )
     model = ModelConfig(
         model_id=str(model_raw.get("model_id", "AutonLab/MOMENT-1-large")),
+        config_path=Path(
+            model_raw.get("config_path", "configs/models/moment-1-large.json")
+        ),
         num_channels=int(model_raw.get("num_channels", 1)),
         freeze_backbone=bool(model_raw.get("freeze_backbone", False)),
         unfreeze_last_n_layers=int(model_raw.get("unfreeze_last_n_layers", 0)),

@@ -44,8 +44,13 @@ def select_device(torch: Any, requested: str) -> Any:
 
 
 def build_model(config: ExperimentConfig, moment_pipeline: Any, num_classes: int) -> Any:
+    if not config.model.config_path.is_file():
+        raise FileNotFoundError(f"MOMENT model config not found: {config.model.config_path}")
+    with config.model.config_path.open("r", encoding="utf-8") as file:
+        pretrained_config = json.load(file)
     return moment_pipeline.from_pretrained(
         config.model.model_id,
+        config=pretrained_config,
         model_kwargs={
             "task_name": "classification",
             "seq_len": config.data.max_length,
