@@ -1,5 +1,7 @@
 [project]
 name = "charging-power-moment"
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
 version = "0.1.0"
 description = "Charging power time-series classification experiments with MOMENT."
 readme = "README.md"
