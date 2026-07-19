@@ -72,7 +72,7 @@ class TCNTrainingConfig:
     scheduler_patience: int = 3
     scheduler_factor: float = 0.5
     gradient_clip_norm: float = 1.0
-    amp: bool = True
+    amp: bool = False
 
 
 @dataclass(frozen=True)
@@ -177,7 +177,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         scheduler_patience=int(tcn_training_raw.get("scheduler_patience", 3)),
         scheduler_factor=float(tcn_training_raw.get("scheduler_factor", 0.5)),
         gradient_clip_norm=float(tcn_training_raw.get("gradient_clip_norm", 1.0)),
-        amp=bool(tcn_training_raw.get("amp", True)),
+        amp=bool(tcn_training_raw.get("amp", False)),
     )
     return ExperimentConfig(
         data=data,

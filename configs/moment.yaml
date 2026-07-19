@@ -54,4 +54,5 @@ tcn_training:
   scheduler_patience: 3
   scheduler_factor: 0.5
   gradient_clip_norm: 1.0
-  amp: true
+  # V100 上 FP16 扩张卷积可能在训练后期溢出，TCN/CNN 默认使用 FP32。
+  amp: false

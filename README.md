@@ -282,7 +282,7 @@ TCN、CNN 和 MOMENT 支持：
 - 以验证集 Macro-F1 选择最佳权重
 - Early Stopping
 - ReduceLROnPlateau
-- CUDA AMP 混合精度
+- 可选 CUDA AMP 混合精度；TCN/CNN 在非有限损失时自动切换 FP32
 - 梯度裁剪
 - NaN/Inf 检测
 - 断点续训
@@ -336,6 +336,7 @@ cat artifacts/moment/<运行名>/status.json
 ```bash
 uv run moment-train \
   --config configs/experiments/moment_linear_probe.yaml \
+  --seed <原运行的随机种子> \
   --resume artifacts/moment/<运行名>
 ```
 
@@ -344,11 +345,12 @@ TCN 恢复示例：
 ```bash
 uv run tcn-train \
   --config configs/experiments/normalization_zscore.yaml \
+  --seed <原运行的随机种子> \
   --resume artifacts/tcn/<运行名>
 ```
 
-如果需要继续更多 epoch，应先在对应配置中提高 `epochs`。恢复时必须使用与原运行相同的模型和
-数据配置。
+如果需要继续更多 epoch，应先在对应配置中提高 `epochs`。恢复时必须使用与原运行相同的模型、
+数据配置和随机种子。
 
 ## 十一、汇总五随机种子结果
 
@@ -436,7 +438,8 @@ uv run moment-check-model --config configs/moment.yaml
 
 处理顺序：
 
-1. 先确认 `amp: true`；
+1. MOMENT 可先确认 `training.amp: true`；TCN/CNN 在 V100 上保持
+   `tcn_training.amp: false`；
 2. 减小 `batch_size`；
 3. 先运行线性探测；
 4. 再尝试部分解冻；
@@ -457,12 +460,19 @@ uv run moment-check-environment --require-cuda
 正确环境中的 `torch.__version__` 应包含 `+cu126`，且 `torch.cuda.get_arch_list()` 应包含
 `sm_70`。
 
-### 4. 数据划分协议不匹配
+### 5. TCN/CNN 训练后期出现 `Non-finite loss`
+
+V100 上的 FP16 扩张卷积可能发生前向溢出。同步最新代码后保持
+`tcn_training.amp: false`；程序也会在显式启用 AMP 后检测到溢出时自动回退 FP32。旧
+checkpoint 可以用于验证恢复流程，但正式论文实验应换用新的 `--suite-name`，从第 1 轮统一
+重跑所有随机种子。详细诊断和临时恢复命令见 `docs/troubleshooting.md`。
+
+### 6. 数据划分协议不匹配
 
 通常说明 CSV、过滤条件或随机种子发生变化。不要直接覆盖正式划分；确认变化是有意的，再使用
 新的 `split_path` 或执行 `--rebuild-split`。
 
-### 5. Hugging Face 下载失败
+### 7. Hugging Face 下载失败
 
 MOMENT 基础配置已经随项目保存，但预训练权重仍需从 `AutonLab/MOMENT-1-large` 下载。检查远程
 网络、代理或已有缓存后，再运行 `moment-check-model`。

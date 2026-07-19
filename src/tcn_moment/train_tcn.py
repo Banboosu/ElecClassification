@@ -290,19 +290,22 @@ def _train_run(
         factor=training.scheduler_factor,
         patience=training.scheduler_patience,
     )
-    amp_enabled = bool(training.amp and device.type == "cuda")
+    amp_requested = bool(training.amp and device.type == "cuda")
+    amp_enabled = amp_requested
+    amp_fallback_triggered = False
+    amp_fallback_epoch: int | None = None
     scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     if resume:
         start_epoch, history, best_macro_f1, epochs_without_improvement = (
             resume_training_checkpoint(
-            torch=torch,
-            path=latest_path,
-            model=model,
-            optimizer=optimizer,
-            data_generator=data_generator,
-            device=device,
-            scheduler=scheduler,
-            scaler=scaler,
+                torch=torch,
+                path=latest_path,
+                model=model,
+                optimizer=optimizer,
+                data_generator=data_generator,
+                device=device,
+                scheduler=scheduler,
+                scaler=scaler,
             )
         )
 
@@ -322,11 +325,35 @@ def _train_run(
             with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                 logits = model(batch_x, batch_mask)
                 loss = loss_fn(logits, batch_y)
+            if amp_enabled and not torch.isfinite(loss):
+                print(
+                    f"Warning: non-finite {model_name} loss under CUDA AMP at epoch "
+                    f"{epoch}; retrying this batch in FP32 and disabling AMP for this run."
+                )
+                amp_enabled = False
+                amp_fallback_triggered = True
+                amp_fallback_epoch = epoch
+                scaler = torch.amp.GradScaler("cuda", enabled=False)
+                optimizer.zero_grad(set_to_none=True)
+                logits = model(batch_x, batch_mask)
+                loss = loss_fn(logits, batch_y)
             if not torch.isfinite(loss):
-                raise FloatingPointError(f"Non-finite loss detected at epoch {epoch}.")
+                inputs_finite = bool(torch.isfinite(batch_x).all().item())
+                logits_finite = bool(torch.isfinite(logits).all().item())
+                raise FloatingPointError(
+                    f"Non-finite loss detected at epoch {epoch} in FP32 "
+                    f"(inputs_finite={inputs_finite}, logits_finite={logits_finite})."
+                )
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), training.gradient_clip_norm)
+            gradient_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(), training.gradient_clip_norm
+            )
+            if not torch.isfinite(gradient_norm) and not amp_enabled:
+                optimizer.zero_grad(set_to_none=True)
+                raise FloatingPointError(
+                    f"Non-finite gradient norm detected at epoch {epoch} in FP32."
+                )
             scaler.step(optimizer)
             scaler.update()
             train_loss += float(loss.detach().cpu()) * len(batch_y)
@@ -392,7 +419,10 @@ def _train_run(
         "training": {
             "stopped_epoch": int(history[-1]["epoch"]),
             "early_stopped": int(history[-1]["epoch"]) < training.epochs,
+            "amp_requested": amp_requested,
             "amp_enabled": amp_enabled,
+            "amp_fallback_triggered": amp_fallback_triggered,
+            "amp_fallback_epoch": amp_fallback_epoch,
             "total_parameters": sum(parameter.numel() for parameter in model.parameters()),
             "trainable_parameters": sum(
                 parameter.numel() for parameter in model.parameters() if parameter.requires_grad
