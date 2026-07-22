@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 moment-train = "tcn_moment.train_moment:main"
+moment-svm = "tcn_moment.train_moment_svm:main"
 tcn-train = "tcn_moment.train_tcn:main"
 cnn-train = "tcn_moment.train_cnn:main"
 baseline-train = "tcn_moment.train_baselines:main"

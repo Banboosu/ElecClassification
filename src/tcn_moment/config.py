@@ -61,6 +61,27 @@ class TrainingConfig:
 
 
 @dataclass(frozen=True)
+class SVMConfig:
+    c_values: tuple[float, ...] = (
+        0.0001,
+        0.001,
+        0.01,
+        0.1,
+        1.0,
+        10.0,
+        100.0,
+        1000.0,
+        10000.0,
+    )
+    gamma: str = "scale"
+    cv_folds: int = 5
+    max_samples: int = 10000
+    n_jobs: int = 1
+    cache_size_mb: float = 200.0
+    max_iter: int = 10000000
+
+
+@dataclass(frozen=True)
 class TCNModelConfig:
     channels: tuple[int, ...] = (64, 64, 128, 128)
     kernel_size: int = 3
@@ -89,6 +110,7 @@ class ExperimentConfig:
     data: DataConfig
     model: ModelConfig
     training: TrainingConfig
+    svm: SVMConfig
     tcn_model: TCNModelConfig
     tcn_training: TCNTrainingConfig
 
@@ -125,6 +147,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
     data_raw: dict[str, Any] = raw.get("data", {})
     model_raw: dict[str, Any] = raw.get("model", {})
     training_raw: dict[str, Any] = raw.get("training", {})
+    svm_raw: dict[str, Any] = raw.get("svm", {})
     tcn_model_raw: dict[str, Any] = raw.get("tcn_model", {})
     tcn_training_raw: dict[str, Any] = raw.get("tcn_training", {})
 
@@ -207,6 +230,31 @@ def load_config(path: str | Path) -> ExperimentConfig:
             raise ValueError(f"training.{field_name} must be positive.")
     if training.num_workers < 0:
         raise ValueError("training.num_workers must be non-negative.")
+    svm = SVMConfig(
+        c_values=tuple(
+            float(value)
+            for value in svm_raw.get(
+                "c_values",
+                [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000],
+            )
+        ),
+        gamma=str(svm_raw.get("gamma", "scale")),
+        cv_folds=int(svm_raw.get("cv_folds", 5)),
+        max_samples=int(svm_raw.get("max_samples", 10000)),
+        n_jobs=int(svm_raw.get("n_jobs", 1)),
+        cache_size_mb=float(svm_raw.get("cache_size_mb", 200.0)),
+        max_iter=int(svm_raw.get("max_iter", 10000000)),
+    )
+    if not svm.c_values or any(value <= 0 for value in svm.c_values):
+        raise ValueError("svm.c_values must contain positive values.")
+    if svm.gamma not in {"scale", "auto"}:
+        raise ValueError("svm.gamma must be 'scale' or 'auto'.")
+    if svm.cv_folds < 2:
+        raise ValueError("svm.cv_folds must be at least 2.")
+    if svm.max_samples <= 0 or svm.n_jobs == 0:
+        raise ValueError("svm.max_samples must be positive and svm.n_jobs cannot be zero.")
+    if svm.cache_size_mb <= 0 or svm.max_iter <= 0:
+        raise ValueError("svm.cache_size_mb and svm.max_iter must be positive.")
     tcn_model = TCNModelConfig(
         channels=tuple(int(value) for value in tcn_model_raw.get("channels", [64, 64, 128, 128])),
         kernel_size=int(tcn_model_raw.get("kernel_size", 3)),
@@ -231,6 +279,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         data=data,
         model=model,
         training=training,
+        svm=svm,
         tcn_model=tcn_model,
         tcn_training=tcn_training,
     )

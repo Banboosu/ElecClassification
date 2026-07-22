@@ -10,6 +10,7 @@ class V100TrainingConfigTests(unittest.TestCase):
         linear = load_config("configs/experiments/moment_linear_probe.yaml")
         partial = load_config("configs/experiments/moment_partial_finetune.yaml")
         full = load_config("configs/experiments/moment_full_finetune.yaml")
+        svm = load_config("configs/experiments/moment_svm_rbf.yaml")
 
         self.assertEqual(linear.training.feature_extraction_batch_size, 64)
         self.assertEqual(linear.training.cached_feature_batch_size, 32)
@@ -19,6 +20,11 @@ class V100TrainingConfigTests(unittest.TestCase):
         self.assertEqual(full.training.gradient_accumulation_steps, 1)
         self.assertFalse(full.training.gradient_checkpointing)
         self.assertFalse(full.training.keep_completed_checkpoint)
+        self.assertEqual(svm.svm.cv_folds, 5)
+        self.assertEqual(svm.svm.max_samples, 10000)
+        self.assertEqual(svm.svm.n_jobs, 5)
+        self.assertEqual(svm.svm.c_values[0], 0.0001)
+        self.assertEqual(svm.svm.c_values[-1], 10000.0)
         self.assertEqual(
             linear.training.cached_feature_batch_size
             * linear.training.gradient_accumulation_steps,

@@ -11,6 +11,7 @@ from tcn_moment.io_utils import atomic_write_json
 
 MODULES = {
     "moment": "tcn_moment.train_moment",
+    "moment-svm": "tcn_moment.train_moment_svm",
     "tcn": "tcn_moment.train_tcn",
     "cnn": "tcn_moment.train_cnn",
     "baseline": "tcn_moment.train_baselines",

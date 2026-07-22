@@ -198,6 +198,22 @@ uv run moment-train \
 每个 epoch 重复运行 3.41 亿参数的 backbone。先确认线性探测能够完成，再尝试部分解冻和完全
 微调，后两者仍需端到端计算，显存占用明显更高。
 
+### 4.1 MOMENT 冻结表征 + RBF-SVM（论文协议）
+
+MOMENT 原论文的分类主实验不是训练线性分类头，而是冻结 backbone、提取序列表示，再训练
+RBF-SVM。项目使用与其他 MOMENT 实验相同的 mask-aware pooling，并复现官方 `fit_svm`
+协议：从训练集分层抽取最多 10,000 条样本，以 5 折交叉验证从 9 个 `C` 值中选择模型；
+validation 和 test 均不参与参数选择。
+
+```bash
+uv run moment-svm \
+  --config configs/experiments/moment_svm_rbf.yaml \
+  --seed 42 \
+  --run-name moment_svm_rbf_smoke_seed42
+```
+
+产物包含完整交叉验证结果、SVM 模型、用于拟合的样本 ID、validation/test 逐样本预测及混淆矩阵。
+
 ### 5. 当前 V100 服务器的训练参数
 
 默认配置已按 `V100 32GB + 6 vCPU + 25GB RAM` 调整：
@@ -292,6 +308,20 @@ uv run experiment-suite \
 `v2` 表示使用 mask-aware patch pooling 和冻结特征缓存，`v100` 表示采用上面的服务器参数。
 旧 `v1` 使用 `momentfm 0.1.4` 默认分类头，对 padding patch 也参与平均，只能保留作诊断记录，
 不能与 `v2` 混合汇总。
+
+### 4.1 MOMENT 论文分类协议
+
+```bash
+uv run experiment-suite \
+  --model moment-svm \
+  --configs configs/experiments/moment_svm_rbf.yaml \
+  --seeds 42 43 44 45 46 \
+  --suite-name paper_v1
+```
+
+该实验用于回答“冻结的 MOMENT 表征配合论文推荐的非线性分类器能达到什么效果”，应与线性
+探测和端到端微调分别报告。由于项目数据为变长序列且最大长度为 1024，它属于对论文下游分类
+方法的任务适配，不应表述为对论文 UCR 结果的严格复现。
 
 ### 5. MOMENT 分类头学习率消融
 
