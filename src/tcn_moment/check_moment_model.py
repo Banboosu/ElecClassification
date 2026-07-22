@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tcn_moment.config import load_config
 from tcn_moment.train_moment import (
+    MOMENT_PROTOCOL_VERSION,
     build_model,
     forward_logits,
     require_torch_and_moment,
@@ -39,6 +40,8 @@ def main() -> None:
         "model_config": str(config.model.config_path),
         "device": str(device),
         "logits_shape": list(logits.shape),
+        "moment_protocol_version": MOMENT_PROTOCOL_VERSION,
+        "mask_aware_pooling": True,
         "parameters": sum(parameter.numel() for parameter in model.parameters()),
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))

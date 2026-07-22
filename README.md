@@ -194,7 +194,46 @@ uv run moment-train \
   --run-name moment_linear_smoke_seed42
 ```
 
-先确认线性探测能够完成，再尝试部分解冻和完全微调。后两者显存占用明显更高。
+线性探测会先为 train/validation/test 各提取一次冻结 backbone 特征，之后只训练分类头；无需在
+每个 epoch 重复运行 3.41 亿参数的 backbone。先确认线性探测能够完成，再尝试部分解冻和完全
+微调，后两者仍需端到端计算，显存占用明显更高。
+
+### 5. 当前 V100 服务器的训练参数
+
+默认配置已按 `V100 32GB + 6 vCPU + 25GB RAM` 调整：
+
+镜像页面虽然标注 Python 3.12，项目仍由 `.python-version` 和 `uv.lock` 固定使用 Python 3.11；
+`uv run python --version` 应输出 3.11.x。当前已跑通的环境不要切换解释器，否则会改变锁定依赖。
+
+| 策略 | 物理 batch | 梯度累积 | 有效 batch | 说明 |
+|---|---:|---:|---:|---|
+| 线性探测 | 32 | 1 | 32 | backbone 以 batch 64 提取一次特征，随后训练缓存特征 |
+| 部分微调 | 32 | 1 | 32 | 只解冻最后两个编码层 |
+| 完全微调 | 16 | 2 | 32 | 使用 FP16 和梯度检查点控制显存 |
+
+三种策略的有效 batch 统一为 32。验证 batch 和冻结特征提取 batch 均为 `64`。训练 DataLoader
+使用 `4` 个 worker，验证和测试使用
+主进程加载，避免在 6 核机器上同时保留多组 worker。CUDA 上优先使用 fused AdamW，不支持时会
+自动回退普通 AdamW。日志开头会打印最终执行参数，`metrics.json` 还会记录物理/有效 batch、
+吞吐、训练和验证耗时、峰值显存。运行成功后默认删除只用于恢复训练的
+`checkpoint_latest.pt`，保留最佳权重和全部指标，避免五个 full fine-tune seed 挤满 50GB 数据
+盘；中断或失败时 checkpoint 仍会保留。如确需保留成功运行的优化器状态，将
+`training.keep_completed_checkpoint` 改为 `true`。
+
+正式五随机种子前，先用同一 seed 对三种策略各跑 1 个 epoch，确认显存和吞吐；`--epochs` 只
+覆盖本次命令，不修改正式 YAML：
+
+```bash
+uv run moment-train --config configs/experiments/moment_linear_probe.yaml \
+  --seed 42 --epochs 1 --run-name moment_linear_v2_v100_smoke
+uv run moment-train --config configs/experiments/moment_partial_finetune.yaml \
+  --seed 42 --epochs 1 --run-name moment_partial_v2_v100_smoke
+uv run moment-train --config configs/experiments/moment_full_finetune.yaml \
+  --seed 42 --epochs 1 --run-name moment_full_v2_v100_smoke
+```
+
+三次都完成后，比较各目录 `metrics.json` 中的 `peak_gpu_memory_mb` 和
+`train_samples_per_second`，再启动正式套件。
 
 ## 七、正式五随机种子实验
 
@@ -242,8 +281,12 @@ uv run experiment-suite \
             configs/experiments/moment_partial_finetune.yaml \
             configs/experiments/moment_full_finetune.yaml \
   --seeds 42 43 44 45 46 \
-  --suite-name thesis_moment_strategy_v1
+  --suite-name thesis_moment_strategy_v2_v100
 ```
+
+`v2` 表示使用 mask-aware patch pooling 和冻结特征缓存，`v100` 表示采用上面的服务器参数。
+旧 `v1` 使用 `momentfm 0.1.4` 默认分类头，对 padding patch 也参与平均，只能保留作诊断记录，
+不能与 `v2` 混合汇总。
 
 ### 5. MOMENT 分类头学习率消融
 
@@ -254,7 +297,7 @@ uv run experiment-suite \
             configs/experiments/moment_head_lr_1e4.yaml \
             configs/experiments/moment_head_lr_1e5.yaml \
   --seeds 42 43 44 45 46 \
-  --suite-name thesis_moment_head_lr_v1
+  --suite-name thesis_moment_head_lr_v2
 ```
 
 ### 6. 序列长度消融
@@ -287,6 +330,8 @@ TCN、CNN 和 MOMENT 支持：
 - NaN/Inf 检测
 - 断点续训
 - 参数量、单轮耗时、总耗时和峰值显存记录
+- MOMENT 使用 mask-aware patch pooling，padding patch 不参与分类特征平均
+- MOMENT 线性探测缓存冻结特征；冻结/部分微调只保存可训练参数增量
 
 统一输出指标：
 
@@ -305,7 +350,7 @@ TCN、CNN 和 MOMENT 支持：
 
 ```text
 artifacts/<模型>/<运行名>/
-├── checkpoint_latest.pt            # 最近一个完整 epoch，可用于恢复
+├── checkpoint_latest.pt            # 中断/失败时保留；成功运行默认删除以节省磁盘
 ├── config.yaml                      # 本次配置快照
 ├── environment.json                 # Python、CUDA、GPU、Git 等环境信息
 ├── label_encoder.pkl
@@ -351,6 +396,9 @@ uv run tcn-train \
 
 如果需要继续更多 epoch，应先在对应配置中提高 `epochs`。恢复时必须使用与原运行相同的模型、
 数据配置和随机种子。
+
+MOMENT `v1` checkpoint 不兼容 mask-aware `v2` 协议，程序会拒绝混合恢复。正式实验应使用新
+`--run-name` 或 `--suite-name` 从第 1 轮开始。
 
 ## 十一、汇总五随机种子结果
 
@@ -440,10 +488,12 @@ uv run moment-check-model --config configs/moment.yaml
 
 1. MOMENT 可先确认 `training.amp: true`；TCN/CNN 在 V100 上保持
    `tcn_training.amp: false`；
-2. 减小 `batch_size`；
-3. 先运行线性探测；
-4. 再尝试部分解冻；
-5. 最后尝试完全微调。
+2. 完全微调先把 `batch_size: 16` 改为 `8`，同时把
+   `gradient_accumulation_steps: 2` 改为 `4`，保持有效 batch 为 32；
+3. 若在验证阶段溢出，再把 `evaluation_batch_size: 64` 改为 `32`；
+4. 先运行线性探测；
+5. 再尝试部分解冻；
+6. 最后尝试完全微调。
 
 修改配置前建议复制出新的实验 YAML，避免破坏已有实验条件。
 

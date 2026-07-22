@@ -38,10 +38,15 @@ class TrainingConfig:
     output_dir: Path = Path("artifacts/moment")
     epochs: int = 10
     batch_size: int = 16
+    evaluation_batch_size: int = 32
+    feature_extraction_batch_size: int = 32
+    cached_feature_batch_size: int = 32
+    gradient_accumulation_steps: int = 1
     learning_rate: float = 1e-5
     backbone_learning_rate: float = 1e-5
     weight_decay: float = 1e-2
     num_workers: int = 0
+    prefetch_factor: int = 2
     device: str = "auto"
     early_stopping_patience: int = 7
     early_stopping_min_delta: float = 1e-4
@@ -49,6 +54,9 @@ class TrainingConfig:
     scheduler_factor: float = 0.5
     gradient_clip_norm: float = 1.0
     amp: bool = True
+    fused_optimizer: bool = True
+    cache_frozen_features: bool = True
+    keep_completed_checkpoint: bool = False
 
 
 @dataclass(frozen=True)
@@ -147,10 +155,29 @@ def load_config(path: str | Path) -> ExperimentConfig:
         output_dir=Path(training_raw.get("output_dir", "artifacts/moment")),
         epochs=int(training_raw.get("epochs", 10)),
         batch_size=int(training_raw.get("batch_size", 16)),
+        evaluation_batch_size=int(
+            training_raw.get("evaluation_batch_size", training_raw.get("batch_size", 16))
+        ),
+        feature_extraction_batch_size=int(
+            training_raw.get(
+                "feature_extraction_batch_size",
+                training_raw.get("batch_size", 16),
+            )
+        ),
+        cached_feature_batch_size=int(
+            training_raw.get(
+                "cached_feature_batch_size",
+                training_raw.get("batch_size", 16),
+            )
+        ),
+        gradient_accumulation_steps=int(
+            training_raw.get("gradient_accumulation_steps", 1)
+        ),
         learning_rate=float(training_raw.get("learning_rate", 1e-5)),
         backbone_learning_rate=float(training_raw.get("backbone_learning_rate", 1e-5)),
         weight_decay=float(training_raw.get("weight_decay", 1e-2)),
         num_workers=int(training_raw.get("num_workers", 0)),
+        prefetch_factor=int(training_raw.get("prefetch_factor", 2)),
         device=str(training_raw.get("device", "auto")),
         early_stopping_patience=int(training_raw.get("early_stopping_patience", 7)),
         early_stopping_min_delta=float(training_raw.get("early_stopping_min_delta", 1e-4)),
@@ -158,7 +185,24 @@ def load_config(path: str | Path) -> ExperimentConfig:
         scheduler_factor=float(training_raw.get("scheduler_factor", 0.5)),
         gradient_clip_norm=float(training_raw.get("gradient_clip_norm", 1.0)),
         amp=bool(training_raw.get("amp", True)),
+        fused_optimizer=bool(training_raw.get("fused_optimizer", True)),
+        cache_frozen_features=bool(training_raw.get("cache_frozen_features", True)),
+        keep_completed_checkpoint=bool(
+            training_raw.get("keep_completed_checkpoint", False)
+        ),
     )
+    for field_name in (
+        "batch_size",
+        "evaluation_batch_size",
+        "feature_extraction_batch_size",
+        "cached_feature_batch_size",
+        "gradient_accumulation_steps",
+        "prefetch_factor",
+    ):
+        if getattr(training, field_name) <= 0:
+            raise ValueError(f"training.{field_name} must be positive.")
+    if training.num_workers < 0:
+        raise ValueError("training.num_workers must be non-negative.")
     tcn_model = TCNModelConfig(
         channels=tuple(int(value) for value in tcn_model_raw.get("channels", [64, 64, 128, 128])),
         kernel_size=int(tcn_model_raw.get("kernel_size", 3)),

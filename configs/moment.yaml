@@ -24,10 +24,18 @@ training:
   output_dir: artifacts/moment
   epochs: 50
   batch_size: 32
+  # V100 32GB：验证和冻结特征提取不保存反向激活，可以使用更大的 batch。
+  evaluation_batch_size: 64
+  feature_extraction_batch_size: 64
+  # 线性探测缓存后只训练小型分类头。
+  cached_feature_batch_size: 32
+  gradient_accumulation_steps: 1
   learning_rate: 0.001
   backbone_learning_rate: 0.00001
   weight_decay: 0.01
-  num_workers: 0
+  # 6 vCPU 保留 2 核给主进程、CUDA 驱动和系统。
+  num_workers: 4
+  prefetch_factor: 2
   device: auto
   early_stopping_patience: 7
   early_stopping_min_delta: 0.0001
@@ -35,6 +43,11 @@ training:
   scheduler_factor: 0.5
   gradient_clip_norm: 1.0
   amp: true
+  fused_optimizer: true
+  # 仅在线性探测（backbone 全冻结）时生效，每个 split 只提取一次特征。
+  cache_frozen_features: true
+  # 成功结束后最佳权重已足够复现测试；删除仅用于断点恢复的大型 latest checkpoint。
+  keep_completed_checkpoint: false
 
 tcn_model:
   channels: [64, 64, 128, 128]

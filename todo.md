@@ -1,6 +1,6 @@
 # 项目 TODO
 
-> 更新日期：2026-07-19
+> 更新日期：2026-07-20
 > 原则：模型训练统一在远程 CUDA 环境完成；本地只进行代码检查、数据检查和小规模单元测试。  
 > 当前阶段：P0 程序改造已完成；在远程 CUDA 主机完成环境验收后进入 P1。
 
@@ -41,7 +41,7 @@
 ### 3. 正确处理变长序列和 padding
 
 - [x] `DatasetBundle` 返回每条序列的有效长度或布尔 mask。
-- [x] 查明当前 `momentfm` 版本接受 padding mask 的准确参数，并在 MOMENT 前向传播中传入。
+- [x] MOMENT 编码器传入 padding mask，分类头改为 mask-aware patch pooling。
 - [x] TCN 的全局池化改为 mask-aware pooling，避免将尾部填充 0 当作真实功率。
 - [x] 验证截断前归一化、填充后 mask 的处理顺序。
 - [x] 在指标文件中记录因 `min_length` 和 `max_length` 被过滤或截断的数量。
@@ -60,7 +60,7 @@
 
 ### 5. 增强训练中断与恢复能力
 
-- [x] MOMENT 增加 `--resume`，恢复模型、优化器、epoch、历史指标和最佳分数。
+- [x] MOMENT 增加 `--resume`；冻结策略只保存可训练参数，并拒绝混合恢复旧 pooling 协议。
 - [x] TCN 同样保存 latest checkpoint 并支持 `--resume`。
 - [x] TCN 捕获 `KeyboardInterrupt`，确保中断后仍保存已完成 epoch 的结果。
 - [x] 保存随机数状态，尽可能保证恢复训练连续性。
@@ -92,6 +92,8 @@
 - [x] MOMENT 支持 AMP；TCN/CNN 在 V100 上默认使用 FP32，并在 AMP 溢出时自动回退。
 - [x] 支持梯度裁剪，检测 NaN/Inf，记录诊断信息并将不可恢复的运行标记为失败。
 - [x] 输出模型总参数量、可训练参数量、单 epoch 时间和峰值显存。
+- [x] MOMENT 线性探测缓存冻结 backbone 特征，避免每个 epoch 重复提取。
+- [x] 为 V100 32GB 增加独立验证/特征 batch、梯度累积、fused AdamW 和分阶段 DataLoader 参数。
 - [ ] 根据远程显存测试合理的 batch size，不在本地做完整训练。
 
 验收标准：长时间运行可自动停止并留下最佳模型、完整日志及资源消耗记录。
@@ -161,6 +163,7 @@
 
 ### 13. 测试和持续检查
 
+- [x] 增加 MOMENT mask-aware pooling、冻结模块模式和轻量 checkpoint 单元测试。
 - [ ] 为序列解析、归一化、截断、填充和过滤规则增加单元测试。
 - [ ] 为固定划分、类别分布和无交叉泄漏增加测试。
 - [ ] 为共享指标函数增加已知输入/输出测试。
