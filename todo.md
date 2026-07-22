@@ -1,6 +1,6 @@
 # 项目 TODO
 
-> 更新日期：2026-07-20
+> 更新日期：2026-07-22
 > 原则：模型训练统一在远程 CUDA 环境完成；本地只进行代码检查、数据检查和小规模单元测试。  
 > 当前阶段：P0 程序改造已完成；在远程 CUDA 主机完成环境验收后进入 P1。
 
@@ -23,7 +23,7 @@
 - [x] 为每次运行增加唯一的 `run_name`，建议格式为“模型_预处理_随机种子_时间”。
 - [x] 输出到 `artifacts/<model>/<run_name>/`，不再固定覆盖 `artifacts/moment/metrics.json`。
 - [x] 每个运行目录保存实际生效的配置副本。
-- [x] 自动记录开始时间、结束时间、Git commit、Python/PyTorch/CUDA/GPU 信息。
+- [x] 自动记录开始时间、结束时间、Git commit/dirty/diff、Python/PyTorch/CUDA/GPU 信息。
 - [x] 保存运行状态：`running`、`completed`、`interrupted` 或 `failed`。
 
 验收标准：连续运行两个配置后生成两个独立目录，任一目录都能单独还原实验条件。
@@ -94,7 +94,8 @@
 - [x] 输出模型总参数量、可训练参数量、单 epoch 时间和峰值显存。
 - [x] MOMENT 线性探测缓存冻结 backbone 特征，避免每个 epoch 重复提取。
 - [x] 为 V100 32GB 增加独立验证/特征 batch、梯度累积、fused AdamW 和分阶段 DataLoader 参数。
-- [ ] 根据远程显存测试合理的 batch size，不在本地做完整训练。
+- [x] 根据远程 V100 实测确定 batch：linear/partial/full 有效 batch 均为 32；full 使用
+  `32 x 1` 并关闭梯度检查点，吞吐较 `16 x 2` 基线提高 47.2%。
 
 验收标准：长时间运行可自动停止并留下最佳模型、完整日志及资源消耗记录。
 

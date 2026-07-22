@@ -99,8 +99,8 @@ uv run moment-train \
 
 当前默认值按 6 vCPU、25GB 内存和单卡 V100 32GB 设置：训练加载使用 4 个 worker，FP16、
 pin-memory 和 fused AdamW 默认开启；验证同样使用 FP16。线性探测的冻结特征以 batch 64 提取
-一次、分类头以 `32 x 1` 训练，partial 使用 `32 x 1`，full 使用梯度累积后的 `16 x 2`，三种
-策略的有效 batch 都是 32。
+一次、分类头以 `32 x 1` 训练，partial 和 full 都使用 `32 x 1`，三种策略的有效 batch 都是
+32。full 默认关闭梯度检查点，利用 V100 32GB 的显存换取更少的反向重算。
 考虑到数据盘只有 50GB，成功运行默认删除包含优化器状态的 `checkpoint_latest.pt`，仅保留最佳
 模型；中断/失败运行不会删除。若需要保存成功运行的完整恢复点，设置
 `training.keep_completed_checkpoint: true`。
@@ -114,8 +114,9 @@ pin-memory 和 fused AdamW 默认开启；验证同样使用 FP16。线性探测
 
 ```yaml
 training:
-  batch_size: 8
-  gradient_accumulation_steps: 4
+  batch_size: 16
+  gradient_accumulation_steps: 2
+  gradient_checkpointing: true
 ```
 
 这样仍保持有效 batch 32。若 OOM 出现在 validation，则另把 `evaluation_batch_size` 从 64 降到

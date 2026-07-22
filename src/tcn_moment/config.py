@@ -55,6 +55,7 @@ class TrainingConfig:
     gradient_clip_norm: float = 1.0
     amp: bool = True
     fused_optimizer: bool = True
+    gradient_checkpointing: bool = True
     cache_frozen_features: bool = True
     keep_completed_checkpoint: bool = False
 
@@ -186,6 +187,9 @@ def load_config(path: str | Path) -> ExperimentConfig:
         gradient_clip_norm=float(training_raw.get("gradient_clip_norm", 1.0)),
         amp=bool(training_raw.get("amp", True)),
         fused_optimizer=bool(training_raw.get("fused_optimizer", True)),
+        gradient_checkpointing=bool(
+            training_raw.get("gradient_checkpointing", True)
+        ),
         cache_frozen_features=bool(training_raw.get("cache_frozen_features", True)),
         keep_completed_checkpoint=bool(
             training_raw.get("keep_completed_checkpoint", False)

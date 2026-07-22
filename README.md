@@ -209,7 +209,7 @@ uv run moment-train \
 |---|---:|---:|---:|---|
 | 线性探测 | 32 | 1 | 32 | backbone 以 batch 64 提取一次特征，随后训练缓存特征 |
 | 部分微调 | 32 | 1 | 32 | 只解冻最后两个编码层 |
-| 完全微调 | 16 | 2 | 32 | 使用 FP16 和梯度检查点控制显存 |
+| 完全微调 | 32 | 1 | 32 | 使用 FP16，关闭梯度检查点以避免重算 |
 
 三种策略的有效 batch 统一为 32。验证 batch 和冻结特征提取 batch 均为 `64`。训练 DataLoader
 使用 `4` 个 worker，验证和测试使用
@@ -219,6 +219,11 @@ uv run moment-train \
 `checkpoint_latest.pt`，保留最佳权重和全部指标，避免五个 full fine-tune seed 挤满 50GB 数据
 盘；中断或失败时 checkpoint 仍会保留。如确需保留成功运行的优化器状态，将
 `training.keep_completed_checkpoint` 改为 `true`。
+
+2026-07-22 在 V100 32GB 上用同一 seed 完成 1 epoch 对照：full 从
+`16 x 2 + gradient checkpointing` 改为 `32 x 1 + no checkpointing` 后，训练吞吐从
+67.01 提升到 98.67 样本/秒，训练时间从 366.63 秒降至 249.00 秒；PyTorch 峰值显存从
+6030 MiB 增至 15613 MiB，仍有充足余量。该数据只用于执行效率比较，不作为模型效果结果。
 
 正式五随机种子前，先用同一 seed 对三种策略各跑 1 个 epoch，确认显存和吞吐；`--epochs` 只
 覆盖本次命令，不修改正式 YAML：
@@ -352,7 +357,8 @@ TCN、CNN 和 MOMENT 支持：
 artifacts/<模型>/<运行名>/
 ├── checkpoint_latest.pt            # 中断/失败时保留；成功运行默认删除以节省磁盘
 ├── config.yaml                      # 本次配置快照
-├── environment.json                 # Python、CUDA、GPU、Git 等环境信息
+├── environment.json                 # Python、CUDA、GPU、Git commit/dirty/diff hash
+├── git_diff.patch                   # 工作区有改动时保存可复现补丁
 ├── label_encoder.pkl
 ├── metrics.json                     # 最终测试结果
 ├── metrics_partial.json             # 已完成 epoch 的历史
@@ -488,8 +494,8 @@ uv run moment-check-model --config configs/moment.yaml
 
 1. MOMENT 可先确认 `training.amp: true`；TCN/CNN 在 V100 上保持
    `tcn_training.amp: false`；
-2. 完全微调先把 `batch_size: 16` 改为 `8`，同时把
-   `gradient_accumulation_steps: 2` 改为 `4`，保持有效 batch 为 32；
+2. 完全微调改为已验证的保守回退值：`batch_size: 16`、
+   `gradient_accumulation_steps: 2`、`gradient_checkpointing: true`，保持有效 batch 为 32；
 3. 若在验证阶段溢出，再把 `evaluation_batch_size: 64` 改为 `32`；
 4. 先运行线性探测；
 5. 再尝试部分解冻；

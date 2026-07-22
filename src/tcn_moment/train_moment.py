@@ -65,7 +65,10 @@ def build_model(config: ExperimentConfig, moment_pipeline: Any, num_classes: int
             "num_classes": num_classes,
             "freeze_embedder": config.model.freeze_backbone,
             "freeze_encoder": config.model.freeze_backbone,
-            "enable_gradient_checkpointing": not config.model.freeze_backbone,
+            "enable_gradient_checkpointing": (
+                not config.model.freeze_backbone
+                and config.training.gradient_checkpointing
+            ),
         },
     )
 
@@ -536,6 +539,10 @@ def _train_run(
     effective_batch_size = (
         physical_batch_size * config.training.gradient_accumulation_steps
     )
+    gradient_checkpointing_enabled = bool(
+        not config.model.freeze_backbone
+        and config.training.gradient_checkpointing
+    )
     execution_metadata = {
         "moment_protocol_version": MOMENT_PROTOCOL_VERSION,
         "mask_aware_pooling": True,
@@ -545,13 +552,15 @@ def _train_run(
         "gradient_accumulation_steps": config.training.gradient_accumulation_steps,
         "amp_enabled": amp_enabled,
         "fused_optimizer_enabled": fused_optimizer_enabled,
+        "gradient_checkpointing_enabled": gradient_checkpointing_enabled,
     }
     print(
         "MOMENT execution settings: "
         f"device={device}, amp={amp_enabled}, fused_adamw={fused_optimizer_enabled}, "
         f"batch={physical_batch_size}, effective_batch={effective_batch_size}, "
         f"eval_batch={config.training.evaluation_batch_size}, "
-        f"workers={config.training.num_workers}."
+        f"workers={config.training.num_workers}, "
+        f"gradient_checkpointing={gradient_checkpointing_enabled}."
     )
     if resume:
         start_epoch, history, best_macro_f1, epochs_without_improvement = (
@@ -778,6 +787,7 @@ def _train_run(
                     config.training.gradient_accumulation_steps
                 ),
                 "fused_optimizer_enabled": fused_optimizer_enabled,
+                "gradient_checkpointing_enabled": gradient_checkpointing_enabled,
                 "checkpoint_model_state_scope": model_state_scope,
                 "patch_len": patch_len,
                 "patch_stride": patch_stride,
@@ -827,6 +837,7 @@ def _train_run(
             "num_workers": config.training.num_workers,
             "prefetch_factor": config.training.prefetch_factor,
             "fused_optimizer_enabled": fused_optimizer_enabled,
+            "gradient_checkpointing_enabled": gradient_checkpointing_enabled,
             "latest_checkpoint_retained": latest_path.exists(),
             "checkpoint_model_state_scope": model_state_scope,
             "patch_len": patch_len,

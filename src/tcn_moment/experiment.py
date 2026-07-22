@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata
 import json
 import os
@@ -32,18 +33,47 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
-def _git_commit() -> str | None:
+def _git_state() -> tuple[dict[str, Any], bytes | None]:
+    metadata: dict[str, Any] = {
+        "git_commit": None,
+        "git_dirty": None,
+        "git_diff_sha256": None,
+        "git_status": [],
+    }
     try:
-        result = subprocess.run(
+        commit_result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             check=True,
             capture_output=True,
-            text=True,
             timeout=5,
         )
-        return result.stdout.strip()
+        metadata["git_commit"] = commit_result.stdout.decode("utf-8").strip()
     except (OSError, subprocess.SubprocessError):
-        return None
+        return metadata, None
+
+    try:
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+            check=True,
+            capture_output=True,
+            timeout=5,
+        )
+        status_lines = status_result.stdout.decode("utf-8").splitlines()
+        metadata["git_status"] = status_lines
+        metadata["git_dirty"] = bool(status_lines)
+        if not status_lines:
+            return metadata, None
+        diff_result = subprocess.run(
+            ["git", "diff", "--binary", "HEAD", "--"],
+            check=True,
+            capture_output=True,
+            timeout=5,
+        )
+        diff = diff_result.stdout
+        metadata["git_diff_sha256"] = hashlib.sha256(diff).hexdigest()
+        return metadata, diff
+    except (OSError, subprocess.SubprocessError, UnicodeDecodeError):
+        return metadata, None
 
 
 def _package_version(name: str) -> str | None:
@@ -72,17 +102,22 @@ def _nvidia_driver() -> str | None:
         return None
 
 
-def collect_environment(torch: Any) -> dict[str, Any]:
+def collect_environment(
+    torch: Any,
+    git_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     cuda_available = bool(torch.cuda.is_available())
     gpu_names = (
         [torch.cuda.get_device_name(index) for index in range(torch.cuda.device_count())]
         if cuda_available
         else []
     )
+    if git_metadata is None:
+        git_metadata, _ = _git_state()
     return {
         "python": sys.version,
         "platform": platform.platform(),
-        "git_commit": _git_commit(),
+        **git_metadata,
         "packages": {
             "momentfm": _package_version("momentfm"),
             "numpy": _package_version("numpy"),
@@ -174,13 +209,22 @@ def prepare_run(
     environment_name = (
         f"environment_resume_{timestamp}.json" if resume_dir is not None else "environment.json"
     )
+    git_metadata, git_diff = _git_state()
+    if git_diff is not None:
+        git_diff_name = (
+            f"git_diff_resume_{timestamp}.patch"
+            if resume_dir is not None
+            else "git_diff.patch"
+        )
+        (run_dir / git_diff_name).write_bytes(git_diff)
+        git_metadata["git_diff_file"] = git_diff_name
     atomic_write_json(
         run_dir / environment_name,
         {
             "recorded_at": started_at,
             "command": sys.argv,
             "working_directory": os.getcwd(),
-            **collect_environment(torch),
+            **collect_environment(torch, git_metadata=git_metadata),
         },
     )
     context.set_status("running", resumed=resume_dir is not None)

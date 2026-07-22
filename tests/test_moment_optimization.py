@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 import torch
 from torch import nn
 
+from tcn_moment.config import load_config
 from tcn_moment.train_moment import (
+    build_model,
     classification_logits_from_features,
     forward_features,
     masked_pool_embeddings,
@@ -41,6 +44,15 @@ class _EmbeddingOutput:
         self.embeddings = embeddings
 
 
+class _PipelineRecorder:
+    model_kwargs: dict[str, object] = {}
+
+    @classmethod
+    def from_pretrained(cls, *_args: object, **kwargs: object) -> object:
+        cls.model_kwargs = dict(kwargs["model_kwargs"])
+        return object()
+
+
 class _EmbedModel(nn.Module):
     patch_len = 2
 
@@ -68,6 +80,18 @@ class _EmbedModel(nn.Module):
 
 
 class MomentPoolingTests(unittest.TestCase):
+    def test_gradient_checkpointing_is_explicitly_forwarded_to_moment(self) -> None:
+        config = load_config("configs/experiments/moment_full_finetune.yaml")
+        build_model(config, _PipelineRecorder, num_classes=3)
+        self.assertFalse(_PipelineRecorder.model_kwargs["enable_gradient_checkpointing"])
+
+        enabled_config = replace(
+            config,
+            training=replace(config.training, gradient_checkpointing=True),
+        )
+        build_model(enabled_config, _PipelineRecorder, num_classes=3)
+        self.assertTrue(_PipelineRecorder.model_kwargs["enable_gradient_checkpointing"])
+
     def test_patch_mask_requires_a_complete_valid_patch(self) -> None:
         input_mask = torch.tensor(
             [

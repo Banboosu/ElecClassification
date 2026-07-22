@@ -3,8 +3,9 @@ model:
   freeze_backbone: false
   unfreeze_last_n_layers: 0
 training:
-  # V100 32GB 的物理 batch 为 16；累积 2 次后有效 batch 仍为 32。
-  batch_size: 16
-  gradient_accumulation_steps: 2
+  # V100 32GB 直接使用物理 batch 32，避免梯度累积和检查点重算。
+  batch_size: 32
+  gradient_accumulation_steps: 1
+  gradient_checkpointing: false
   learning_rate: 0.0001
   backbone_learning_rate: 0.00001

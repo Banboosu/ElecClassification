@@ -15,8 +15,9 @@ class V100TrainingConfigTests(unittest.TestCase):
         self.assertEqual(linear.training.cached_feature_batch_size, 32)
         self.assertEqual(partial.training.batch_size, 32)
         self.assertEqual(partial.training.gradient_accumulation_steps, 1)
-        self.assertEqual(full.training.batch_size, 16)
-        self.assertEqual(full.training.gradient_accumulation_steps, 2)
+        self.assertEqual(full.training.batch_size, 32)
+        self.assertEqual(full.training.gradient_accumulation_steps, 1)
+        self.assertFalse(full.training.gradient_checkpointing)
         self.assertFalse(full.training.keep_completed_checkpoint)
         self.assertEqual(
             linear.training.cached_feature_batch_size
