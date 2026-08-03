@@ -22,6 +22,7 @@ class DataConfig:
     test_size: float = 0.2
     random_state: int = 42
     split_path: Path = Path("artifacts/splits/unified_split.json")
+    train_fraction: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -79,6 +80,16 @@ class SVMConfig:
     n_jobs: int = 1
     cache_size_mb: float = 200.0
     max_iter: int = 10000000
+    few_shot_fractions: tuple[float, ...] = (0.01, 0.05, 0.1, 0.2, 0.4)
+
+
+@dataclass(frozen=True)
+class ImputationConfig:
+    mask_rates: tuple[float, ...] = (0.1, 0.25, 0.4, 0.6)
+    mask_patterns: tuple[str, ...] = ("random_patches", "contiguous_block")
+    mask_seeds: tuple[int, ...] = (42, 43, 44, 45, 46)
+    min_complete_patches: int = 3
+    example_count: int = 8
 
 
 @dataclass(frozen=True)
@@ -111,6 +122,7 @@ class ExperimentConfig:
     model: ModelConfig
     training: TrainingConfig
     svm: SVMConfig
+    imputation: ImputationConfig
     tcn_model: TCNModelConfig
     tcn_training: TCNTrainingConfig
 
@@ -148,6 +160,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
     model_raw: dict[str, Any] = raw.get("model", {})
     training_raw: dict[str, Any] = raw.get("training", {})
     svm_raw: dict[str, Any] = raw.get("svm", {})
+    imputation_raw: dict[str, Any] = raw.get("imputation", {})
     tcn_model_raw: dict[str, Any] = raw.get("tcn_model", {})
     tcn_training_raw: dict[str, Any] = raw.get("tcn_training", {})
 
@@ -165,6 +178,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         test_size=float(data_raw.get("test_size", 0.2)),
         random_state=int(data_raw.get("random_state", 42)),
         split_path=Path(data_raw.get("split_path", "artifacts/splits/unified_split.json")),
+        train_fraction=float(data_raw.get("train_fraction", 1.0)),
     )
     model = ModelConfig(
         model_id=str(model_raw.get("model_id", "AutonLab/MOMENT-1-large")),
@@ -244,6 +258,13 @@ def load_config(path: str | Path) -> ExperimentConfig:
         n_jobs=int(svm_raw.get("n_jobs", 1)),
         cache_size_mb=float(svm_raw.get("cache_size_mb", 200.0)),
         max_iter=int(svm_raw.get("max_iter", 10000000)),
+        few_shot_fractions=tuple(
+            float(value)
+            for value in svm_raw.get(
+                "few_shot_fractions",
+                [0.01, 0.05, 0.1, 0.2, 0.4],
+            )
+        ),
     )
     if not svm.c_values or any(value <= 0 for value in svm.c_values):
         raise ValueError("svm.c_values must contain positive values.")
@@ -255,6 +276,58 @@ def load_config(path: str | Path) -> ExperimentConfig:
         raise ValueError("svm.max_samples must be positive and svm.n_jobs cannot be zero.")
     if svm.cache_size_mb <= 0 or svm.max_iter <= 0:
         raise ValueError("svm.cache_size_mb and svm.max_iter must be positive.")
+    if (
+        not svm.few_shot_fractions
+        or any(not 0 < value <= 1 for value in svm.few_shot_fractions)
+        or tuple(sorted(set(svm.few_shot_fractions))) != svm.few_shot_fractions
+    ):
+        raise ValueError(
+            "svm.few_shot_fractions must be unique, ascending values in (0, 1]."
+        )
+    imputation = ImputationConfig(
+        mask_rates=tuple(
+            float(value)
+            for value in imputation_raw.get("mask_rates", [0.1, 0.25, 0.4, 0.6])
+        ),
+        mask_patterns=tuple(
+            str(value)
+            for value in imputation_raw.get(
+                "mask_patterns", ["random_patches", "contiguous_block"]
+            )
+        ),
+        mask_seeds=tuple(
+            int(value)
+            for value in imputation_raw.get("mask_seeds", [42, 43, 44, 45, 46])
+        ),
+        min_complete_patches=int(imputation_raw.get("min_complete_patches", 3)),
+        example_count=int(imputation_raw.get("example_count", 8)),
+    )
+    allowed_patterns = {"random_patches", "contiguous_block"}
+    if (
+        not imputation.mask_rates
+        or any(not 0 < value < 1 for value in imputation.mask_rates)
+        or tuple(sorted(set(imputation.mask_rates))) != imputation.mask_rates
+    ):
+        raise ValueError(
+            "imputation.mask_rates must be unique, ascending values in (0, 1)."
+        )
+    if (
+        not imputation.mask_patterns
+        or len(set(imputation.mask_patterns)) != len(imputation.mask_patterns)
+        or not set(imputation.mask_patterns).issubset(allowed_patterns)
+    ):
+        raise ValueError(
+            "imputation.mask_patterns must contain unique supported patterns."
+        )
+    if not imputation.mask_seeds or len(set(imputation.mask_seeds)) != len(
+        imputation.mask_seeds
+    ):
+        raise ValueError("imputation.mask_seeds must contain unique values.")
+    if imputation.min_complete_patches < 2 or imputation.example_count < 0:
+        raise ValueError(
+            "imputation.min_complete_patches must be at least 2 and example_count "
+            "must be non-negative."
+        )
     tcn_model = TCNModelConfig(
         channels=tuple(int(value) for value in tcn_model_raw.get("channels", [64, 64, 128, 128])),
         kernel_size=int(tcn_model_raw.get("kernel_size", 3)),
@@ -280,6 +353,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         model=model,
         training=training,
         svm=svm,
+        imputation=imputation,
         tcn_model=tcn_model,
         tcn_training=tcn_training,
     )

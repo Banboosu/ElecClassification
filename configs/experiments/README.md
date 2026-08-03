@@ -10,5 +10,9 @@ The resolved configuration is saved in every run directory.
 - `moment_partial_finetune.yaml`: unfreeze the final two encoder blocks.
 - `moment_full_finetune.yaml`: train the full MOMENT model.
 - `moment_head_lr_*`: linear-probe head learning-rate comparison.
+- `few_shot/`: nested, stratified 1%, 5%, 10%, 20%, and 40% label-budget
+  comparisons for TCN and frozen MOMENT + RBF-SVM.
+- `moment_imputation_zero_shot.yaml`: evaluate the pretrained reconstruction head
+  without parameter updates on random-patch and contiguous-block missingness.
 
 Run a single preset with `--config`, or use `experiment-suite` for multiple seeds.

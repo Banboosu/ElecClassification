@@ -1,0 +1,5 @@
+extends: ../normalization_none.yaml
+data:
+  train_fraction: 0.01
+tcn_training:
+  output_dir: artifacts/tcn_few_shot

@@ -1,0 +1,23 @@
+extends: ../moment.yaml
+
+data:
+  # 保留原始功率尺度；MOMENT 在 reconstruct 内只用可见点执行 RevIN。
+  normalize: none
+  random_state: 42
+
+model:
+  freeze_backbone: true
+  unfreeze_last_n_layers: 0
+
+training:
+  output_dir: artifacts/moment_imputation
+  feature_extraction_batch_size: 64
+  device: auto
+  amp: true
+
+imputation:
+  mask_rates: [0.10, 0.25, 0.40, 0.60]
+  mask_patterns: [random_patches, contiguous_block]
+  mask_seeds: [42, 43, 44, 45, 46]
+  min_complete_patches: 3
+  example_count: 8

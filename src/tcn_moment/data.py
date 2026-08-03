@@ -41,6 +41,9 @@ class DatasetBundle:
     truncated_sequence_count: int
     dataset_sha256: str
     split_path: Path
+    full_train_count: int
+    train_fraction: float
+    train_subset_sha256: str
 
     @property
     def num_classes(self) -> int:
@@ -52,6 +55,21 @@ class DatasetBundle:
             "train": len(self.y_train),
             "validation": len(self.y_val),
             "test": len(self.y_test),
+        }
+
+    @property
+    def train_subset_record(self) -> dict[str, Any]:
+        labels, counts = np.unique(self.y_train, return_counts=True)
+        return {
+            "requested_fraction": self.train_fraction,
+            "full_train_count": self.full_train_count,
+            "selected_train_count": len(self.y_train),
+            "selected_fraction": len(self.y_train) / self.full_train_count,
+            "class_counts": {
+                str(self.label_encoder.inverse_transform([int(label)])[0]): int(count)
+                for label, count in zip(labels, counts, strict=True)
+            },
+            "sample_ids_sha256": self.train_subset_sha256,
         }
 
 
@@ -116,6 +134,38 @@ def _validate_sizes(config: DataConfig) -> None:
         raise ValueError("test_size + validation_size must be less than 1.")
     if config.min_length <= 0 or config.max_length < config.min_length:
         raise ValueError("Require 0 < min_length <= max_length.")
+    if not 0 < config.train_fraction <= 1:
+        raise ValueError("train_fraction must be in the interval (0, 1].")
+
+
+def train_subset_sha256(sample_ids: np.ndarray) -> str:
+    encoded = "\n".join(str(value) for value in sample_ids).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def stratified_train_subset_indices(
+    labels: np.ndarray,
+    sample_ids: np.ndarray,
+    fraction: float,
+    random_state: int,
+) -> np.ndarray:
+    """Return a deterministic, class-stratified, nested training subset."""
+    if len(labels) != len(sample_ids):
+        raise ValueError("labels and sample_ids must have equal lengths.")
+    if not 0 < fraction <= 1:
+        raise ValueError("fraction must be in the interval (0, 1].")
+    if fraction == 1:
+        return np.arange(len(labels), dtype=np.int64)
+
+    generator = np.random.default_rng(random_state)
+    selected: list[np.ndarray] = []
+    for label in np.unique(labels):
+        class_indices = np.flatnonzero(labels == label)
+        stable_order = np.argsort(sample_ids[class_indices].astype(str), kind="stable")
+        shuffled = generator.permutation(class_indices[stable_order])
+        selected_count = max(1, int(np.floor(len(class_indices) * fraction)))
+        selected.append(shuffled[:selected_count])
+    return np.sort(np.concatenate(selected)).astype(np.int64, copy=False)
 
 
 def _protocol(config: DataConfig, dataset_sha256: str) -> dict[str, Any]:
@@ -293,6 +343,18 @@ def load_dataset(config: DataConfig, *, rebuild_split: bool = False) -> DatasetB
     x_train, mask_train, y_train, ids_train, lengths_train = prepared["train"]
     x_val, mask_val, y_val, ids_val, lengths_val = prepared["validation"]
     x_test, mask_test, y_test, ids_test, lengths_test = prepared["test"]
+    full_train_count = len(y_train)
+    subset_indices = stratified_train_subset_indices(
+        y_train,
+        ids_train,
+        config.train_fraction,
+        config.random_state,
+    )
+    x_train = x_train[subset_indices]
+    mask_train = mask_train[subset_indices]
+    y_train = y_train[subset_indices]
+    ids_train = ids_train[subset_indices]
+    lengths_train = lengths_train[subset_indices]
     return DatasetBundle(
         x_train=x_train,
         x_val=x_val,
@@ -318,6 +380,9 @@ def load_dataset(config: DataConfig, *, rebuild_split: bool = False) -> DatasetB
         truncated_sequence_count=truncated_sequence_count,
         dataset_sha256=dataset_sha256,
         split_path=config.split_path,
+        full_train_count=full_train_count,
+        train_fraction=config.train_fraction,
+        train_subset_sha256=train_subset_sha256(ids_train),
     )
 
 

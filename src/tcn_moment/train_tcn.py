@@ -215,6 +215,7 @@ def _data_record(bundle: DatasetBundle, config: ExperimentConfig) -> dict[str, A
         "dataset_sha256": bundle.dataset_sha256,
         "split_manifest": str(bundle.split_path),
         "split": bundle.split_counts,
+        "train_subset": bundle.train_subset_record,
         "classes": bundle.label_encoder.classes_.tolist(),
         "short_sequences_excluded": bundle.short_sequence_count,
         "invalid_label_counts": bundle.invalid_label_counts,
@@ -234,6 +235,7 @@ def _train_run(
     training = config.tcn_training
     bundle = load_dataset(config.data)
     shutil.copy2(bundle.split_path, context.run_dir / "split_manifest.json")
+    np.save(context.run_dir / "train_subset_sample_ids.npy", bundle.ids_train.astype(str))
     save_label_encoder(bundle.label_encoder, context.run_dir)
 
     data_generator = torch.Generator().manual_seed(config.data.random_state)

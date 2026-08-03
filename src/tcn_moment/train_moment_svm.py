@@ -113,6 +113,7 @@ def _data_record(bundle: DatasetBundle, config: ExperimentConfig) -> dict[str, A
         "dataset_sha256": bundle.dataset_sha256,
         "split_manifest": str(bundle.split_path),
         "split": bundle.split_counts,
+        "train_subset": bundle.train_subset_record,
         "classes": bundle.label_encoder.classes_.tolist(),
         "short_sequences_excluded": bundle.short_sequence_count,
         "invalid_label_counts": bundle.invalid_label_counts,
@@ -141,18 +142,16 @@ def _make_prediction_frame(
     )
 
 
-def _run(
+def extract_frozen_moment_features(
     config: ExperimentConfig,
-    context: RunContext,
+    bundle: DatasetBundle,
     torch: Any,
     DataLoader: Any,
     TensorDataset: Any,
     tqdm: Any,
     MOMENTPipeline: Any,
-) -> None:
-    bundle = load_dataset(config.data)
-    shutil.copy2(bundle.split_path, context.run_dir / "split_manifest.json")
-    save_label_encoder(bundle.label_encoder, context.run_dir)
+) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], dict[str, Any]]:
+    """Extract every split once and return CPU features plus execution metadata."""
     device = select_device(torch, config.training.device)
     model = build_model(config, MOMENTPipeline, bundle.num_classes)
     set_num_classes(model, bundle.num_classes)
@@ -199,18 +198,57 @@ def _run(
         extraction_seconds[split] = time.perf_counter() - started
         extracted[split] = (features.numpy(), cached_labels.numpy())
 
-    peak_gpu_memory_mb = (
-        float(torch.cuda.max_memory_allocated(device) / (1024**2))
-        if device.type == "cuda"
-        else 0.0
-    )
-    patch_len = int(getattr(model, "patch_len", 0))
-    patch_stride = int(getattr(model.config, "patch_stride_len", patch_len))
-    pooled_feature_dim = int(extracted["train"][0].shape[1])
-    total_parameters = sum(parameter.numel() for parameter in model.parameters())
+    metadata = {
+        "device": str(device),
+        "amp_enabled": amp_enabled,
+        "feature_extraction_batch_size": config.training.feature_extraction_batch_size,
+        "feature_extraction_seconds": extraction_seconds,
+        "total_feature_extraction_seconds": float(sum(extraction_seconds.values())),
+        "peak_gpu_memory_mb": (
+            float(torch.cuda.max_memory_allocated(device) / (1024**2))
+            if device.type == "cuda"
+            else 0.0
+        ),
+        "total_parameters": sum(parameter.numel() for parameter in model.parameters()),
+        "trainable_backbone_parameters": 0,
+        "patch_len": int(getattr(model, "patch_len", 0)),
+        "patch_stride": int(
+            getattr(
+                model.config,
+                "patch_stride_len",
+                int(getattr(model, "patch_len", 0)),
+            )
+        ),
+        "feature_dimension": int(extracted["train"][0].shape[1]),
+    }
     del model
     if device.type == "cuda":
         torch.cuda.empty_cache()
+    return extracted, metadata
+
+
+def _run(
+    config: ExperimentConfig,
+    context: RunContext,
+    torch: Any,
+    DataLoader: Any,
+    TensorDataset: Any,
+    tqdm: Any,
+    MOMENTPipeline: Any,
+) -> None:
+    bundle = load_dataset(config.data)
+    shutil.copy2(bundle.split_path, context.run_dir / "split_manifest.json")
+    np.save(context.run_dir / "train_subset_sample_ids.npy", bundle.ids_train.astype(str))
+    save_label_encoder(bundle.label_encoder, context.run_dir)
+    extracted, extraction = extract_frozen_moment_features(
+        config,
+        bundle,
+        torch,
+        DataLoader,
+        TensorDataset,
+        tqdm,
+        MOMENTPipeline,
+    )
 
     train_features, train_labels = extracted["train"]
     selected_features, selected_labels, selected_ids = select_paper_training_subset(
@@ -275,9 +313,9 @@ def _run(
             "paper_aligned_downstream_classifier": True,
             "backbone_frozen": True,
             "mask_aware_pooling": True,
-            "feature_dimension": pooled_feature_dim,
-            "patch_len": patch_len,
-            "patch_stride": patch_stride,
+            "feature_dimension": extraction["feature_dimension"],
+            "patch_len": extraction["patch_len"],
+            "patch_stride": extraction["patch_stride"],
             "training_pool": "training split only",
             "training_samples_before_subsample": int(len(train_features)),
             "training_samples_after_subsample": int(len(selected_features)),
@@ -300,14 +338,18 @@ def _run(
             "cv_results": _cv_results(search),
         },
         "execution": {
-            "device": str(device),
-            "amp_enabled": amp_enabled,
-            "feature_extraction_batch_size": config.training.feature_extraction_batch_size,
-            "feature_extraction_seconds": extraction_seconds,
-            "total_feature_extraction_seconds": float(sum(extraction_seconds.values())),
+            "device": extraction["device"],
+            "amp_enabled": extraction["amp_enabled"],
+            "feature_extraction_batch_size": extraction[
+                "feature_extraction_batch_size"
+            ],
+            "feature_extraction_seconds": extraction["feature_extraction_seconds"],
+            "total_feature_extraction_seconds": extraction[
+                "total_feature_extraction_seconds"
+            ],
             "svm_fit_seconds": fit_seconds,
-            "peak_gpu_memory_mb": peak_gpu_memory_mb,
-            "total_parameters": total_parameters,
+            "peak_gpu_memory_mb": extraction["peak_gpu_memory_mb"],
+            "total_parameters": extraction["total_parameters"],
             "trainable_backbone_parameters": 0,
         },
         "validation_metrics": validation_metrics,
