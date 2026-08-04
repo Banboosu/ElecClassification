@@ -15,8 +15,8 @@ MOMENT 时序基础模型。项目支持固定数据划分、消融实验、多�
 
 标签定义及仍需数据提供者确认的信息见 `docs/data_dictionary.md`。
 
-完整的五随机种子分类主表、MOMENT 微调消融、少样本、零样本插补、无监督检索、算力成本和
-论文结论边界见 [综合实验报告](docs/experiment_report_20260804.md)。
+完整的五随机种子分类主表、MOMENT 微调消融、少样本、电池异常漏检—误报权衡、零样本插补、
+无监督检索、算力成本和论文结论边界见 [综合实验报告](docs/experiment_report_20260804.md)。
 
 ## 一、项目目录
 
@@ -356,6 +356,30 @@ uv run experiment-suite \
 如需运行 MOMENT 长度消融，将 `--model tcn` 改为 `--model moment`，并使用新的
 `--suite-name`。
 
+### 7. 电池异常安全关键复评（复用已训练权重）
+
+标签 `2` 是项目约定的电池异常。总体 Accuracy 不能反映漏检和误报，因此正式结果完成后应对
+最佳 checkpoint 追加 one-vs-rest 安全评估。阈值只在验证集选择，测试集不参与选择：
+
+```bash
+bash scripts/run_battery_safety_remote.sh
+```
+
+也可以复评指定运行：
+
+```bash
+uv run battery-safety-evaluate \
+  --run-dirs artifacts/tcn/<运行名> artifacts/moment/<运行名> \
+  --output-dir artifacts/battery_safety_thesis_v1 \
+  --critical-label 2 \
+  --target-recalls 0.95 0.98 0.99 \
+  --device cuda
+```
+
+输出包括逐样本电池异常分数、PR-AUC/ROC-AUC、Recall/FNR、Precision/FPR、F2，以及验证集
+目标 Recall 为 95%、98%、99% 时在测试集上的实际漏检与误报。完整协议和结论边界见
+[`battery_safety_experiment_20260804.md`](docs/experiment_records/battery_safety_experiment_20260804.md)。
+
 ## 八、训练功能与指标
 
 TCN、CNN 和 MOMENT 支持：
@@ -379,8 +403,10 @@ TCN、CNN 和 MOMENT 支持：
 - Weighted Precision、Recall、F1
 - 混淆矩阵
 - 各类别分类报告
+- 电池异常专项复评额外输出 Recall/FNR、Precision/FPR、F2、PR-AUC、ROC-AUC 和阈值权衡
 
-论文主指标建议使用 Macro-F1，同时报告 Accuracy 和 Balanced Accuracy。
+论文通用分类主指标建议使用 Macro-F1，同时报告 Accuracy 和 Balanced Accuracy；电池异常诊断
+必须另外报告漏检率和误报率，不能用总体 Accuracy 代替。
 
 ## 九、实验产物
 
