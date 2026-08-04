@@ -1,0 +1,26 @@
+extends: ../moment.yaml
+
+data:
+  # 使用原始功率；遮挡查询的归一化只能依赖可见点，避免隐藏值泄漏。
+  normalize: none
+  random_state: 42
+
+model:
+  freeze_backbone: true
+  unfreeze_last_n_layers: 0
+
+training:
+  output_dir: artifacts/moment_retrieval
+  feature_extraction_batch_size: 64
+  device: auto
+  amp: true
+
+retrieval:
+  k_values: [1, 5, 10]
+  query_mask_rate: 0.40
+  mask_patterns: [random_patches, contiguous_block]
+  mask_seeds: [42, 43, 44, 45, 46]
+  min_complete_patches: 2
+  raw_resample_length: 128
+  search_batch_size: 256
+  example_query_count: 6

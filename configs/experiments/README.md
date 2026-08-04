@@ -14,5 +14,7 @@ The resolved configuration is saved in every run directory.
   comparisons for TCN and frozen MOMENT + RBF-SVM.
 - `moment_imputation_zero_shot.yaml`: evaluate the pretrained reconstruction head
   without parameter updates on random-patch and contiguous-block missingness.
+- `moment_retrieval_zero_shot.yaml`: evaluate frozen MOMENT representations for
+  label-free similar-sequence retrieval and masked-query robustness.
 
 Run a single preset with `--config`, or use `experiment-suite` for multiple seeds.

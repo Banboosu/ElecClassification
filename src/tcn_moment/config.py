@@ -93,6 +93,18 @@ class ImputationConfig:
 
 
 @dataclass(frozen=True)
+class RetrievalConfig:
+    k_values: tuple[int, ...] = (1, 5, 10)
+    query_mask_rate: float = 0.4
+    mask_patterns: tuple[str, ...] = ("random_patches", "contiguous_block")
+    mask_seeds: tuple[int, ...] = (42, 43, 44, 45, 46)
+    min_complete_patches: int = 2
+    raw_resample_length: int = 128
+    search_batch_size: int = 256
+    example_query_count: int = 6
+
+
+@dataclass(frozen=True)
 class TCNModelConfig:
     channels: tuple[int, ...] = (64, 64, 128, 128)
     kernel_size: int = 3
@@ -123,6 +135,7 @@ class ExperimentConfig:
     training: TrainingConfig
     svm: SVMConfig
     imputation: ImputationConfig
+    retrieval: RetrievalConfig
     tcn_model: TCNModelConfig
     tcn_training: TCNTrainingConfig
 
@@ -161,6 +174,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
     training_raw: dict[str, Any] = raw.get("training", {})
     svm_raw: dict[str, Any] = raw.get("svm", {})
     imputation_raw: dict[str, Any] = raw.get("imputation", {})
+    retrieval_raw: dict[str, Any] = raw.get("retrieval", {})
     tcn_model_raw: dict[str, Any] = raw.get("tcn_model", {})
     tcn_training_raw: dict[str, Any] = raw.get("tcn_training", {})
 
@@ -328,6 +342,58 @@ def load_config(path: str | Path) -> ExperimentConfig:
             "imputation.min_complete_patches must be at least 2 and example_count "
             "must be non-negative."
         )
+    retrieval = RetrievalConfig(
+        k_values=tuple(
+            int(value) for value in retrieval_raw.get("k_values", [1, 5, 10])
+        ),
+        query_mask_rate=float(retrieval_raw.get("query_mask_rate", 0.4)),
+        mask_patterns=tuple(
+            str(value)
+            for value in retrieval_raw.get(
+                "mask_patterns", ["random_patches", "contiguous_block"]
+            )
+        ),
+        mask_seeds=tuple(
+            int(value)
+            for value in retrieval_raw.get("mask_seeds", [42, 43, 44, 45, 46])
+        ),
+        min_complete_patches=int(
+            retrieval_raw.get("min_complete_patches", 2)
+        ),
+        raw_resample_length=int(retrieval_raw.get("raw_resample_length", 128)),
+        search_batch_size=int(retrieval_raw.get("search_batch_size", 256)),
+        example_query_count=int(retrieval_raw.get("example_query_count", 6)),
+    )
+    if (
+        not retrieval.k_values
+        or any(value <= 0 for value in retrieval.k_values)
+        or tuple(sorted(set(retrieval.k_values))) != retrieval.k_values
+    ):
+        raise ValueError("retrieval.k_values must contain unique ascending positive values.")
+    if not 0 < retrieval.query_mask_rate < 1:
+        raise ValueError("retrieval.query_mask_rate must be in (0, 1).")
+    if (
+        not retrieval.mask_patterns
+        or len(set(retrieval.mask_patterns)) != len(retrieval.mask_patterns)
+        or not set(retrieval.mask_patterns).issubset(allowed_patterns)
+    ):
+        raise ValueError(
+            "retrieval.mask_patterns must contain unique supported patterns."
+        )
+    if not retrieval.mask_seeds or len(set(retrieval.mask_seeds)) != len(
+        retrieval.mask_seeds
+    ):
+        raise ValueError("retrieval.mask_seeds must contain unique values.")
+    if (
+        retrieval.min_complete_patches < 2
+        or retrieval.raw_resample_length < 2
+        or retrieval.search_batch_size <= 0
+        or retrieval.example_query_count < 0
+    ):
+        raise ValueError(
+            "retrieval patch/resampling/search sizes must be valid and example count "
+            "must be non-negative."
+        )
     tcn_model = TCNModelConfig(
         channels=tuple(int(value) for value in tcn_model_raw.get("channels", [64, 64, 128, 128])),
         kernel_size=int(tcn_model_raw.get("kernel_size", 3)),
@@ -354,6 +420,7 @@ def load_config(path: str | Path) -> ExperimentConfig:
         training=training,
         svm=svm,
         imputation=imputation,
+        retrieval=retrieval,
         tcn_model=tcn_model,
         tcn_training=tcn_training,
     )
