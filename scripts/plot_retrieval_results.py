@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 
 from tcn_moment.config import load_config
 from tcn_moment.data import load_dataset
-
+from tcn_moment.paper_style import PAPER_COLORS, apply_paper_style
 
 METHODS = ("moment", "raw_resampled", "statistical")
 METHOD_LABELS = {
@@ -20,10 +20,10 @@ METHOD_LABELS = {
     "length_only": "Length only",
 }
 COLORS = {
-    "moment": "#D55E00",
-    "raw_resampled": "#0072B2",
-    "statistical": "#009E73",
-    "length_only": "#777777",
+    "moment": PAPER_COLORS["moment_rbf"],
+    "raw_resampled": PAPER_COLORS["raw"],
+    "statistical": PAPER_COLORS["statistical"],
+    "length_only": PAPER_COLORS["neutral"],
 }
 
 
@@ -164,7 +164,7 @@ def plot_metrics(run_dir: Path, output_stem: Path) -> None:
         fontsize=17,
     )
     output_stem.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(output_stem.with_suffix(".png"), dpi=220)
+    figure.savefig(output_stem.with_suffix(".png"), dpi=300)
     figure.savefig(output_stem.with_suffix(".svg"))
     plt.close(figure)
 
@@ -240,7 +240,7 @@ def plot_examples(run_dir: Path, config_path: str, output_stem: Path) -> None:
     figure.suptitle("Deterministic clean-query retrieval examples", fontsize=17, y=0.965)
     figure.tight_layout(rect=(0, 0, 1, 0.93))
     output_stem.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(output_stem.with_suffix(".png"), dpi=220)
+    figure.savefig(output_stem.with_suffix(".png"), dpi=300)
     figure.savefig(output_stem.with_suffix(".svg"))
     plt.close(figure)
 
@@ -260,6 +260,7 @@ def main() -> None:
     )
     parser.add_argument("--output-dir", type=Path, default=Path("docs/figures"))
     args = parser.parse_args()
+    apply_paper_style(plt)
     plot_metrics(
         args.run_dir,
         args.output_dir / "moment_retrieval_metrics_20260803",

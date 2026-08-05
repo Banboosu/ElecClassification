@@ -2,10 +2,11 @@
 
 > 稿件状态：期刊论文初稿，2026-08-05。
 >
-> 使用说明：本文只把当前项目中已有五随机种子或完整零样本协议支持的结果写成事实。所有
-> `【待补】` 项均需在投稿前完成或从正文中删除；对应实验编号见
-> [论文证据与补实验台账](paper_experiment_backlog_20260805.md)。目标期刊确定后，还需按其模板
-> 调整篇幅、图表和参考文献格式。
+> 使用说明：M01–M04 已完成当前学生论文的实验与文稿闭环；正文只把已有五随机种子或完整
+> 零样本协议支持的结果写成事实。当前 `【待补】` 仅保留作者、单位、基金、贡献、利益冲突和
+> 致谢等投稿元数据，不代表实验缺口。扩展研究统一见
+> [未来工作备忘](paper_experiment_backlog_20260805.md)；目标期刊确定后再按其模板调整版式和
+> 参考文献格式。
 
 **作者：**【待补】  
 **单位：**【待补】  
@@ -70,7 +71,8 @@ outperform linear interpolation in any of eight zero-shot imputation conditions.
 battery-abnormality evaluation favored fully supervised TCN in recall–false-positive trade-offs and
 did not support deployment claims for few-label methods. The reproducible advantage of MOMENT in
 this dataset is therefore label efficiency and stability in low-label multiclass classification, rather
-than superior full-label accuracy or universal zero-shot transfer.
+than superior full-label accuracy or universal zero-shot transfer. When labels are sufficient and
+measured training-side resources matter, TCN is the more appropriate choice under the tested setup.
 
 **Keywords:** charging-power time series; fault classification; time-series foundation model;
 MOMENT; temporal convolutional network; label efficiency; safety-critical evaluation
@@ -216,7 +218,8 @@ TCN 使用原始尺度，MOMENT 使用 z-score。因此该比较回答的是“�
 少标签实验在每个随机种子的完整训练集内按类别分层抽取 1%、5%、10%、20% 和 40% 的嵌套子集，
 实际样本数分别为 244、1,227、2,456、4,913 和 9,827；验证集和测试集保持完整。TCN 从头训练，
 MOMENT 骨干保持冻结，每个种子只提取一次表征，再为各标签比例独立执行训练集内部的 SVM 交叉
-验证。相同种子、相同比例的两种方法使用完全一致的样本 ID。
+验证。相同种子、相同比例的两种方法使用完全一致的样本 ID。下文将这一低标签管线简称为
+MOMENT-SVM。
 
 预训练归因消融只保留 1%、5% 和 10% 三个核心低标签比例。条件 A 使用预训练
 MOMENT-1-large；条件 B 直接构造参数量相同的随机初始化 MOMENT-1-large，不加载 MOMENT 或
@@ -274,8 +277,8 @@ query 执行 2,000 次类别分层 bootstrap。由于随机种子数仅为 5，�
 | TCN（逐序列 min-max） | 91.79 ± 1.37 | 92.18 ± 1.33 | 92.00 ± 1.37 |
 | TCN（逐序列 z-score） | 94.92 ± 1.44 | 95.06 ± 1.46 | 95.02 ± 1.43 |
 | **TCN（原始尺度）** | **95.94 ± 0.74** | **96.09 ± 0.67** | **95.99 ± 0.73** |
-| MOMENT 线性探测 | 77.02 ± 0.88 | — | 77.41 ± 0.89 |
-| MOMENT 最后两层微调 | 81.08 ± 1.13 | — | 81.50 ± 1.06 |
+| MOMENT 线性探测 | 77.02 ± 0.88 | 77.31 ± 0.93 | 77.41 ± 0.89 |
+| MOMENT 最后两层微调 | 81.08 ± 1.13 | 82.05 ± 1.31 | 81.50 ± 1.06 |
 | MOMENT 冻结表征 + RBF-SVM | 84.77 ± 1.04 | 85.26 ± 1.03 | 85.17 ± 1.03 |
 | **MOMENT 完全微调** | **95.26 ± 0.41** | **95.52 ± 0.39** | **95.37 ± 0.39** |
 
@@ -299,8 +302,8 @@ MOMENT 容量足以接近本任务的专用模型上限，但没有证据表明�
 
 原始尺度减 z-score 为 +0.97 个百分点，95% CI 为 [−0.55, 2.49]；z-score 减 min-max 为
 +3.01 个百分点，95% CI 为 [0.86, 5.16]。逐序列归一化会移除样本间绝对功率幅值，因此结果
-提示绝对功率幅值是现行业务任务中的有效判别信号。实验 E06 将通过训练集全局标准化进一步
-量化保留幅值信息与逐序列归一化之间的影响。
+提示绝对功率幅值是现行业务任务中的有效判别信号。未来可增加仅由训练集统计量确定的全局
+标准化，以进一步区分“保留跨样本尺度”与“完全不做尺度校准”的影响；该扩展不影响当前消融结论。
 
 ### 4.3 MOMENT 适配深度
 
@@ -310,7 +313,7 @@ MOMENT 容量足以接近本任务的专用模型上限，但没有证据表明�
 |---|---:|---:|---:|
 | 冻结 backbone + 线性头 | 3,075 | 77.41 ± 0.89 | — |
 | 解冻最后 2/24 层 | 25,697,283 | 81.50 ± 1.06 | +4.09 pp |
-| 冻结表示 + RBF-SVM | backbone 0 | 85.17 ± 1.03 | +3.67 pp |
+| 冻结表征 + RBF-SVM | backbone 0 | 85.17 ± 1.03 | +3.67 pp |
 | 完全微调 | 341,243,395 | 95.37 ± 0.39 | +10.20 pp |
 
 RBF-SVM 比线性探测高 7.75 个百分点，也比最后两层微调高 3.67 个百分点，说明冻结表征具有
@@ -322,7 +325,7 @@ RBF-SVM 比线性探测高 7.75 个百分点，也比最后两层微调高 3.67 
 
 **表 5 少标签测试 Macro-F1（%，五随机种子均值 ± 标准差）**
 
-| 标签比例（样本数） | TCN | MOMENT + RBF-SVM | MOMENT − TCN |
+| 标签比例（样本数） | TCN | MOMENT 冻结表征 + RBF-SVM | MOMENT − TCN |
 |---:|---:|---:|---:|
 | 1%（244） | 61.62 ± 4.12 | **68.05 ± 1.59** | **+6.43 pp** |
 | 5%（1,227） | 66.54 ± 2.54 | **77.40 ± 0.93** | **+10.86 pp** |
@@ -338,7 +341,7 @@ RBF-SVM 比线性探测高 7.75 个百分点，也比最后两层微调高 3.67 
 2.36–8.80 个百分点。
 
 因此，MOMENT 的核心正面结论是低标签下的标签效率和跨种子稳定性，而不是完整标签性能。
-冻结表示在约 85% Macro-F1 附近趋于饱和；标签增加后，TCN 能继续学习目标域判别特征，并在
+冻结表征在约 85% Macro-F1 附近趋于饱和；标签增加后，TCN 能继续学习目标域判别特征，并在
 40% 标签时接近其完整数据上限。MOMENT 与 TCN 的差异仍是各自既定协议下的管线比较；下一节
 使用同架构、同分类器对照进一步隔离预训练权重的作用。
 
@@ -536,9 +539,9 @@ MOMENT 检索明显受序列长度影响，但仅长度基线远低于 MOMENT，
 F2 和高召回运行点均优于完全微调 MOMENT。低标签 MOMENT 的默认 Recall 较高，却伴随很高 FPR；
 专用二分类和阈值调整可以减少部分误报，但仍明显弱于相同标签下的随机森林或完整标签 TCN。
 
-因此，本文将安全专项结果视为模型选择约束，而不是 MOMENT 优势。进一步部署应明确漏检/误报
-成本，完成前缀早期检测、概率校准、线上回放和持续监控。目前结果用于比较候选方案，不能替代
-既有生产验收流程。
+因此，本文将安全专项结果视为模型选择约束，而不是 MOMENT 优势。若未来进入部署评估，应另行
+明确漏检/误报成本，并完成前缀早期检测、概率校准、线上回放和持续监控；这些工作属于部署验证，
+不是当前离线模型比较结论成立的前提。目前结果不能替代既有生产验收流程。
 
 ### 5.4 迁移失败也是模型边界
 
@@ -559,6 +562,15 @@ MOMENT 的零样本插补落后于简单线性插值，表明目标曲线的局�
 6. 尚未测量各模型在统一 batch 和硬件下的推理延迟、吞吐与能耗。
 7. 检索以类别一致性代理业务相关性，尚缺少面向运维用途的相似度评价。
 
+### 5.6 未来工作
+
+未来工作只用于扩展结论边界，不再列作当前稿件的实验硬缺口。第一，可加入 MiniROCKET 或
+TS2Vec 等强通用表征基线，并在相同低标签样本和调参预算下比较。第二，可评估训练集全局标准化、
+噪声/缺失/重采样/输入前缀鲁棒性以及概率校准。第三，只有在进一步讨论部署效率时，才在统一
+硬件和 batch size 下补充推理延迟、吞吐、能耗与模型文件大小。第四，可由业务人员复核固定规则
+错误样例，并在不改动现有生产系统的前提下开展生产兼容离线回放。以上扩展无论得到正结果或
+负结果，都应与本文已锁定的五随机种子离线结论分开报告。
+
 ## 6 结论
 
 本文在统一变长序列协议下比较了专用 TCN 与 MOMENT 时序基础模型。完整标签条件下，TCN 以
@@ -571,8 +583,8 @@ MOMENT 的零样本插补落后于简单线性插值，表明目标曲线的局�
 相对薄弱区间，而 TCN 与完全微调 MOMENT 的类别混淆和曲线特征并不完全相同。
 
 因此，本研究支持的模型选择原则是：低标签冷启动优先评估冻结 MOMENT 表征，标签充足且关注
-已测训练侧资源时优先 TCN，安全报警和跨任务迁移必须独立优化与验证。后续补充强表示基线、错误人工复核
-与鲁棒性分析、效率测量及线上场景回放，可进一步完善模型选型与部署结论。
+已测训练侧资源时优先 TCN，安全报警和跨任务迁移必须独立优化与验证。强表示基线、鲁棒性、
+统一推理效率和生产兼容回放均属于未来扩展，不改变本文对现有离线证据的主张边界。
 
 ## 数据与代码可用性
 
@@ -645,10 +657,14 @@ evaluating binary classifiers on imbalanced datasets[J]. *PLOS ONE*, 2015, 10(3)
 ## 附录 A 当前结果的复现索引
 
 - 综合实验依据：[experiment_report_20260804.md](experiment_report_20260804.md)
+- M01 预训练归因：[experiment_records/m01_pretraining_ablation_20260805.md](experiment_records/m01_pretraining_ablation_20260805.md)
+- M02 轻量错误分析：[experiment_records/m02_error_analysis_20260805.md](experiment_records/m02_error_analysis_20260805.md)
+- M03 最终协议审计：[experiment_records/m03_protocol_audit_20260805.md](experiment_records/m03_protocol_audit_20260805.md)
+- M04 稿件闭环：[experiment_records/m04_manuscript_finalization_20260805.md](experiment_records/m04_manuscript_finalization_20260805.md)
 - 少标签实验：[experiment_records/few_shot_experiment_20260728.md](experiment_records/few_shot_experiment_20260728.md)
 - 电池安全评估：[experiment_records/battery_safety_experiment_20260804.md](experiment_records/battery_safety_experiment_20260804.md)
 - 电池专用二分类：[experiment_records/battery_binary_experiment_20260804.md](experiment_records/battery_binary_experiment_20260804.md)
 - 零样本插补：[experiment_records/moment_imputation_20260803.md](experiment_records/moment_imputation_20260803.md)
 - 无监督检索：[experiment_records/moment_retrieval_20260803.md](experiment_records/moment_retrieval_20260803.md)
 - 数据质量：[experiment_records/data_quality_findings.md](experiment_records/data_quality_findings.md)
-- 补实验台账：[paper_experiment_backlog_20260805.md](paper_experiment_backlog_20260805.md)
+- 未来工作备忘：[paper_experiment_backlog_20260805.md](paper_experiment_backlog_20260805.md)

@@ -10,14 +10,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from tcn_moment.paper_style import PAPER_COLORS, apply_paper_style
 
 FRACTIONS = (0.01, 0.05, 0.1, 1.0)
 MODEL_SPECS = (
-    ("TCN", "TCN", "#1f77b4", "-"),
-    ("MOMENT_MULTICLASS", "MOMENT three-class", "#2ca02c", "--"),
-    ("BATTERY_BINARY_MOMENT_RBF_SVM", "MOMENT binary", "#9467bd", "-"),
-    ("BATTERY_BINARY_LOGISTIC_REGRESSION", "Logistic regression", "#7f7f7f", ":"),
-    ("BATTERY_BINARY_RANDOM_FOREST", "Random forest", "#ff7f0e", "-"),
+    ("TCN", "TCN", PAPER_COLORS["tcn"], "-"),
+    ("MOMENT_MULTICLASS", "MOMENT three-class", PAPER_COLORS["moment_rbf"], "--"),
+    ("BATTERY_BINARY_MOMENT_RBF_SVM", "MOMENT binary", PAPER_COLORS["moment_full"], "-"),
+    (
+        "BATTERY_BINARY_LOGISTIC_REGRESSION",
+        "Logistic regression",
+        PAPER_COLORS["logistic_regression"],
+        ":",
+    ),
+    (
+        "BATTERY_BINARY_RANDOM_FOREST",
+        "Random forest",
+        PAPER_COLORS["random_forest"],
+        "-",
+    ),
 )
 
 
@@ -136,7 +147,7 @@ def _plot_combined(rows: pd.DataFrame, output_stem: Path) -> None:
     figure.suptitle("Dedicated battery detection: five-seed comparison")
     figure.tight_layout()
     for suffix in ("png", "svg"):
-        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=220, bbox_inches="tight")
+        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=300, bbox_inches="tight")
     plt.close(figure)
 
 
@@ -232,7 +243,7 @@ def _plot_feature_importance(aggregate: pd.DataFrame, output_stem: Path) -> None
     figure.suptitle("Normalized feature importance for battery-vs-rest baselines")
     figure.tight_layout()
     for suffix in ("png", "svg"):
-        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=220, bbox_inches="tight")
+        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=300, bbox_inches="tight")
     plt.close(figure)
 
 
@@ -251,6 +262,7 @@ def main() -> None:
     parser.add_argument("--stats-run-dirs", nargs="+", type=Path, required=True)
     parser.add_argument("--figure-dir", type=Path, default=Path("docs/figures"))
     args = parser.parse_args()
+    apply_paper_style(plt)
 
     formal_dir: Path = args.formal_dir
     figure_dir: Path = args.figure_dir

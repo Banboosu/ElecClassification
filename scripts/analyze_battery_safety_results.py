@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from tcn_moment.paper_style import PAPER_COLORS, apply_paper_style
 
 MODEL_LABELS = {
     "TCN": "TCN",
@@ -17,10 +18,10 @@ MODEL_LABELS = {
 }
 
 MODEL_COLORS = {
-    "TCN": "#1f77b4",
-    "MOMENT_FULL_FINETUNE": "#d62728",
-    "MOMENT_RBF_SVM": "#2ca02c",
-    "MOMENT_RBF_SVM_FEW_SHOT": "#2ca02c",
+    "TCN": PAPER_COLORS["tcn"],
+    "MOMENT_FULL_FINETUNE": PAPER_COLORS["moment_full"],
+    "MOMENT_RBF_SVM": PAPER_COLORS["moment_rbf"],
+    "MOMENT_RBF_SVM_FEW_SHOT": PAPER_COLORS["moment_rbf"],
 }
 
 T_CRITICAL_95_DF4 = 2.7764451051977987
@@ -201,7 +202,7 @@ def _plot_few_shot(rows: pd.DataFrame, output_stem: Path) -> None:
     figure.suptitle("Battery-abnormality detection under limited labels (argmax)")
     figure.tight_layout()
     for suffix in ("png", "svg"):
-        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=220, bbox_inches="tight")
+        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=300, bbox_inches="tight")
     plt.close(figure)
 
 
@@ -256,7 +257,7 @@ def _plot_full_threshold_tradeoff(rows: pd.DataFrame, output_stem: Path) -> None
     axis.legend(loc="lower right")
     figure.tight_layout()
     for suffix in ("png", "svg"):
-        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=220, bbox_inches="tight")
+        figure.savefig(output_stem.with_suffix(f".{suffix}"), dpi=300, bbox_inches="tight")
     plt.close(figure)
 
 
@@ -269,6 +270,7 @@ def main() -> None:
     )
     parser.add_argument("--figure-dir", type=Path, default=Path("docs/figures"))
     args = parser.parse_args()
+    apply_paper_style(plt)
 
     input_dir: Path = args.input_dir
     figure_dir: Path = args.figure_dir

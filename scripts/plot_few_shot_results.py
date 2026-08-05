@@ -7,6 +7,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from tcn_moment.paper_style import PAPER_COLORS, apply_paper_style
+
 
 def _load_results(root: Path) -> dict[str, dict[float, list[float]]]:
     results: dict[str, dict[float, list[float]]] = {
@@ -49,11 +51,14 @@ def main() -> None:
     fractions = sorted(results["TCN"])
     percentages = np.asarray(fractions) * 100
 
-    plt.style.use("seaborn-v0_8-whitegrid")
+    apply_paper_style(plt)
     figure, axis = plt.subplots(figsize=(7.2, 4.6))
     styles = {
-        "TCN": {"color": "#1f77b4", "marker": "o"},
-        "Frozen MOMENT + RBF-SVM": {"color": "#d95f02", "marker": "s"},
+        "TCN": {"color": PAPER_COLORS["tcn"], "marker": "o"},
+        "Frozen MOMENT + RBF-SVM": {
+            "color": PAPER_COLORS["moment_rbf"],
+            "marker": "s",
+        },
     }
     for model, values_by_fraction in results.items():
         values = [values_by_fraction[fraction] for fraction in fractions]

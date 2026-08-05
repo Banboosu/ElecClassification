@@ -1,6 +1,6 @@
 # 充电功率时序分类与 MOMENT 迁移能力综合实验报告
 
-> 报告日期：2026-08-04；M01/M02/M03 更新：2026-08-05
+> 报告日期：2026-08-04；M01/M02/M03/M04 更新：2026-08-05
 > 数据集 SHA-256：`5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6`  
 > 主要算力：Tesla V100-PCIE-32GB  
 > 正式统计：五个随机种子，均值 ± 样本标准差  
@@ -128,8 +128,8 @@
 | TCN（逐序列 min-max） | 91.79 ± 1.37 | 92.18 ± 1.33 | 92.00 ± 1.37 | FP32 |
 | TCN（逐序列 z-score） | 94.92 ± 1.44 | 95.06 ± 1.46 | 95.02 ± 1.43 | FP32 |
 | **TCN（原始尺度）** | **95.94 ± 0.74** | **96.09 ± 0.67** | **95.99 ± 0.73** | FP32；完整标签首选 |
-| MOMENT 线性探测 | 77.02 ± 0.88 | — | 77.41 ± 0.89 | 只训练 3,075 参数 |
-| MOMENT 最后两层微调 | 81.08 ± 1.13 | — | 81.50 ± 1.06 | 解冻 2/24 层 |
+| MOMENT 线性探测 | 77.02 ± 0.88 | 77.31 ± 0.93 | 77.41 ± 0.89 | 只训练 3,075 参数 |
+| MOMENT 最后两层微调 | 81.08 ± 1.13 | 82.05 ± 1.31 | 81.50 ± 1.06 | 解冻 2/24 层 |
 | MOMENT 冻结表征 + RBF-SVM | 84.77 ± 1.04 | 85.26 ± 1.03 | 85.17 ± 1.03 | 论文方法对齐 |
 | **MOMENT 完全微调** | **95.26 ± 0.41** | **95.52 ± 0.39** | **95.37 ± 0.39** | 充分任务适配 |
 
@@ -536,6 +536,7 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 - [M01 预训练归因简化消融](experiment_records/m01_pretraining_ablation_20260805.md)
 - [M02 轻量错误分析](experiment_records/m02_error_analysis_20260805.md)
 - [M03 实验协议最终检查](experiment_records/m03_protocol_audit_20260805.md)
+- [M04 论文与投稿材料闭环](experiment_records/m04_manuscript_finalization_20260805.md)
 - [电池异常安全关键评估](experiment_records/battery_safety_experiment_20260804.md)
 - [电池异常专用二分类与统计强基线](experiment_records/battery_binary_experiment_20260804.md)
 - [MOMENT 零样本插补](experiment_records/moment_imputation_20260803.md)

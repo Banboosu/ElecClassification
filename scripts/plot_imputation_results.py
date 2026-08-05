@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from tcn_moment.paper_style import PAPER_COLORS, apply_paper_style
 
 METHOD_LABELS = {
     "moment_zero_shot": "MOMENT zero-shot",
@@ -15,10 +16,10 @@ METHOD_LABELS = {
     "mean": "Visible-value mean",
 }
 METHOD_COLORS = {
-    "moment_zero_shot": "#d95f02",
-    "linear": "#1b9e77",
-    "forward_fill": "#377eb8",
-    "mean": "#777777",
+    "moment_zero_shot": PAPER_COLORS["moment_rbf"],
+    "linear": PAPER_COLORS["statistical"],
+    "forward_fill": PAPER_COLORS["tcn"],
+    "mean": PAPER_COLORS["neutral"],
 }
 PATTERN_LABELS = {
     "random_patches": "Random patch missingness",
@@ -125,6 +126,7 @@ def main() -> None:
     )
     parser.add_argument("--example-index", type=int, default=0)
     args = parser.parse_args()
+    apply_paper_style(plt)
     plot_summary(args.input, args.summary_output)
     plot_examples(args.input, args.examples_output, args.example_index)
     print(f"Saved {args.summary_output.with_suffix('.png')}")
