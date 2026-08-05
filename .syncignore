@@ -1,0 +1,26 @@
+# Files that must stay on the machine that produced them when code is mirrored
+# with rsync. Git remains the source of truth for all other project files.
+.git/
+.agents/
+.codex/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+artifacts/
+data/
+legacy/
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.log

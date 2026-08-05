@@ -3,12 +3,30 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
 
+# Local editor and connection settings. Keep shareable examples explicitly named
+# `.env.example`; never commit a machine- or account-specific `.env` file.
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Generated experiment outputs, checkpoints, logs, and imported result bundles.
 artifacts/
 *.pt
 *.pth
 *.ckpt
 *.h5
+*.log
 
-/data/raw/
+# Source data and any derived local data are transferred separately from Git.
+/data/
+
+# Superseded exploratory scripts are retained locally only.
 /legacy/
