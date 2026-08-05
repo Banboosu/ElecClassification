@@ -1,0 +1,12 @@
+extends: ../moment_svm_rbf.yaml
+
+training:
+  output_dir: artifacts/battery_binary_moment_svm
+  feature_extraction_batch_size: 64
+
+svm:
+  c_values: [1, 10, 100, 1000, 10000]
+  max_samples: 10000
+  n_jobs: 3
+  cache_size_mb: 1024
+  few_shot_fractions: [0.01, 0.05, 0.1, 1.0]

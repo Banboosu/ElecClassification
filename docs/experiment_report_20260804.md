@@ -22,8 +22,8 @@
    40% 标签时 TCN 反超 7.54 个百分点。
 3. **电池异常检测不能只看总体准确率。**完整标签下，验证集最大 F2 阈值的 TCN 取得
    97.41% ± 0.56% Battery Recall 和 2.41% ± 0.52% FPR，均优于完全微调 MOMENT；在 1%–5%
-   标签和相同高召回目标下，MOMENT 能以相对较少的误报达到近似 Recall，但绝对 FPR 仍超过
-   65%，不满足部署要求。
+   标签和相同高召回目标下，专用二分类 MOMENT 比三分类版本减少误报，但 Random Forest
+   更强；完整标签 TCN 仍明显最好，当前任何方法都不满足安全部署要求。
 4. **MOMENT 需要与任务匹配的适配方式。**冻结线性头、最后两层微调、冻结表征 RBF-SVM 和
    完全微调的 Macro-F1 依次为 77.41%、81.50%、85.17% 和 95.37%。非线性下游分类器
    优于浅层解冻，而充分微调才能释放接近 TCN 的任务上限。
@@ -244,6 +244,49 @@ FPR 分别低 8.91 和 10.60 个百分点，配对区间不跨 0。这是 MOMENT
 安全结论是：完整标签下优先 TCN；MOMENT 的优势仍限定在极低标签冷启动，而且必须同时报告
 误报代价。当前所有方法在追求接近零漏检时都会产生大量误报，没有模型实现“不漏检且不误检”。
 
+### 8.3 专用二分类器与统计强基线
+
+在查看 test 前，先用 seed 42 validation 指标执行预注册算力门控：专用 TCN 未通过，停止扩展；
+专用 MOMENT-RBF-SVM、Logistic Regression 和 Random Forest 通过，随后补齐 seed 43–46。
+正式结果包含 25 个源运行和 60 个“模型 × 标签比例 × seed”结果。
+
+下表统一使用 validation 选择的 95% Recall 阈值；各模型 test Recall 均约为 95%。
+
+| 标签比例 | 模型 | Test PR-AUC | FPR | F2 |
+|---:|---|---:|---:|---:|
+| 1% | 三分类 MOMENT-SVM | 71.35% | 77.80% | 75.27% |
+| 1% | 专用二分类 MOMENT-SVM | 71.76% | 73.44% | 76.37% |
+| 1% | **Random Forest** | **78.02%** | **56.57%** | **80.34%** |
+| 5% | 三分类 MOMENT-SVM | 81.38% | 65.62% | 78.21% |
+| 5% | 专用二分类 MOMENT-SVM | 83.08% | 57.96% | 80.11% |
+| 5% | **Random Forest** | **87.73%** | **37.36%** | **85.13%** |
+| 10% | 三分类 MOMENT-SVM | 84.08% | 57.80% | 80.03% |
+| 10% | 专用二分类 MOMENT-SVM | 85.63% | 50.91% | 81.45% |
+| 10% | **Random Forest** | **90.62%** | **31.27%** | **86.58%** |
+| 100% | **TCN** | **99.14%** | **0.92%** | **95.92%** |
+| 100% | 专用二分类 MOMENT-SVM | 90.06% | 41.61% | 83.96% |
+| 100% | Random Forest | 95.21% | 17.04% | 90.67% |
+
+专用 MOMENT 相对三分类 MOMENT 的 PR-AUC 在 5%、10%、完整标签下分别提高 1.69、1.55、
+2.08 个百分点，配对 95% 区间均不跨 0；相同 Recall 下，5% 和 10% 的 FPR 分别降低 7.67、
+6.89 个百分点，区间也不跨 0。这证明任务特化的二分类下游头能够更有效地利用冻结 MOMENT
+表征，但 41.61%–73.44% 的绝对 FPR 仍很高。
+
+Random Forest 在 1%–10% 标签下进一步显著减少误报并提高 F2。特征重要性表明主要判别信息
+来自 `diff_std` 和 `max_abs_diff`，即相邻功率变化的波动和最大突变；长度只在 1% Random
+Forest 中排第五。因此 MOMENT 的少样本三分类优势仍成立，但针对“电池 vs 其余”这个单一
+目标，人工统计特征具有更匹配的归纳偏置，论文不能省略这一强基线。
+
+完整标签在 validation 选择 99% Recall 目标后，TCN、专用 MOMENT、Random Forest 的实际
+test Recall 分别为 99.07%、98.86%、98.84%，平均 FN 为 24.2、29.6、30.0；对应 FPR
+分别为 16.41%、74.37%、38.73%，平均 FP 为 726.6、3,292.4、1,714.4。专用 MOMENT
+相对三分类 MOMENT 将 FPR 稳定降低 4.65 个百分点，但绝对误报仍不可接受；Random Forest
+也无法取代完整标签 TCN。validation 高召回目标不能保证 test 达标，更不能被写成零漏检承诺。
+
+![专用电池检测五模型比较](figures/battery_binary_comparison_20260804.png)
+
+![电池二分类统计特征重要性](figures/battery_binary_feature_importance_20260804.png)
+
 ## 9. MOMENT 零样本缺失值插补
 
 实验在固定测试集 7,020 条序列上进行，不使用类别标签、不更新参数。随机 patch 和连续区块
@@ -378,7 +421,7 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 | RQ5 能否零样本插补？ | 能生成有限重构，但所有条件均落后于线性插值，不构成优势。 |
 | RQ6 能否无监督检索？ | 能，明显超过原始曲线和长度基线，但略低于统计特征，遮挡近邻稳定性有限。 |
 | RQ7 算力是否值得？ | 完整标签单任务通常不值得全量 MOMENT；低标签冻结表征更符合成本收益。 |
-| RQ8 电池异常是否安全？ | 完整标签 TCN 的 Recall–FPR 权衡最好；低标签 MOMENT 有相对优势，但绝对误报过高。 |
+| RQ8 电池异常是否安全？ | 完整标签 TCN 最好；专用 MOMENT 改善原 MOMENT，但低标签 Random Forest 更强，所有少样本方法的绝对误报仍过高。 |
 
 ## 14. 论文主张、边界与推荐结构
 
@@ -390,8 +433,8 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 4. 原论文对齐的 RBF-SVM 有效利用了冻结表示的非线性结构，明显优于线性分类头。
 5. 冻结 MOMENT 表征可以零训练用于类别相关的相似序列检索，但不保证优于人工统计特征。
 6. 通用预训练的收益依赖任务和适配方式；零样本插补负结果提供了有价值的迁移边界。
-7. MOMENT 在 1%–5% 标签和相同高召回目标下能相对减少误报，但完整标签下 TCN 的电池异常
-   PR-AUC 和 Recall–FPR 权衡更优。
+7. 专用二分类目标能改善冻结 MOMENT 的电池异常 PR-AUC 和误报控制，但低标签 Random Forest
+   更强；完整标签下 TCN 的 PR-AUC 和 Recall–FPR 权衡仍最优。
 
 ### 14.2 不应支持的主张
 
@@ -419,9 +462,9 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 
 1. **划分限制：**应优先获取设备 ID 和时间戳，再补充 group split 或 time split。
 2. **标签依据：**需要数据提供者解释标签 5 的产生机制和类别 0/1/2 的业务定义。
-3. **专用电池检测器：**训练 one-vs-rest 代价敏感二分类器，以 PR-AUC、F2 和固定 Recall 下
-   FPR 选模；当前三分类后调阈值无法同时消除漏检和误报。
-4. **早期检测与鲁棒性：**只输入前 25%/50%/75% 曲线，并测试噪声、缺失和采样变化下的 FNR/FPR。
+3. **早期检测与鲁棒性：**只输入前 25%/50%/75% 曲线，并测试噪声、缺失和采样变化下的 FNR/FPR。
+4. **漏检与误报复核：**人工检查完整标签 TCN、Random Forest 和专用 MOMENT 的共同错误，
+   确认 `diff_std`/`max_abs_diff` 对应真实故障还是采集与标注捷径。
 5. **CNN 一致性：**现有 CNN 五种子来自 AMP 配置，建议用最终 FP32 代码低成本补跑。
 6. **全局标准化：**增加只用训练集均值/方差的全局标准化，区分幅值信息和数值尺度影响。
 7. **参数高效微调：**若论文篇幅和算力允许，可测试解冻最后 8/12 层或 LoRA；先用 seed42
@@ -439,6 +482,7 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 - [统一协议 V100 主结果](experiment_records/v100_results_20260720.md)
 - [少样本标签效率](experiment_records/few_shot_experiment_20260728.md)
 - [电池异常安全关键评估](experiment_records/battery_safety_experiment_20260804.md)
+- [电池异常专用二分类与统计强基线](experiment_records/battery_binary_experiment_20260804.md)
 - [MOMENT 零样本插补](experiment_records/moment_imputation_20260803.md)
 - [无监督表征与相似序列检索](experiment_records/moment_retrieval_20260803.md)
 - [初始基线与不可比实验](experiment_records/initial_baseline_results.md)
@@ -448,6 +492,8 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 - [少样本 Macro-F1 曲线](figures/few_shot_macro_f1_20260728.png)
 - [少样本电池异常 Recall、FPR 与 PR-AUC](figures/battery_safety_few_shot_20260804.png)
 - [完整标签电池 Recall–FPR 权衡](figures/battery_safety_threshold_tradeoff_20260804.png)
+- [专用电池检测五模型比较](figures/battery_binary_comparison_20260804.png)
+- [电池二分类统计特征重要性](figures/battery_binary_feature_importance_20260804.png)
 - [零样本插补 Macro-NRMSE](figures/moment_imputation_macro_nrmse_20260803.png)
 - [零样本插补重构样例](figures/moment_imputation_examples_20260803.png)
 - [无监督检索综合指标](figures/moment_retrieval_metrics_20260803.png)
@@ -457,6 +503,8 @@ CPU SVM 搜索与重拟合约 737 秒，瓶颈已经转移到 CPU 交叉验证�
 
 - 少样本结果包：`artifacts/imports/few_shot_metrics_20260728.tar.gz`
 - 电池异常安全复评：`artifacts/imports/battery_safety_thesis_v1/`
+- 电池专用二分类汇总：`artifacts/imports/battery_binary_analysis_formal_five_seed/`
+- 电池专用二分类无模型备份包：`artifacts/imports/battery_binary_thesis_v1_no_models.tar.gz`
 - 零样本插补：`artifacts/imports/moment_imputation_zero_shot_thesis_v2/`
 - 无监督检索：`artifacts/imports/moment_retrieval_zero_shot_thesis_v1/`
 

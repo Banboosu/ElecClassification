@@ -380,6 +380,41 @@ uv run battery-safety-evaluate \
 目标 Recall 为 95%、98%、99% 时在测试集上的实际漏检与误报。完整协议和结论边界见
 [`battery_safety_experiment_20260804.md`](docs/experiment_records/battery_safety_experiment_20260804.md)。
 
+### 8. 电池异常专用二分类器
+
+专用 one-vs-rest 实验比较二分类 TCN、统计特征模型和冻结 MOMENT + RBF-SVM。先运行
+seed 42 pilot，并只依据验证集门控是否扩展到五个随机种子：
+
+```bash
+bash scripts/run_battery_binary_pilot_remote.sh
+```
+
+也可以单独运行一个模型：
+
+```bash
+uv run battery-binary \
+  --model tcn \
+  --config configs/experiments/few_shot/tcn_05_percent.yaml \
+  --seed 42 \
+  --run-name battery_binary_tcn_05_pilot_v1_seed42
+```
+
+`--model` 可取 `tcn`、`stats` 或 `moment-svm`。正类权重候选默认为 `1 2 4`，报警阈值只在
+验证集按 max-F2 或 95%/98%/99% 目标 Recall 选择。预注册门控与论文使用边界见
+[`battery_binary_experiment_20260804.md`](docs/experiment_records/battery_binary_experiment_20260804.md)。
+
+seed 42 门控完成后，正式实验只扩展通过条件的统计模型和 MOMENT-SVM：
+
+```bash
+bash scripts/run_battery_binary_expansion_remote.sh
+bash scripts/analyze_battery_binary_formal_remote.sh
+bash scripts/analyze_battery_binary_derived_remote.sh
+```
+
+正式五种子结果表明：专用二分类 MOMENT 比三分类 MOMENT 改善 PR-AUC 和相同 Recall 下的
+FPR，但少样本电池检测的 Random Forest 更强；完整标签仍由 TCN 明显领先。结果保存在
+`artifacts/battery_binary_analysis/formal_five_seed/`。
+
 ## 八、训练功能与指标
 
 TCN、CNN 和 MOMENT 支持：

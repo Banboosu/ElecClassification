@@ -158,6 +158,7 @@ def evaluate_operating_points(
     test_scores: np.ndarray,
     critical_index: int,
     target_recalls: tuple[float, ...],
+    default_prediction_selection: str = "model multiclass argmax; no threshold tuning",
 ) -> dict[str, Any]:
     result: dict[str, Any] = {
         "ranking": {
@@ -170,7 +171,7 @@ def evaluate_operating_points(
     }
 
     result["operating_points"]["argmax"] = {
-        "selection": "model multiclass argmax; no threshold tuning",
+        "selection": default_prediction_selection,
         "threshold": None,
         "validation": binary_metrics_from_predictions(
             validation_labels,
