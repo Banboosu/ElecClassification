@@ -214,6 +214,11 @@ def _run(
             "same_split_and_subset_ids_for_all_models": True,
             "paper_aligned_downstream_classifier": True,
             "backbone_frozen": True,
+            "model_initialization": extraction["model_initialization"],
+            "pretrained_checkpoint_loaded": extraction[
+                "pretrained_checkpoint_loaded"
+            ],
+            "initialization_seed": extraction["initialization_seed"],
             "features_extracted_once_per_seed": True,
             "validation_split_used_for_selection": False,
             "test_split_used_for_selection": False,

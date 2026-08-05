@@ -26,6 +26,8 @@ MOMENT-1-large 进行统一比较。每个随机种子采用 70%/10%/20% 分层�
 95.37% ± 0.39%，但后者的训练时间、峰值显存和参数量约为前者的 31.5、58.5 和 1,560 倍。
 相反，在 1%、5% 和 10% 标签下，冻结 MOMENT 表征配合 RBF-SVM 分别领先 TCN 6.43、10.86
 和 12.55 个 Macro-F1 百分点，且随机种子间标准差更小；40% 标签时 TCN 反超 7.54 个百分点。
+在固定架构、样本、预处理、池化和 RBF-SVM 的归因消融中，预训练表征相对随机初始化表征在
+1%、5% 和 10% 标签下进一步领先 28.60、22.58 和 22.01 个百分点，三个配对 95% 区间均高于 0。
 在无监督检索中，MOMENT 的 Macro-Precision@10 为 69.12%，高于原始曲线的 65.99%，但略低于
 人工统计特征的 70.08%；在零样本插补的 8 个条件中，MOMENT 均未超过线性插值。电池异常专项
 评估进一步表明，完整标签 TCN 具有更好的召回—误报权衡，少样本 MOMENT 的相对收益尚不足以
@@ -58,8 +60,11 @@ labels, TCN achieved a Macro-F1 of 95.99% ± 0.73%, compared with 95.37% ± 0.39
 MOMENT, while the latter required approximately 31.5 times the training time, 58.5 times the peak GPU
 memory, and 1,560 times the parameters. With 1%, 5%, and 10% labels, however, frozen MOMENT
 embeddings plus an RBF-SVM exceeded TCN by 6.43, 10.86, and 12.55 Macro-F1 percentage points and
-showed lower variability across seeds. TCN regained a 7.54-point advantage at 40% labels. Frozen
-MOMENT embeddings also improved unsupervised Macro-Precision@10 over raw resampled curves
+showed lower variability across seeds. TCN regained a 7.54-point advantage at 40% labels. An
+architecture-matched ablation further showed that pretrained embeddings exceeded randomly
+initialized embeddings by 28.60, 22.58, and 22.01 points at the three low-label budgets; all paired
+95% intervals were above zero. Frozen MOMENT embeddings also improved unsupervised
+Macro-Precision@10 over raw resampled curves
 (69.12% versus 65.99%) but remained below handcrafted statistical features (70.08%). MOMENT did not
 outperform linear interpolation in any of eight zero-shot imputation conditions. Safety-critical
 battery-abnormality evaluation favored fully supervised TCN in recall–false-positive trade-offs and
@@ -213,6 +218,12 @@ TCN 使用原始尺度，MOMENT 使用 z-score。因此该比较回答的是“�
 MOMENT 骨干保持冻结，每个种子只提取一次表征，再为各标签比例独立执行训练集内部的 SVM 交叉
 验证。相同种子、相同比例的两种方法使用完全一致的样本 ID。
 
+预训练归因消融只保留 1%、5% 和 10% 三个核心低标签比例。条件 A 使用预训练
+MOMENT-1-large；条件 B 直接构造参数量相同的随机初始化 MOMENT-1-large，不加载 MOMENT 或
+FLAN-T5 checkpoint。两条件均冻结 encoder，并使用相同样本 ID、逐序列 z-score、mask-aware
+pooling、1,024 维表示和 RBF-SVM 搜索范围。随机 encoder 的初始化种子与对应数据划分 seed
+一致。该对照只改变预训练权重，用于判断预训练相对同架构随机表征的贡献。
+
 无监督检索以训练集 24,569 条序列作为 gallery、测试集 7,020 条作为 query，比较冻结 MOMENT
 表示、128 维重采样原始曲线、18 维检索统计特征和仅长度特征；近邻排序不读取标签，标签只用于
 事后计算类别一致性。零样本插补在测试集上设置随机 patch 和连续区块两种缺失模式，缺失率为
@@ -326,12 +337,28 @@ RBF-SVM 比线性探测高 7.75 个百分点，也比最后两层微调高 3.67 
 
 因此，MOMENT 的核心正面结论是低标签下的标签效率和跨种子稳定性，而不是完整标签性能。
 冻结表示在约 85% Macro-F1 附近趋于饱和；标签增加后，TCN 能继续学习目标域判别特征，并在
-40% 标签时接近其完整数据上限。现有对比仍缺少同分类器预训练消融、ROCKET/TS2Vec 等强表示
-基线和更密集的学习曲线，这三项是把“模型现象”提升为“预训练优势”因果证据的关键（E02–E04）。
+40% 标签时接近其完整数据上限。MOMENT 与 TCN 的差异仍是各自既定协议下的管线比较；下一节
+使用同架构、同分类器对照进一步隔离预训练权重的作用。
 
-### 4.5 电池异常的召回—误报权衡
+### 4.5 同架构预训练归因
 
-**表 6 完整标签电池异常测试结果（%，阈值仅由验证集选择）**
+**表 6 预训练与随机初始化冻结表征的低标签 Macro-F1（%，五随机种子）**
+
+| 标签比例 | 预训练 MOMENT | 随机初始化 MOMENT | 配对差 | 95% 配对区间 |
+|---:|---:|---:|---:|---:|
+| 1% | **68.05 ± 1.59** | 39.44 ± 5.00 | **+28.60** | **[+22.24, +34.97]** |
+| 5% | **77.40 ± 0.93** | 54.81 ± 0.95 | **+22.58** | **[+20.89, +24.28]** |
+| 10% | **80.77 ± 0.59** | 58.76 ± 1.26 | **+22.01** | **[+20.48, +23.53]** |
+
+三个比例的 15 个逐 seed 差值全部为正。两条件的数据哈希、split manifest、样本 ID、预处理、
+池化、1,024 维特征、341,243,395 参数和 SVM 搜索范围均通过自动一致性检查；随机条件明确记录
+未加载预训练 checkpoint。结果表明，在当前低标签任务和固定 RBF-SVM 协议下，预训练权重相对
+同架构随机表征带来稳定的大幅收益。该消融支持“预训练提高当前任务的低标签分类性能”，但不
+支持将 MOMENT 外推为所有数据集或所有通用时序表征中的最优方法。
+
+### 4.6 电池异常的召回—误报权衡
+
+**表 7 完整标签电池异常测试结果（%，阈值仅由验证集选择）**
 
 | 运行点 | 模型 | Recall | Precision | FPR | F2 | 平均 FN / FP |
 |---|---|---:|---:|---:|---:|---:|
@@ -358,9 +385,9 @@ MOMENT 的主要优势，也不能支持上线报警。
 
 ![图 4 专用电池检测器比较](figures/battery_binary_comparison_20260804.png)
 
-### 4.6 无监督相似序列检索
+### 4.7 无监督相似序列检索
 
-**表 7 干净查询的无监督检索结果（%）**
+**表 8 干净查询的无监督检索结果（%）**
 
 | 特征 | Macro-P@1 | Macro-P@10 | mAP@10 | Top-10 长度相对误差 |
 |---|---:|---:|---:|---:|
@@ -380,9 +407,9 @@ MOMENT 检索明显受序列长度影响，但仅长度基线远低于 MOMENT，
 
 ![图 5 无监督检索结果](figures/moment_retrieval_metrics_20260803.png)
 
-### 4.7 零样本插补的负结果
+### 4.8 零样本插补的负结果
 
-**表 8 零样本插补 Macro-NRMSE（越低越好）**
+**表 9 零样本插补 Macro-NRMSE（越低越好）**
 
 | 缺失模式 | 比例 | Linear | Forward Fill | MOMENT | Visible Mean |
 |---|---:|---:|---:|---:|---:|
@@ -401,9 +428,9 @@ MOMENT 检索明显受序列长度影响，但仅长度基线远低于 MOMENT，
 这说明“冻结表征有利于低标签分类”不等于“通用重构头可零样本迁移到充电曲线插补”。该负结果
 界定了预训练能力的任务边界，也避免只选择对 MOMENT 有利的任务报告。
 
-### 4.8 效果—资源权衡
+### 4.9 效果—资源权衡
 
-**表 9 正式模型训练资源**
+**表 10 正式模型训练资源**
 
 | 模型/协议 | 平均训练或拟合时间 | 峰值显存 | 参数量或训练规模 |
 |---|---:|---:|---:|
@@ -426,12 +453,12 @@ MOMENT 检索明显受序列长度影响，但仅长度基线远低于 MOMENT，
 和更低随机种子方差。这一结论在相同样本 ID、相同验证/测试集合和配对随机种子下成立，效应量为
 6.43–12.55 个百分点。它符合跨数据集预训练应在有限监督条件下提供先验表示的预期[6]。
 
-但“标签效率”目前仍是经验性优势，不是完整的因果归因。MOMENT 使用预训练 encoder + RBF-SVM，
-而 TCN 从头端到端训练；两者的分类器、预处理和超参数选择方式不同。要证明收益来自 MOMENT
-预训练而非 RBF-SVM 或协议差异，最关键的新增实验是：固定同一个 RBF-SVM，同时比较预训练
-MOMENT、随机初始化同架构和 TCN/ROCKET/TS2Vec 表征，并报告密集学习曲线与曲线下面积。若这些
-对照仍显示 1%–10% 区间的稳定领先，论文才可将结论从“当前组合更好”加强为“预训练表示提高了
-样本效率”。
+同架构消融进一步表明，在固定 RBF-SVM、样本、预处理和池化后，预训练表征在 1%–10% 标签下
+比随机初始化表征高 22.01–28.60 个百分点，三个配对区间均完全高于 0。这排除了“3.41 亿参数
+随机特征加 RBF-SVM 已足以解释结果”的替代解释，支持预训练权重提高当前任务的低标签分类性能。
+不过 MOMENT 与 TCN 仍使用不同分类器、预处理和调参方式，且尚缺 MiniROCKET/TS2Vec 等强表示
+基线。因此，对 TCN 的结论仍应表述为既定管线下的经验优势，不能扩展成 MOMENT 相对所有专用或
+通用方法的普遍优越性。
 
 无监督检索提供次级证据：MOMENT 不需要任务训练即可组织具有类别相关性的邻域，并显著超过原始
 曲线和仅长度基线。但统计特征略优，遮挡后的邻居身份稳定性也较差，因此检索应被定位为可复用性
@@ -469,7 +496,8 @@ MOMENT 的零样本插补落后于简单线性插值，表明目标曲线的局�
 ### 5.5 局限性
 
 1. 当前统计比较基于五个随机种子，配对区间未进行多重比较校正。
-2. 少标签比较使用各自既定最佳协议，但预处理、分类器和调参预算并不完全相同。
+2. 同架构消融隔离了预训练与随机权重，但 MOMENT—TCN 少标签比较仍使用各自既定最佳协议，
+   预处理、分类器和调参预算并不完全相同。
 3. 缺少 ROCKET/MiniROCKET、TS2Vec 和其他时序基础模型等强通用表征基线。
 4. 尚未完成通用三分类错误样例、噪声/重采样/截断鲁棒性、概率校准和按序列长度分层分析。
 5. CNN 五随机种子来自 AMP 配置，尚需用最终 FP32 协议低成本复跑以统一数值设置。
@@ -482,12 +510,13 @@ MOMENT 的零样本插补落后于简单线性插值，表明目标曲线的局�
 95.99% ± 0.73% Macro-F1 获得最高均值，并以远低于完全微调 MOMENT 的计算成本达到接近的分类
 性能。MOMENT 的主要价值出现在低标签区间：冻结表征 + RBF-SVM 在 1%、5% 和 10% 标签下领先
 从头训练 TCN 6.43–12.55 个百分点，并具有更低跨种子方差；随着标签增加，该优势消失，40% 标签
-时 TCN 明显反超。无监督检索显示 MOMENT 表征具有零训练复用价值，但人工统计特征仍略优；
+时 TCN 明显反超。同架构随机初始化对照进一步显示，预训练权重在三个低标签比例带来
+22.01–28.60 个百分点的稳定收益。无监督检索显示 MOMENT 表征具有零训练复用价值，但人工统计特征仍略优；
 零样本插补和电池安全评估进一步限定了其适用范围。
 
 因此，本研究支持的模型选择原则是：低标签冷启动优先评估冻结 MOMENT 表征，标签充足且强调
-效率时优先 TCN，安全报警和跨任务迁移必须独立优化与验证。完成预训练因果消融、强表示基线、
-误差与鲁棒性分析、效率测量及线上场景回放后，可进一步完善模型选型与部署结论。
+效率时优先 TCN，安全报警和跨任务迁移必须独立优化与验证。后续补充强表示基线、误差与鲁棒性
+分析、效率测量及线上场景回放，可进一步完善模型选型与部署结论。
 
 ## 数据与代码可用性
 

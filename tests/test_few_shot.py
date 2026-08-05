@@ -88,6 +88,16 @@ class FewShotSubsetTests(unittest.TestCase):
             self.assertEqual(tcn.data.train_fraction, fraction)
             self.assertEqual(tcn.data.normalize, "none")
 
+    def test_m01_random_control_uses_only_required_budgets(self) -> None:
+        config = load_config(
+            "configs/experiments/pretraining_ablation/moment_svm_random.yaml"
+        )
+
+        self.assertEqual(config.model.initialization, "random")
+        self.assertTrue(config.model.freeze_backbone)
+        self.assertEqual(config.model.unfreeze_last_n_layers, 0)
+        self.assertEqual(config.svm.few_shot_fractions, (0.01, 0.05, 0.1))
+
 
 if __name__ == "__main__":
     unittest.main()

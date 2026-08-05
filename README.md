@@ -17,6 +17,8 @@ MOMENT 时序基础模型。项目支持固定数据划分、消融实验、多�
 
 完整的五随机种子分类主表、MOMENT 微调消融、少样本、电池异常漏检—误报权衡、零样本插补、
 无监督检索、算力成本和论文结论边界见 [综合实验报告](docs/experiment_report_20260804.md)。
+同架构预训练—随机初始化的 M01 归因结果见
+[M01 实验记录](docs/experiment_records/m01_pretraining_ablation_20260805.md)。
 
 ## 一、项目目录
 

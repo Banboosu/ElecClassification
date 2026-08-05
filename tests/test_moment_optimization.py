@@ -46,9 +46,16 @@ class _EmbeddingOutput:
 
 class _PipelineRecorder:
     model_kwargs: dict[str, object] = {}
+    direct_config: dict[str, object] | None = None
+    from_pretrained_called = False
+
+    def __init__(self, *, config: dict[str, object], **kwargs: object) -> None:
+        type(self).direct_config = dict(config)
+        type(self).model_kwargs = dict(kwargs["model_kwargs"])
 
     @classmethod
     def from_pretrained(cls, *_args: object, **kwargs: object) -> object:
+        cls.from_pretrained_called = True
         cls.model_kwargs = dict(kwargs["model_kwargs"])
         return object()
 
@@ -80,6 +87,11 @@ class _EmbedModel(nn.Module):
 
 
 class MomentPoolingTests(unittest.TestCase):
+    def setUp(self) -> None:
+        _PipelineRecorder.direct_config = None
+        _PipelineRecorder.from_pretrained_called = False
+        _PipelineRecorder.model_kwargs = {}
+
     def test_gradient_checkpointing_is_explicitly_forwarded_to_moment(self) -> None:
         config = load_config("configs/experiments/moment_full_finetune.yaml")
         build_model(config, _PipelineRecorder, num_classes=3)
@@ -91,6 +103,19 @@ class MomentPoolingTests(unittest.TestCase):
         )
         build_model(enabled_config, _PipelineRecorder, num_classes=3)
         self.assertTrue(_PipelineRecorder.model_kwargs["enable_gradient_checkpointing"])
+
+    def test_random_initialization_bypasses_pretrained_checkpoint_loading(self) -> None:
+        config = load_config(
+            "configs/experiments/pretraining_ablation/moment_svm_random.yaml"
+        )
+
+        build_model(config, _PipelineRecorder, num_classes=3)
+
+        self.assertFalse(_PipelineRecorder.from_pretrained_called)
+        self.assertIsNotNone(_PipelineRecorder.direct_config)
+        self.assertTrue(_PipelineRecorder.direct_config["randomly_initialize_backbone"])
+        self.assertTrue(_PipelineRecorder.model_kwargs["freeze_embedder"])
+        self.assertTrue(_PipelineRecorder.model_kwargs["freeze_encoder"])
 
     def test_patch_mask_requires_a_complete_valid_patch(self) -> None:
         input_mask = torch.tensor(

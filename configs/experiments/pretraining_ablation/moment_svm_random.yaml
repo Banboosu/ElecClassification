@@ -1,0 +1,9 @@
+extends: ../few_shot/moment_svm.yaml
+model:
+  # Same MOMENT-1-large architecture as the pretrained condition, but construct it
+  # directly so no MOMENT or FLAN-T5 checkpoint tensors are loaded.
+  initialization: random
+training:
+  output_dir: artifacts/moment_svm_pretraining_ablation
+svm:
+  few_shot_fractions: [0.01, 0.05, 0.10]

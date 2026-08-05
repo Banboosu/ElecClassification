@@ -200,6 +200,9 @@ def extract_frozen_moment_features(
 
     metadata = {
         "device": str(device),
+        "model_initialization": config.model.initialization,
+        "pretrained_checkpoint_loaded": config.model.initialization == "pretrained",
+        "initialization_seed": config.data.random_state,
         "amp_enabled": amp_enabled,
         "feature_extraction_batch_size": config.training.feature_extraction_batch_size,
         "feature_extraction_seconds": extraction_seconds,
@@ -312,6 +315,11 @@ def _run(
             "moment_protocol_version": MOMENT_PROTOCOL_VERSION,
             "paper_aligned_downstream_classifier": True,
             "backbone_frozen": True,
+            "model_initialization": extraction["model_initialization"],
+            "pretrained_checkpoint_loaded": extraction[
+                "pretrained_checkpoint_loaded"
+            ],
+            "initialization_seed": extraction["initialization_seed"],
             "mask_aware_pooling": True,
             "feature_dimension": extraction["feature_dimension"],
             "patch_len": extraction["patch_len"],

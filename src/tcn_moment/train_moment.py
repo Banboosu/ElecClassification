@@ -54,23 +54,33 @@ def build_model(config: ExperimentConfig, moment_pipeline: Any, num_classes: int
         raise FileNotFoundError(f"MOMENT model config not found: {config.model.config_path}")
     with config.model.config_path.open("r", encoding="utf-8") as file:
         pretrained_config = json.load(file)
-    return moment_pipeline.from_pretrained(
-        config.model.model_id,
-        config=pretrained_config,
-        model_kwargs={
-            "task_name": "classification",
-            "seq_len": config.data.max_length,
-            "n_channels": config.model.num_channels,
-            "num_class": num_classes,
-            "num_classes": num_classes,
-            "freeze_embedder": config.model.freeze_backbone,
-            "freeze_encoder": config.model.freeze_backbone,
-            "enable_gradient_checkpointing": (
-                not config.model.freeze_backbone
-                and config.training.gradient_checkpointing
-            ),
-        },
-    )
+    model_kwargs = {
+        "task_name": "classification",
+        "seq_len": config.data.max_length,
+        "n_channels": config.model.num_channels,
+        "num_class": num_classes,
+        "num_classes": num_classes,
+        "freeze_embedder": config.model.freeze_backbone,
+        "freeze_encoder": config.model.freeze_backbone,
+        "enable_gradient_checkpointing": (
+            not config.model.freeze_backbone
+            and config.training.gradient_checkpointing
+        ),
+    }
+    if config.model.initialization == "pretrained":
+        return moment_pipeline.from_pretrained(
+            config.model.model_id,
+            config=pretrained_config,
+            model_kwargs=model_kwargs,
+        )
+
+    # Do not call from_pretrained for the random control: the Hugging Face hub
+    # mixin loads checkpoint tensors after constructing the requested architecture.
+    # MOMENT's direct constructor plus this flag creates the same T5 encoder
+    # architecture without loading any MOMENT or FLAN-T5 pretrained weights.
+    random_config = dict(pretrained_config)
+    random_config["randomly_initialize_backbone"] = True
+    return moment_pipeline(config=random_config, model_kwargs=model_kwargs)
 
 
 def set_num_classes(model: Any, num_classes: int) -> None:

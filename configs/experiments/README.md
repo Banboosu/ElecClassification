@@ -12,6 +12,9 @@ The resolved configuration is saved in every run directory.
 - `moment_head_lr_*`: linear-probe head learning-rate comparison.
 - `few_shot/`: nested, stratified 1%, 5%, 10%, 20%, and 40% label-budget
   comparisons for TCN and frozen MOMENT + RBF-SVM.
+- `pretraining_ablation/`: M01 same-architecture random MOMENT encoder control at
+  1%, 5%, and 10% label budgets; it directly constructs the model and never loads
+  pretrained checkpoint tensors.
 - `moment_imputation_zero_shot.yaml`: evaluate the pretrained reconstruction head
   without parameter updates on random-patch and contiguous-block missingness.
 - `moment_retrieval_zero_shot.yaml`: evaluate frozen MOMENT representations for

@@ -32,6 +32,7 @@ class ModelConfig:
     num_channels: int = 1
     freeze_backbone: bool = False
     unfreeze_last_n_layers: int = 0
+    initialization: str = "pretrained"
 
 
 @dataclass(frozen=True)
@@ -202,7 +203,10 @@ def load_config(path: str | Path) -> ExperimentConfig:
         num_channels=int(model_raw.get("num_channels", 1)),
         freeze_backbone=bool(model_raw.get("freeze_backbone", False)),
         unfreeze_last_n_layers=int(model_raw.get("unfreeze_last_n_layers", 0)),
+        initialization=str(model_raw.get("initialization", "pretrained")),
     )
+    if model.initialization not in {"pretrained", "random"}:
+        raise ValueError("model.initialization must be 'pretrained' or 'random'.")
     training = TrainingConfig(
         output_dir=Path(training_raw.get("output_dir", "artifacts/moment")),
         epochs=int(training_raw.get("epochs", 10)),

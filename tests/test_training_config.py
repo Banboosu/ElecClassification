@@ -11,6 +11,9 @@ class V100TrainingConfigTests(unittest.TestCase):
         partial = load_config("configs/experiments/moment_partial_finetune.yaml")
         full = load_config("configs/experiments/moment_full_finetune.yaml")
         svm = load_config("configs/experiments/moment_svm_rbf.yaml")
+        random_control = load_config(
+            "configs/experiments/pretraining_ablation/moment_svm_random.yaml"
+        )
 
         self.assertEqual(linear.training.feature_extraction_batch_size, 64)
         self.assertEqual(linear.training.cached_feature_batch_size, 32)
@@ -25,6 +28,8 @@ class V100TrainingConfigTests(unittest.TestCase):
         self.assertEqual(svm.svm.n_jobs, 5)
         self.assertEqual(svm.svm.c_values[0], 0.0001)
         self.assertEqual(svm.svm.c_values[-1], 10000.0)
+        self.assertEqual(svm.model.initialization, "pretrained")
+        self.assertEqual(random_control.model.initialization, "random")
         self.assertEqual(
             linear.training.cached_feature_batch_size
             * linear.training.gradient_accumulation_steps,
