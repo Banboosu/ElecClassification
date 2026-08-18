@@ -79,7 +79,11 @@
 
 #align(center)[
   #set par(first-line-indent: 0em, justify: false)
-  #text(font: ("SimHei", "Arial"), size: 16pt, weight: "bold")[面向充电功率时序故障分类的专用网络与基础模型比较：MOMENT 的标签效率、迁移边界与安全关键评估]
+  #text(
+    font: ("SimHei", "Arial"),
+    size: 16pt,
+    weight: "bold",
+  )[面向充电功率时序故障分类的专用网络与基础模型比较：MOMENT 的标签效率、迁移边界与安全关键评估]
 
   #v(0.9em)
   #text(size: 10pt, weight: "bold")[【待补：作者姓名】]
@@ -102,13 +106,16 @@
 #v(0.8em)
 #align(center)[
   #set par(first-line-indent: 0em, justify: false)
-  #text(size: 12pt, weight: "bold")[Specialized Temporal Networks versus a Time-Series Foundation Model for Charging-Power Fault Classification: Label Efficiency, Transfer Boundaries, and Safety-Critical Evaluation of MOMENT]
+  #text(
+    size: 12pt,
+    weight: "bold",
+  )[Specialized Temporal Networks versus a Time-Series Foundation Model for Charging-Power Fault Classification: Label Efficiency, Transfer Boundaries, and Safety-Critical Evaluation of MOMENT]
   #linebreak()
   #text(size: 8.5pt)[【Authors and affiliations to be completed】]
 ]
 
 #v(0.35em)
-#block(inset: (x: 5pt, y: 3pt))[ 
+#block(inset: (x: 5pt, y: 3pt))[
   #set text(size: 8pt, lang: "en")
   #set par(first-line-indent: 0em, leading: 0.42em)
   *Abstract:* Charging-power curves provide a non-intrusive signal for characterizing charging states. In real internal operations, fault samples are costly to accumulate, and the classification of normal, charger-fault, and battery-abnormal sessions is complicated by variable-length inputs, class-correlated sequence length, and the safety-critical trade-off between false alarms and missed detections. This study evaluates whether generic time-series pretraining offers a practical advantage over task-specific models on 35,099 valid charging-power sequences from a real internal operational resource. Majority prediction, statistical-feature logistic regression and random forest, a 1D-CNN, a temporal convolutional network (TCN), and MOMENT-1-large were compared under paired stratified 70%/10%/20% train/validation/test splits. Padding was excluded through explicit masks. MOMENT was evaluated with a linear probe, last-two-layer fine-tuning, frozen embeddings plus an RBF-SVM, and full fine-tuning. Label-efficiency experiments used nested 1%, 5%, 10%, 20%, and 40% subsets. With all labels, TCN achieved a Macro-F1 of 95.99% ± 0.73%, compared with 95.37% ± 0.39% for fully fine-tuned MOMENT, while the latter required approximately 31.5 times the training time, 58.5 times the peak GPU memory, and 1,560 times the parameters. With 1%, 5%, and 10% labels, however, frozen MOMENT embeddings plus an RBF-SVM exceeded TCN by 6.43, 10.86, and 12.55 Macro-F1 percentage points and showed lower variability across seeds. TCN regained a 7.54-point advantage at 40% labels. An architecture-matched ablation further showed that pretrained embeddings exceeded randomly initialized embeddings by 28.60, 22.58, and 22.01 points at the three low-label budgets; all paired 95% intervals were above zero. Frozen MOMENT embeddings also improved unsupervised Macro-Precision\@10 over raw resampled curves (69.12% versus 65.99%) but remained below handcrafted statistical features (70.08%). MOMENT did not outperform linear interpolation in any of eight zero-shot imputation conditions. Safety-critical battery-abnormality evaluation favored fully supervised TCN in recall–false-positive trade-offs and did not support deployment claims for few-label methods. The reproducible advantage of MOMENT in this dataset is therefore label efficiency and stability in low-label multiclass classification, rather than superior full-label accuracy or universal zero-shot transfer. When labels are sufficient and measured training-side resources matter, TCN is the more appropriate choice under the tested setup.
