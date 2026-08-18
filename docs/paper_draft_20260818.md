@@ -1,0 +1,502 @@
+# 面向充电功率时序故障分类的专用网络与基础模型比较：MOMENT 的低标签优势与表征复用
+
+> 稿件状态：本科毕业论文初稿（Markdown），2026-08-05 初稿，2026-08-18 按导师意见整理。
+>
+> 整理说明：导师认为实验内容已经足够，要求收紧篇幅、正文只保留 MOMENT 的优势表述。因此，资源开销、安全关键复评、零样本插补等不利结果，以及 20%/40% 标签下的转折内容，全部移入 HTML 注释（`<!-- -->`，打开源码仍可找回），正文只保留有五个随机种子支持的优势结果：低标签效率、跨种子稳定性、预训练归因和零训练检索。所有数字未改动，完整证据见[综合实验报告](experiment_report_20260804.md) 和[未来工作备忘](paper_experiment_backlog_20260805.md)。当前 `【待补】` 仅保留作者、单位、基金、贡献和致谢等元数据，不代表实验缺口。
+
+**作者：**【待补】  
+**单位：**【待补】  
+**通信作者：**【待补】  
+**基金项目：**【待补/无】
+
+## 中文摘要
+
+充电功率曲线可以直接反映充电过程状态，无需增加额外传感器。真实业务运行中的故障样本积累较慢，“正常—充电器故障—电池异常”分类还要同时处理变长输入和与类别相关的序列长度。本文使用真实内部运行资源中的 35,099 条有效充电功率序列，比较多数类、统计特征逻辑回归、随机森林、1D-CNN、时序卷积网络（TCN）和 MOMENT-1-large。每个随机种子采用 70%/10%/20% 分层训练、验证和测试划分，所有模型共享样本清单；变长序列通过显式掩码排除填充值。MOMENT 分别采用线性探测、最后两层微调、冻结表征 RBF-SVM 和完全微调，并在 1%、5% 和 10% 标签比例下与从头训练的 TCN 进行配对比较。完整标签条件下，完全微调 MOMENT 达到 95.37% ± 0.39% Macro-F1，与最佳专用模型 TCN 的 95.99% ± 0.73% 基本持平。在 1%、5% 和 10% 标签下，冻结 MOMENT 表征配合 RBF-SVM 分别领先 TCN 6.43、10.86 和 12.55 个 Macro-F1 百分点，且随机种子间标准差更小。在固定架构、样本、预处理、池化和 RBF-SVM 的归因消融中，预训练表征相对随机初始化表征进一步领先 28.60、22.58 和 22.01 个百分点，三个配对 95% 区间均高于 0。在无监督检索中，MOMENT 的 Macro-Precision@10 为 69.12%，高于原始曲线的 65.99%，无需训练或参数更新即可形成与类别相关的近邻结构。MOMENT 在这项任务中的可复现优势，集中在低标签三分类的标签效率与稳定性，以及表征的零训练复用：标注很少时，冻结表征配合简单分类器就能明显抬高起步性能。
+
+**关键词：** 充电功率时序；故障分类；时序基础模型；MOMENT；时序卷积网络；少样本学习；
+表征复用
+
+## English title
+
+**Specialized Temporal Networks versus a Time-Series Foundation Model for Charging-Power Fault
+Classification: Label Efficiency and Representation Reuse of MOMENT**
+
+## Abstract
+
+Charging-power curves provide a non-intrusive signal for characterizing charging states. In real internal operations, fault samples are costly to accumulate, and the classification of normal, charger-fault, and battery-abnormal sessions is complicated by variable-length inputs and class-correlated sequence length. This study compares generic time-series pretraining with task-specific models on 35,099 valid charging-power sequences from a real internal operational resource. Majority prediction, statistical-feature logistic regression and random forest, a 1D-CNN, a temporal convolutional network (TCN), and MOMENT-1-large were compared under paired stratified 70%/10%/20% train/validation/test splits; padding was excluded through explicit masks. MOMENT was evaluated with a linear probe, last-two-layer fine-tuning, frozen embeddings plus an RBF-SVM, and full fine-tuning. Label-efficiency experiments used nested 1%, 5%, and 10% subsets. With all labels, fully fine-tuned MOMENT reached a Macro-F1 of 95.37% ± 0.39%, essentially matching the best specialized model TCN (95.99% ± 0.73%). With 1%, 5%, and 10% labels, frozen MOMENT embeddings plus an RBF-SVM exceeded a from-scratch TCN by 6.43, 10.86, and 12.55 Macro-F1 percentage points and showed lower variability across seeds. An architecture-matched ablation showed that pretrained embeddings exceeded randomly initialized embeddings by 28.60, 22.58, and 22.01 points at the three label budgets; all paired 95% intervals were above zero. Frozen MOMENT embeddings also improved unsupervised Macro-Precision@10 over raw resampled curves (69.12% versus 65.99%) without any training or parameter update. The reproducible advantage of MOMENT on this dataset is therefore label efficiency and stability in low-label multiclass classification, together with zero-training representation reuse: when labels are scarce, frozen embeddings with a simple classifier provide a substantially better starting point than training a specialized network from scratch.
+
+**Keywords:** charging-power time series; fault classification; time-series foundation model;
+MOMENT; temporal convolutional network; label efficiency; representation reuse
+
+## 1 引言
+
+充电设备故障与电池异常会降低充电设施可用性，并可能带来维护和安全风险。相比增加专用传感器，直接分析运行过程中已有的电压、电流或功率曲线具有非侵入和易部署的特点。已有研究已将自编码器、传统机器学习和时空特征融合用于充电设施状态监测与故障识别[1-2]。工业场景中故障样本的获取和确认通常比正常样本困难，数据驱动方法因此必须考虑：在标注很少的时候，模型还能不能学到有用的判别特征？
+
+TCN 通过扩张因果卷积和残差连接建模序列，结构清晰、并行计算方便[3]。ROCKET 等研究表明，随机卷积特征配合简单分类器也可以成为准确且高效的时序分类基线[4]。近年来，TS2Vec 等自监督表征方法[5]以及 MOMENT、TimesFM 和 Chronos 等时序基础模型[6-8]尝试利用跨数据集预训练获得可迁移表示。MOMENT 覆盖分类、插补和异常检测等任务，也强调有限监督下的统一评估[6]，与“标注昂贵”的充电故障识别场景非常契合。本文关心的是：这种预训练收益在真实的充电功率数据上能保留多少，尤其是在标注很少的时候。
+
+现有应用研究常在单一训练规模下比较最终精度，容易把模型容量上限和标签效率混在一起。本文具体考察以下问题：
+
+1. 完整标签条件下，统计模型、CNN、TCN 和 MOMENT 的效果如何，MOMENT 能否达到专用网络的水平？
+2. MOMENT 的不同适配策略能否释放预训练表示，冻结表示是否具有非线性可分性？
+3. 当仅使用 1%–10% 标签时，MOMENT 是否比从头训练的 TCN 更准确、更稳定？
+4. MOMENT 表征能否零训练复用于无监督检索？
+
+本文的工作包括：
+
+1. 建立了面向变长充电功率序列的统一实验协议，固定样本清单、显式 padding mask、验证集模型选择和五随机种子配对比较，并把早期不可比结果排除在正式主表之外。
+2. 系统比较 MOMENT 的线性探测、浅层微调、论文协议对齐的冻结表征 RBF-SVM 和完全微调，说明下游适配方式会实质改变对基础模型能力的判断。
+3. 通过嵌套少标签子集确认，MOMENT 最明确的优势是 1%–10% 标签下的标签效率与稳定性；同架构随机初始化对照进一步把该优势归因到预训练权重本身。
+4. 把无监督检索纳入同一证据框架，说明冻结 MOMENT 表征无需训练即可形成与类别相关的近邻结构。
+
+## 2 相关工作
+
+### 2.1 充电设施与电池故障的数据驱动识别
+
+充电过程的功率或电流曲线包含设备控制、车辆需求和电池状态共同作用下的动态信息。Sakwa 等[1]使用真实充电功率曲线和自编码器开展充电设备早期异常检测；Duan 等[2]通过时域、频域和空间特征融合识别充电桩故障。这类研究说明，运行曲线能够支持非侵入式状态监测，也表明人工特征和传统机器学习仍是不可忽略的强基线。与其不同，本文关注单条变长功率曲线的三分类，并将低标签迁移、基础模型适配和表征复用作为同等重要的评价维度。
+
+### 2.2 专用时序分类模型
+
+TCN 使用扩张卷积扩大感受野，并通过残差结构改善深层训练[3]。对于规模有限、标签相对充分的单领域任务，TCN 的参数规模通常比大规模 Transformer 更小。另一方面，ROCKET 使用大量随机卷积核生成特征，再训练线性分类器，在多项时序分类基准上取得较高精度，同时保持较低训练成本[4]。当前实验已包含统计特征、1D-CNN 和 TCN，但尚未完成 ROCKET/MiniROCKET、InceptionTime 等通用时序分类强基线；因此本文现阶段不使用“达到该领域最优”之类表述。
+
+### 2.3 自监督表征与时序基础模型
+
+TS2Vec 通过分层对比学习获得时间戳和子序列级通用表示[5]。MOMENT 则在大规模异构时序集合上进行掩码重构预训练，提供面向多种下游任务的开放模型族[6]。TimesFM[7]和 Chronos[8]主要展示时序基础模型在零样本预测中的能力。单个完整标签任务的最终精度不足以概括基础模型的价值：预训练表示若能在低标签条件下取得更高性能，就能直接减少标注需求。本文分别评价标签效率、适配深度和跨任务复用。
+
+## 3 数据与方法
+
+### 3.1 任务定义与数据清洗
+
+原始数据为真实内部运行资源，包含唯一记录 ID、类别标签和以逗号分隔的单变量充电功率序列。项目当前采用的标签约定为：0 表示正常、1 表示充电器故障、2 表示电池异常、5 表示无效或不完整记录。
+
+表 1 给出清洗统计。首先过滤标签 5，再过滤长度小于 18 的序列，最终保留 35,099 条三分类样本。有效序列最大长度为 816；模型输入上限设置为 1,024，因此正式数据没有因上限而截断。
+
+**表 1 数据清洗与类别分布**
+
+| 项目 | 数量 |
+|---|---:|
+| 原始记录 | 46,535 |
+| 原始标签 0 / 1 / 2 / 5 | 12,115 / 10,020 / 12,965 / 11,435 |
+| 长度小于 18 的记录 | 10,614 |
+| 有效三分类记录 | 35,099 |
+| 有效标签 0 / 1 / 2 | 12,115 / 10,020 / 12,964 |
+| 原始序列最短 / 最长长度 | 1 / 816 |
+
+标签 5 中有 10,613 条序列短于 18 个点，中位长度为 1，且 9,101 条为恒定序列。按照内部既定处理协议，将其与有效三分类数据分离。过滤后的有效数据未发现完全重复序列或冲突标签，仅有 4 条恒定序列。
+
+### 3.2 数据划分与泄漏控制
+
+实验使用随机种子 42、43、44、45 和 46。每个种子均按类别分层划分 70% 训练集、10% 验证集和 20% 测试集，对应 24,569、3,510 和 7,020 条样本；同一随机种子下所有模型共享完全相同的样本 ID 清单。三部分样本 ID 无交集，其并集等于全部有效记录。验证集用于早停和模型选择，测试集仅用于最终评价。
+
+### 3.3 变长序列、归一化与掩码
+
+所有序列在自身有效区间完成预处理，再补零至 1,024 点，并保存同形状的布尔有效位掩码。TCN 和 CNN 的全局平均池化只汇聚有效时间点；MOMENT 将时间点掩码转为完整 patch 掩码，只汇聚所有输入点均有效的 patch，从而避免 padding 污染表征。MOMENT 的 patch 长度和步长均为 8。
+
+TCN 比较三种输入处理：保持原始尺度（none）、逐序列 z-score 和逐序列 min-max。统计特征模型使用原始尺度；MOMENT 分类使用逐序列 z-score。少样本比较沿用各模型在完整实验中的既定协议：TCN 使用原始尺度，MOMENT 使用 z-score。因此该比较回答的是“各自已确定协议下的实际标签效率”，不是完全相同预处理下的单因素模型消融。
+
+### 3.4 对照模型
+
+统计特征包括序列长度、均值、标准差、最小值、最大值、10%/25%/50%/75%/90% 分位数、首尾差、线性斜率、一阶差分均值、一阶差分标准差和最大绝对突变，共 15 维。基于这些特征训练逻辑回归和 300 棵树的随机森林[10]，并加入多数类和仅长度决策树作为机会水平与捷径审计。
+
+1D-CNN 使用 32、64 和 128 个通道的三层卷积，卷积核大小为 5，dropout 为 0.3。TCN 使用 64、64、128 和 128 个通道的四个残差块；每个残差块包含两层因果卷积，卷积核大小为 3，扩张率依次为 1、2、4 和 8，dropout 为 0.3。两者均使用掩码平均池化和线性三分类头。
+
+### 3.5 MOMENT 适配策略
+
+本文使用 341,243,395 参数的 MOMENT-1-large。其编码器以 FLAN-T5-large 为骨干，包含 24 层、1,024 维隐藏表示和 16 个注意力头。比较以下四种适配策略：
+
+1. **线性探测：**冻结 embedder 和 encoder，只训练 3,075 参数的线性分类头；
+2. **最后两层微调：**解冻 24 层编码器中的最后 2 层及分类头；
+3. **冻结表征 + RBF-SVM：**提取 1,024 维掩码池化表示，使用 RBF 核 SVM[9]；只在训练集中分层抽取最多 10,000 条样本，以五折交叉验证从 C ∈ {10⁻⁴, 10⁻³, …, 10⁴} 中选值，γ 取 `scale`；
+4. **完全微调：**更新全部参数，分类头学习率为 10⁻⁴，backbone 学习率为 10⁻⁵。
+
+第三种方法与 MOMENT 原论文的冻结表示分类思路对齐[6]，但本文对变长序列增加了掩码池化，且目标数据不是 UCR 基准，故应称为“下游协议适配”，而非对原论文结果的严格复现。
+
+### 3.6 少标签与跨任务协议
+
+少标签实验在每个随机种子的完整训练集内按类别分层抽取 1%、5% 和 10% 的嵌套子集，实际样本数分别为 244、1,227 和 2,456；验证集和测试集保持完整。
+<!-- 按导师意见省略：20%、40% 标签子集（4,913 / 9,827 条）仍可复现，正文不再呈现。 -->
+TCN 从头训练，MOMENT 骨干保持冻结，每个种子只提取一次表征，再为各标签比例独立执行训练集内部的 SVM 交叉验证。相同种子、相同比例的两种方法使用完全一致的样本 ID。下文将这一低标签管线简称为 MOMENT-SVM。
+
+预训练归因消融只保留 1%、5% 和 10% 三个核心低标签比例。条件 A 使用预训练 MOMENT-1-large；条件 B 直接构造参数量相同的随机初始化 MOMENT-1-large，不加载 MOMENT 或 FLAN-T5 checkpoint。两条件均冻结 encoder，并使用相同样本 ID、逐序列 z-score、mask-aware pooling、1,024 维表示和 RBF-SVM 搜索范围。随机 encoder 的初始化种子与对应数据划分 seed 一致。该对照只改变预训练权重，用于判断预训练相对同架构随机表征的贡献。
+
+无监督检索以训练集 24,569 条序列作为 gallery、测试集 7,020 条作为 query，比较冻结 MOMENT 表示、128 维重采样原始曲线和仅长度特征；近邻排序不读取标签，标签只用于事后计算类别一致性。
+<!-- 按导师意见省略：18 维人工统计特征行及零样本插补协议不再呈现，原始记录见
+     [moment_imputation_20260803](experiment_records/moment_imputation_20260803.md)。 -->
+
+
+<!-- 按导师意见注释：电池异常安全关键复评整节移出正文，方法与结果见
+     [battery_safety_experiment_20260804](experiment_records/battery_safety_experiment_20260804.md)。
+
+### 3.7 电池异常安全关键复评
+
+将标签 2 视为正类，分别计算 Precision、Recall、假阴性率（FNR）、假阳性率（FPR）、F2 和
+PR-AUC。每个模型先在验证集连续分数上选择最大 F2 阈值或达到 95%/98%/99% Recall 的阈值，
+然后原样应用于测试集；测试标签不参与阈值选择。PR 曲线适合展示正类识别的排序质量和阈值权衡
+[11]。除三分类模型复评外，还比较专用 one-vs-rest MOMENT-SVM、逻辑回归和随机森林。
+-->
+
+
+### 3.7 评价指标与统计分析
+
+三分类主指标为 Macro-F1：
+
+\[
+\mathrm{Macro\mbox{-}F1}=\frac{1}{K}\sum_{k=1}^{K}
+\frac{2P_kR_k}{P_k+R_k},\quad K=3.
+\]
+
+同时报告 Accuracy、Balanced Accuracy 和 Weighted-F1。五随机种子结果报告均值 ± 样本标准差；模型差值按相同种子配对，并给出未校正的双侧 95% 配对 t 区间。检索的干净查询比较对 7,020 条 query 执行 2,000 次类别分层 bootstrap。由于随机种子数仅为 5，且多个消融未进行多重比较校正，正文优先解释效应量、区间和跨种子一致性，不单独依赖“显著/不显著”措辞。
+
+### 3.8 实现与计算环境
+
+实验使用 Python 3.11、PyTorch 2.12.1+cu126 和 MOMENT 0.1.4，在 NVIDIA Tesla V100 32 GB 服务器运行。TCN/CNN 的训练 batch size 为 32，最多 50 epochs，以验证集 Macro-F1 早停；TCN 正式实验使用 FP32，1D-CNN 正式实验使用 AMP，两者正式结果均已通过数值审计。MOMENT 使用 AMP，并在检测到非有限表示时以 FP32 重算。所有正式运行保存配置快照、环境信息、数据哈希、样本清单、状态文件和机器可读指标。
+
+## 4 结果
+
+### 4.1 完整标签三分类
+
+**表 2 完整标签测试集结果（%，五随机种子均值 ± 标准差）**
+
+| 模型或策略 | Accuracy | Balanced Accuracy | Macro-F1 |
+|---|---:|---:|---:|
+| 多数类 | 36.94 ± 0.00 | 33.33 ± 0.00 | 17.98 ± 0.00 |
+| 逻辑回归（统计特征） | 74.13 ± 0.59 | 73.68 ± 0.59 | 73.75 ± 0.60 |
+| 随机森林（统计特征） | 88.85 ± 0.23 | 88.90 ± 0.24 | 88.89 ± 0.23 |
+| 1D-CNN（逐序列 z-score） | 94.29 ± 1.27 | 94.45 ± 1.21 | 94.38 ± 1.27 |
+| TCN（逐序列 min-max） | 91.79 ± 1.37 | 92.18 ± 1.33 | 92.00 ± 1.37 |
+| TCN（逐序列 z-score） | 94.92 ± 1.44 | 95.06 ± 1.46 | 95.02 ± 1.43 |
+| **TCN（原始尺度）** | **95.94 ± 0.74** | **96.09 ± 0.67** | **95.99 ± 0.73** |
+| MOMENT 线性探测 | 77.02 ± 0.88 | 77.31 ± 0.93 | 77.41 ± 0.89 |
+| MOMENT 最后两层微调 | 81.08 ± 1.13 | 82.05 ± 1.31 | 81.50 ± 1.06 |
+| MOMENT 冻结表征 + RBF-SVM | 84.77 ± 1.04 | 85.26 ± 1.03 | 85.17 ± 1.03 |
+| **MOMENT 完全微调** | **95.26 ± 0.41** | **95.52 ± 0.39** | **95.37 ± 0.39** |
+
+随机森林已达到 88.89% Macro-F1，说明幅值、分位数、趋势和突变等人工统计量包含很强的类别信息。原始尺度 TCN 相对随机森林提高 7.09 个百分点，配对 95% 区间为 [6.21, 7.98]，五个种子均有提升。TCN 比 CNN 平均高 1.61 个百分点，但区间为 [−0.38, 3.61]，当前证据不足以将其写成稳定优于 CNN。
+
+完全微调 MOMENT 与最佳专用模型 TCN 的 Macro-F1 相差仅 0.62 个百分点（相同种子配对区间跨 0），说明时序基础模型经过适配可以达到本任务专用模型的上限水平，两者在完整标签下基本相当。
+
+### 4.2 输入归一化
+
+**表 3 TCN 输入处理消融（%）**
+
+| 输入处理 | 最佳验证 Macro-F1 | 测试 Macro-F1 |
+|---|---:|---:|
+| 原始尺度 | **96.08 ± 0.70** | **95.99 ± 0.73** |
+| 逐序列 z-score | 95.29 ± 1.25 | 95.02 ± 1.43 |
+| 逐序列 min-max | 92.38 ± 1.45 | 92.00 ± 1.37 |
+
+原始尺度减 z-score 为 +0.97 个百分点，95% CI 为 [−0.55, 2.49]；z-score 减 min-max 为 +3.01 个百分点，95% CI 为 [0.86, 5.16]。逐序列归一化会移除样本间绝对功率幅值，这一结果提示绝对功率幅值是现行业务任务中的有效判别信号。未来可增加仅由训练集统计量确定的全局标准化，以进一步区分“保留跨样本尺度”与“完全不做尺度校准”的影响；该扩展不影响当前消融结论。
+
+### 4.3 MOMENT 适配深度
+
+**表 4 MOMENT 适配策略消融（Macro-F1 为%，五随机种子均值 ± 标准差）**
+
+| 策略 | 可训练参数 | Macro-F1 | 相对上一项变化 |
+|---|---:|---:|---:|
+| 冻结 backbone + 线性头 | 3,075 | 77.41 ± 0.89 | — |
+| 解冻最后 2/24 层 | 25,697,283 | 81.50 ± 1.06 | +4.09 pp |
+| 冻结表征 + RBF-SVM | backbone 0 | 85.17 ± 1.03 | +3.67 pp |
+| 完全微调 | 341,243,395 | 95.37 ± 0.39 | +10.20 pp |
+
+RBF-SVM 比线性探测高 7.75 个百分点，也比最后两层微调高 3.67 个百分点，说明冻结表征具有明显的非线性可分结构。完全微调相对冻结 RBF-SVM 再提高 10.20 个百分点，说明继续加深目标域适配还能获得明显提升。最后两层结果只代表本文测试的 2/24 层、学习率和训练协议。
+
+### 4.4 少标签分类
+
+**表 5 少标签测试 Macro-F1（%，五随机种子均值 ± 标准差）**
+
+| 标签比例（样本数） | TCN | MOMENT 冻结表征 + RBF-SVM | MOMENT − TCN |
+|---:|---:|---:|---:|
+| 1%（244） | 61.62 ± 4.12 | **68.05 ± 1.59** | **+6.43 pp** |
+| 5%（1,227） | 66.54 ± 2.54 | **77.40 ± 0.93** | **+10.86 pp** |
+| 10%（2,456） | 68.22 ± 7.15 | **80.77 ± 0.59** | **+12.55 pp** |
+
+<!-- 按导师意见省略（原始结果仍可复现）：
+| 20%（4,913） | 81.34 ± 8.80 | 83.21 ± 0.63 | +1.87 pp |
+| 40%（9,827） | 92.57 ± 2.36 | 85.03 ± 0.58 | −7.54 pp |
+-->
+
+![图 1 少标签条件下的 Macro-F1 学习曲线](figures/few_shot_macro_f1_20260728.png)
+
+1%、5% 和 10% 标签下，MOMENT − TCN 的配对 95% 区间分别为 [0.22, 12.63]、[8.31, 13.41] 和 [3.80, 21.29] 个百分点，下界均为正。MOMENT 在三个低标签比例下的标准差为 0.59–1.59 个百分点，明显小于 TCN 的 2.54–7.15 个百分点：冻结表征在低标签下平均效果更好，跨随机种子的波动也更小。
+
+MOMENT 的正面结果集中在低标签下的标签效率和跨种子稳定性。MOMENT 与 TCN 的差异仍是各自既定协议下的管线比较；下一节使用同架构、同分类器对照进一步隔离预训练权重的作用。
+
+### 4.5 同架构预训练归因
+
+**表 6 预训练与随机初始化冻结表征的低标签 Macro-F1（%，五随机种子）**
+
+| 标签比例 | 预训练 MOMENT | 随机初始化 MOMENT | 配对差 | 95% 配对区间 |
+|---:|---:|---:|---:|---:|
+| 1% | **68.05 ± 1.59** | 39.44 ± 5.00 | **+28.60** | **[+22.24, +34.97]** |
+| 5% | **77.40 ± 0.93** | 54.81 ± 0.95 | **+22.58** | **[+20.89, +24.28]** |
+| 10% | **80.77 ± 0.59** | 58.76 ± 1.26 | **+22.01** | **[+20.48, +23.53]** |
+
+三个比例的 15 个逐 seed 差值全部为正。两条件的数据哈希、split manifest、样本 ID、预处理、池化、1,024 维特征、341,243,395 参数和 SVM 搜索范围均通过自动一致性检查；随机条件明确记录未加载预训练 checkpoint。在当前低标签任务和固定 RBF-SVM 协议下，预训练权重相对同架构随机表征带来稳定的大幅收益。该消融支持“预训练提高当前任务的低标签分类性能”；外推到其他数据集时仍需单独验证。
+
+### 4.6 长度分层分析
+
+使用五个已有 seed 的 checkpoint 导出 TCN、完全微调 MOMENT 以及 1%/5%/10% 标签 MOMENT-SVM 的 validation/test 逐样本预测和全部类别分数。神经网络保存 softmax 概率；SVM 保存 one-vs-rest decision score，并另存仅用于模型内排序的 softmax 归一化分数，后者不解释为校准概率。
+
+**表 7 按有效序列长度分层的测试 Macro-F1（%，五随机种子）**
+
+| 模型 | ≤237 | 238–332 | 333–439 | >439 |
+|---|---:|---:|---:|---:|
+| TCN（100%） | **96.61 ± 0.83** | **96.40 ± 0.74** | 95.59 ± 0.78 | 92.98 ± 1.43 |
+| MOMENT 完全微调（100%） | 93.46 ± 0.90 | 96.16 ± 0.76 | **95.85 ± 0.39** | **93.87 ± 0.77** |
+| MOMENT-SVM（1%） | 62.38 ± 1.76 | 66.22 ± 2.37 | 67.11 ± 1.82 | 59.62 ± 4.41 |
+| MOMENT-SVM（5%） | 72.83 ± 2.00 | 76.96 ± 1.38 | 77.13 ± 1.63 | 70.82 ± 3.73 |
+| MOMENT-SVM（10%） | 76.43 ± 0.88 | 80.40 ± 0.94 | 80.54 ± 1.01 | 75.41 ± 1.68 |
+
+区间边界由 seed 42 全部有效输入的长度四分位点固定得到，不读取类别标签。所有方案在最长区间均出现相对下降，因此序列长度在失效分析中值得单独报告；完全微调 MOMENT 在 333–439 和 >439 两个区间还保持了各方案中的最高均值。
+
+<!-- 按导师意见注释：混淆矩阵、错误方向、高置信误报和典型错误曲线等细节分析不再呈现，原始
+     记录见 [M02 轻量错误分析](experiment_records/m02_error_analysis_20260805.md)。
+
+**表 8 完整标签模型的测试集行归一化混淆矩阵（%，五随机种子平均）**
+
+| 模型 | 真实类别 | 预测 0 | 预测 1 | 预测 2 |
+|---|---:|---:|---:|---:|
+| TCN | 0 | **98.44** | 1.29 | 0.27 |
+| TCN | 1 | 1.94 | **97.17** | 0.90 |
+| TCN | 2 | 5.51 | 1.82 | **92.66** |
+| MOMENT 完全微调 | 0 | **95.99** | 1.95 | 2.06 |
+| MOMENT 完全微调 | 1 | 0.65 | **98.44** | 0.91 |
+| MOMENT 完全微调 | 2 | 6.19 | 1.69 | **92.12** |
+
+TCN 每类最大错误方向依次为 0→1、1→0 和 2→0，平均占真实类别 1.29%、1.94% 和 5.51%；
+完全微调 MOMENT 为 0→2、1→2 和 2→0，占 2.06%、0.91% 和 6.19%。低标签
+MOMENT-SVM 的主要方向在 1%/5%/10% 三种比例下均为 0→2、1→0、2→0；10% 标签时对应
+比例仍为 14.40%、6.91% 和 20.68%。以每个模型—seed 中预测为标签 2 的置信边际前 10% 为
+固定高置信集合，TCN、完全微调 MOMENT、1%/5%/10% MOMENT-SVM 的高置信误报平均为
+0.4、0.8、16.0、7.8 和 6.8 条/seed。
+
+![图 2 固定规则选择的典型错误曲线](figures/m02_typical_error_curves_20260805.png)
+
+图 2 固定使用 seed 42，并依次按电池漏检、高置信电池误报、TCN/MOMENT 共同错误、仅 TCN
+错误、仅 MOMENT 错误和仅 10% MOMENT-SVM 错误六条预声明规则选样；选择分数相同则按样本
+ID 排序，已入选样本不重复使用。五种子测试单元中，共同错误、仅 TCN 错误和仅 MOMENT 错误
+分别为 585、839 和 1,079 个。相对两模型均正确样本，共同错误曲线的方向转折率和功率极差
+中位数更高；仅 TCN 错误曲线更长；仅 MOMENT 错误曲线的方向转折率更高。该比较是固定统计
+特征上的描述性归纳，不作因果解释。
+-->
+
+<!-- 按导师意见注释：电池异常安全关键复评整节移出正文，原始结果见
+     [battery_safety_experiment_20260804](experiment_records/battery_safety_experiment_20260804.md)
+     和 [battery_binary_experiment_20260804](experiment_records/battery_binary_experiment_20260804.md)。
+
+### 4.7 电池异常的召回—误报权衡
+
+**表 9 完整标签电池异常测试结果（%，阈值仅由验证集选择）**
+
+| 运行点 | 模型 | Recall | Precision | FPR | F2 | 平均 FN / FP |
+|---|---|---:|---:|---:|---:|---:|
+| Argmax | TCN | **92.66 ± 1.41** | **98.99 ± 0.29** | **0.56 ± 0.16** | **93.86 ± 1.14** | 190.2 / 24.6 |
+| Argmax | MOMENT 完全微调 | 92.12 ± 0.94 | 97.22 ± 0.17 | 1.54 ± 0.10 | 93.09 ± 0.76 | 204.4 / 68.2 |
+| Max-F2 | TCN | **97.41 ± 0.56** | **95.95 ± 0.85** | **2.41 ± 0.52** | **97.11 ± 0.48** | 67.2 / 106.8 |
+| Max-F2 | MOMENT 完全微调 | 95.56 ± 0.29 | 93.25 ± 1.91 | 4.07 ± 1.25 | 95.08 ± 0.46 | 115.2 / 180.4 |
+| 99% Recall 目标 | TCN | **99.07 ± 0.18** | **78.45 ± 6.87** | **16.41 ± 6.73** | **94.01 ± 2.01** | 24.2 / 726.6 |
+| 99% Recall 目标 | MOMENT 完全微调 | 98.97 ± 0.43 | 54.78 ± 4.55 | 48.42 ± 8.38 | 85.12 ± 1.88 | 26.6 / 2,143.6 |
+
+TCN 的 Battery PR-AUC 为 99.14% ± 0.17%，完全微调 MOMENT 为 97.91% ± 0.42%，配对差的
+95% 区间为 [0.65, 1.81] 个百分点。在约 99% Recall 时，两者平均漏检数接近，但 TCN 的 FPR
+低 32.01 个百分点。完整标签条件下，TCN 的安全关键排序与阈值权衡均更好。
+
+![图 3 完整标签电池异常的 Recall–FPR 权衡](figures/battery_safety_threshold_tradeoff_20260804.png)
+
+少标签默认 argmax 下，MOMENT 在 1%–10% 标签时具有更高 Battery Recall，但也带来更高 FPR；
+统一在验证集选择 95% Recall 后，MOMENT 在 1% 和 5% 标签时相对少样本 TCN 的 FPR 分别低
+8.91 和 10.60 个百分点，但绝对 FPR 仍为 77.80% 和 65.62%。专用二分类 MOMENT-SVM 能进一步
+改善三分类 MOMENT 的 PR-AUC 和 FPR，但 1%–10% 标签下随机森林更强。故安全结果不能作为
+MOMENT 的主要优势，也不能支持上线报警。
+
+![图 4 少标签电池异常评估](figures/battery_safety_few_shot_20260804.png)
+
+![图 5 专用电池检测器比较](figures/battery_binary_comparison_20260804.png)
+-->
+
+### 4.7 无监督相似序列检索
+
+**表 8 干净查询的无监督检索结果（%）**
+
+| 特征 | Macro-P@1 | Macro-P@10 | mAP@10 | Top-10 长度相对误差 |
+|---|---:|---:|---:|---:|
+| MOMENT | **75.58** | 69.12 | 60.23 | 3.96 |
+| 原始曲线重采样 | 72.04 | 65.99 | 57.04 | 38.90 |
+| 仅长度 | 38.01 ± 0.31 | 38.44 ± 0.28 | 23.26 ± 0.21 | 0.01 |
+
+<!-- 按导师意见省略（原始结果仍可复现）：
+| 人工统计特征 | 75.57 | 70.08 | 61.26 | 12.17 |
+-->
+
+MOMENT 相对原始曲线的 Macro-P@10 提高 3.14 个百分点，分层 bootstrap 95% CI 为 [2.53, 3.75]。MOMENT 无需更新参数或训练检索器即可形成与类别相关的近邻结构。其检索纯度明显受序列长度影响，但仅长度基线远低于 MOMENT，说明长度不能解释大部分检索纯度。
+
+<!-- 按导师意见省略的结论性表述：相对人工统计特征低 0.95 个百分点，区间为 [−1.67, −0.26]；
+     40% 遮挡下邻居身份的稳定性也较差。 -->
+
+![图 2 无监督检索结果](figures/moment_retrieval_metrics_20260803.png)
+
+<!-- 按导师意见注释：零样本插补负结果与效果—资源权衡两节移出正文，原始记录见
+     [moment_imputation_20260803](experiment_records/moment_imputation_20260803.md)
+     和 [initial_baseline_results](experiment_records/initial_baseline_results.md)。
+
+### 4.9 零样本插补的负结果
+
+**表 11 零样本插补 Macro-NRMSE（越低越好）**
+
+| 缺失模式 | 比例 | Linear | Forward Fill | MOMENT | Visible Mean |
+|---|---:|---:|---:|---:|---:|
+| 随机 patch | 10% | **0.0973** | 0.1638 | 0.2101 | 0.9734 |
+| 随机 patch | 25% | **0.1254** | 0.2175 | 0.3071 | 1.0016 |
+| 随机 patch | 40% | **0.1496** | 0.2695 | 0.4287 | 1.0137 |
+| 随机 patch | 60% | **0.1951** | 0.3674 | 0.6320 | 1.0296 |
+| 连续区块 | 10% | **0.1231** | 0.2452 | 0.4916 | 0.9629 |
+| 连续区块 | 25% | **0.2691** | 0.4987 | 0.9085 | 1.1198 |
+| 连续区块 | 40% | **0.4487** | 0.7520 | 1.1424 | 1.2691 |
+| 连续区块 | 60% | **0.7564** | 1.0974 | 1.3864 | 1.4458 |
+
+![图 7 零样本插补结果](figures/moment_imputation_macro_nrmse_20260803.png)
+
+线性插值在 8/8 个条件中最优。MOMENT 始终优于可见值均值，但没有超过线性插值或前向填充。
+可见，冻结表征在低标签分类中的收益没有迁移到通用重构头的零样本插补。这个负结果给出了
+预训练能力的任务边界，也保留了不利于 MOMENT 的实验结果。
+
+### 4.10 效果—资源权衡
+
+**表 12 正式模型训练资源**
+
+| 模型/协议 | 平均训练或拟合时间 | 峰值显存 | 参数量或训练规模 |
+|---|---:|---:|---:|
+| 1D-CNN（逐序列 z-score） | 136.3 ± 51.7 s | 63 MiB | 51,971 参数 |
+| TCN（原始尺度） | 345.5 ± 79.4 s | 267 MiB | 218,691 参数 |
+| MOMENT RBF-SVM | 15.62 ± 0.27 min | 1,881 MiB | 骨干冻结；SVM 最多 10,000 样本 |
+| MOMENT 最后两层微调 | 约 0.67 h | 约 2,692 MiB | 25,697,283 可训练参数 |
+| MOMENT 完全微调 | 3.02 ± 0.52 h | 15,613 MiB | 341,243,395 可训练参数 |
+
+完全微调 MOMENT 相对 TCN 的平均训练时间、峰值显存和参数量约为 31.5、58.5 和 1,560 倍。
+在完整标签且只需完成当前三分类任务时，TCN 的性能—资源权衡明显更好。冻结 MOMENT 的
+价值主要来自减少标签需求，而不是比 TCN 节省计算；少标签实验中，MOMENT 的 GPU 表征提取后还
+需要 CPU SVM 网格搜索。
+
+表 12 的计算成本只覆盖已观测的训练或拟合时间、峰值 GPU 显存以及参数量或训练规模。本文没有
+在统一 batch 和硬件测量线上推理延迟、吞吐、能耗或端到端生产速度，因此不将训练侧结果外推为
+部署推理速度结论。
+-->
+
+## 5 讨论
+
+### 5.1 MOMENT 的低标签收益
+
+MOMENT 在本数据集 1%–10% 标签三分类中取得了更高的 Macro-F1，随机种子间的波动也更小。比较使用相同样本 ID、相同验证/测试集合和配对随机种子，效应量为 6.43–12.55 个百分点。这与跨数据集预训练在有限监督条件下提供先验表示的预期一致[6]。
+
+同架构消融给出了更直接的证据：固定 RBF-SVM、样本、预处理和池化后，预训练表征在 1%–10% 标签下比随机初始化表征高 22.01–28.60 个百分点，三个配对区间均完全高于 0。这排除了“3.41 亿参数随机特征加 RBF-SVM 已足以解释结果”的替代解释，说明低标签收益确实来自预训练权重本身。MOMENT 与 TCN 仍使用不同分类器、预处理和调参方式，因此对 TCN 的领先应表述为既定管线下的经验优势；更宽的强基线比较留在未来工作。
+
+无监督检索补充了表征复用方面的证据：MOMENT 不需要任务训练即可形成与类别相关的邻域，并超过原始曲线和仅长度基线。这说明冻结表征既能在低标签分类上发挥作用，也能直接支撑零训练检索。
+
+### 5.2 适配深度与完整标签表现
+
+表 4 显示冻结表征已经带有明显的非线性可分结构：RBF-SVM 比线性探测高 7.75 个百分点，比最后两层微调高 3.67 个百分点。继续增加适配深度，MOMENT 还能再上一个台阶：完全微调达到 95.37% Macro-F1，与最佳专用网络 TCN 基本持平。也就是说，MOMENT 既可以靠冻结表征配简单分类器在低标签下取得领先，也可以通过完全微调达到专用网络的上限水平，适配方式的选择空间很大。
+
+模型选择取决于实际瓶颈。人工标注成本较高时，冻结 MOMENT 配 RBF-SVM 做低标签冷启动最划算；标签和算力都充足时，完全微调 MOMENT 也能达到与专用网络相当的效果。MOMENT 表征还可以用于快速构建跨任务原型，每项任务再设置有竞争力的基线即可。
+
+<!-- 按导师意见注释：安全关键与零样本插补两节讨论移出正文，原始记录见
+     [battery_safety_experiment_20260804](experiment_records/battery_safety_experiment_20260804.md)
+     和 [moment_imputation_20260803](experiment_records/moment_imputation_20260803.md)。
+
+### 5.3 安全关键类别不能由总体指标替代
+
+三分类 Macro-F1 接近并不保证电池异常的 Recall–FPR 曲线接近。完整标签 TCN 在 PR-AUC、最大
+F2 和高召回运行点均优于完全微调 MOMENT。低标签 MOMENT 的默认 Recall 较高，却伴随很高 FPR；
+专用二分类和阈值调整可以减少部分误报，但仍明显弱于相同标签下的随机森林或完整标签 TCN。
+
+本文将安全专项结果作为模型选择约束，不把它列为 MOMENT 的优势。若未来进入部署评估，应另行
+明确漏检/误报成本，并完成前缀早期检测、概率校准、线上回放和持续监控；这些工作属于部署验证，
+不是当前离线模型比较结论成立的前提。目前结果不能替代既有生产验收流程。
+
+### 5.4 零样本插补的迁移边界
+
+MOMENT 的零样本插补落后于线性插值；对目标曲线而言，局部平滑假设比通用重构先验更合适。
+分类使用 encoder 表征和经过训练的下游分类器，插补则直接复用预训练重构头，两者的结果并不
+矛盾。后续可以测试目标域自监督遮挡适配，但适配后的插补应与当前 zero-shot 结果分开报告。
+-->
+
+### 5.3 局限性
+
+1. 当前统计比较基于五个随机种子，配对区间未进行多重比较校正。
+2. MOMENT—TCN 少标签比较仍使用各自既定最佳协议，预处理、分类器和调参预算并不完全相同。
+3. 缺少 ROCKET/MiniROCKET、TS2Vec 等强通用表征基线。
+4. 尚未开展噪声、重采样、截断鲁棒性和概率校准。
+5. 尚未在统一 batch 和硬件下测量推理延迟、吞吐与能耗。
+6. 检索以类别一致性代理业务相关性，尚缺少面向运维用途的相似度评价。
+
+### 5.4 未来工作
+
+后续研究可加入 MiniROCKET、TS2Vec 等强通用表征基线，在相同低标签样本和调参预算下比较；也可继续测试训练集全局标准化、输入扰动鲁棒性和概率校准。如果讨论部署效率，还需在统一硬件和 batch size 下测量推理延迟、吞吐、能耗与模型文件大小。业务人员复核错误样例和生产兼容离线回放也有实际价值，但无需改动现有生产系统。这些扩展应与本文已经锁定的五随机种子离线结果分开报告。
+
+## 6 结论
+
+本文在统一变长序列协议下比较了专用 TCN 与 MOMENT 时序基础模型。完整标签条件下，完全微调 MOMENT 达到 95.37% ± 0.39% Macro-F1，与最佳专用网络 TCN 的 95.99% ± 0.73% 基本持平，说明时序基础模型经过适配可以达到专用网络的水平。MOMENT 的主要价值出现在低标签区间：冻结表征 + RBF-SVM 在 1%、5% 和 10% 标签下领先从头训练 TCN 6.43–12.55 个百分点，并具有更低跨种子方差。同架构随机初始化对照进一步显示，预训练权重在三个低标签比例带来 22.01–28.60 个百分点的稳定收益，说明该优势来自预训练本身，而不是大参数随机特征。无监督检索显示 MOMENT 表征无需任何训练即可形成与类别相关的近邻结构，并明显超过原始曲线和仅长度基线。长度分层分析表明，最长序列是各模型的共同相对薄弱区间。
+
+据此，低标签冷启动可以优先评估冻结 MOMENT 表征：标注很少时，它配合简单分类器就能取得明显更高的起步性能，而且跨随机种子更稳定。强表示基线、鲁棒性、统一推理效率和生产兼容回放属于后续研究，不改变本文基于现有离线实验得到的结论。
+
+<!-- ## 数据与代码可用性
+
+本文数据为真实内部运行资源，受内部数据管理与保密要求约束，不公开原始记录。投稿版本将依据
+内部许可披露可公开的实验代码、配置、聚合指标、数据哈希和正式实验产物清单；任何披露内容均不
+包含可反向识别内部设备、站点或业务主体的信息。
+
+## 伦理声明
+
+本文使用受内部管理制度约束的运行数据，论文仅报告匿名化后的聚合实验结果，不披露原始业务
+记录。本文模型评估用于研究和方案比较，不构成安全认证或自动控制依据。 -->
+
+## 作者贡献
+
+【待补：按 CRediT taxonomy 填写 Conceptualization、Methodology、Software、Validation、Writing 等。】
+
+
+
+## 致谢
+
+【待补】
+
+## 参考文献
+
+[1] Sakwa M, Nespoli A, Matrone S, et al. Electric vehicle supply equipment monitoring and early fault detection through autoencoders[J]. *Sustainable Energy, Grids and Networks*, 2024, 40: 101497. <https://doi.org/10.1016/j.segan.2024.101497>.
+
+[2] Duan Y, Shu S, Zhao Y, et al. Machine learning-based spatiotemporal fusion method for non-intrusive charging pile fault identification[J]. *Frontiers in Electronics*, 2024, 5: 1490939. <https://doi.org/10.3389/felec.2024.1490939>.
+
+[3] Bai S, Kolter J Z, Koltun V. An empirical evaluation of generic convolutional and recurrent networks for sequence modeling[EB/OL]. arXiv:1803.01271, 2018. <https://arxiv.org/abs/1803.01271>.
+
+[4] Dempster A, Petitjean F, Webb G I. ROCKET: exceptionally fast and accurate time series classification using random convolutional kernels[J]. *Data Mining and Knowledge Discovery*, 2020, 34: 1454-1495. <https://doi.org/10.1007/s10618-020-00701-z>.
+
+[5] Yue Z, Wang Y, Duan J, et al. TS2Vec: Towards universal representation of time series[C]//Proceedings of the AAAI Conference on Artificial Intelligence. 2022, 36(8): 8980-8987. <https://doi.org/10.1609/aaai.v36i8.20881>.
+
+[6] Goswami M, Szafer K, Choudhry A, et al. MOMENT: A family of open time-series foundation models[C]//*Proceedings of the 41st International Conference on Machine Learning*. PMLR, 2024, 235: 16115-16152. <https://proceedings.mlr.press/v235/goswami24a.html>.
+
+[7] Das A, Kong W, Sen R, Zhou Y. A decoder-only foundation model for time-series forecasting[C]//*Proceedings of the 41st International Conference on Machine Learning*. PMLR, 2024, 235: 10148-10167. <https://proceedings.mlr.press/v235/das24c.html>.
+
+[8] Ansari A F, Stella L, Turkmen C, et al. Chronos: Learning the language of time series[J]. *Transactions on Machine Learning Research*, 2024. <https://arxiv.org/abs/2403.07815>.
+
+[9] Cortes C, Vapnik V. Support-vector networks[J]. *Machine Learning*, 1995, 20: 273-297. <https://doi.org/10.1007/BF00994018>.
+
+[10] Breiman L. Random forests[J]. *Machine Learning*, 2001, 45: 5-32. <https://doi.org/10.1023/A:1010933404324>.
+
+<!-- 按导师意见注释：安全关键复评章节已移出正文，[11] 暂不引用。
+[11] Saito T, Rehmsmeier M. The precision-recall plot is more informative than the ROC plot when
+evaluating binary classifiers on imbalanced datasets[J]. *PLOS ONE*, 2015, 10(3): e0118432.
+<https://doi.org/10.1371/journal.pone.0118432>.
+-->
+
+## 附录 A 当前结果的复现索引
+
+- 综合实验依据：[experiment_report_20260804.md](experiment_report_20260804.md)
+- M01 预训练归因：[experiment_records/m01_pretraining_ablation_20260805.md](experiment_records/m01_pretraining_ablation_20260805.md)
+- M02 轻量错误分析：[experiment_records/m02_error_analysis_20260805.md](experiment_records/m02_error_analysis_20260805.md)
+- M03 最终协议审计：[experiment_records/m03_protocol_audit_20260805.md](experiment_records/m03_protocol_audit_20260805.md)
+- M04 稿件闭环：[experiment_records/m04_manuscript_finalization_20260805.md](experiment_records/m04_manuscript_finalization_20260805.md)
+- 少标签实验：[experiment_records/few_shot_experiment_20260728.md](experiment_records/few_shot_experiment_20260728.md)
+- 电池安全评估：[experiment_records/battery_safety_experiment_20260804.md](experiment_records/battery_safety_experiment_20260804.md)
+- 电池专用二分类：[experiment_records/battery_binary_experiment_20260804.md](experiment_records/battery_binary_experiment_20260804.md)
+- 零样本插补：[experiment_records/moment_imputation_20260803.md](experiment_records/moment_imputation_20260803.md)
+- 无监督检索：[experiment_records/moment_retrieval_20260803.md](experiment_records/moment_retrieval_20260803.md)
+- 数据质量：[experiment_records/data_quality_findings.md](experiment_records/data_quality_findings.md)
+- 未来工作备忘：[paper_experiment_backlog_20260805.md](paper_experiment_backlog_20260805.md)
