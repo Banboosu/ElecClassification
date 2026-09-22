@@ -1,6 +1,6 @@
 # 面向充电功率时序故障分类的专用网络与基础模型比较：MOMENT 的标签效率、迁移边界与安全关键评估
 
-> 稿件状态：期刊论文初稿，2026-08-05。
+> 稿件状态：期刊论文修订稿，2026-09-21。
 >
 > 使用说明：M01–M04 已完成当前学生论文的实验与文稿闭环；正文只把已有五随机种子或完整
 > 零样本协议支持的结果写成事实。当前 `【待补】` 仅保留作者、单位、基金、贡献、利益冲突和
@@ -85,16 +85,24 @@ MOMENT; temporal convolutional network; label efficiency; safety-critical evalua
 获取和确认通常比正常样本困难，数据驱动方法既需要处理有限标注，也必须报告漏检和误报，而不能
 只报告总体准确率。
 
-TCN 通过扩张因果卷积和残差连接建模序列，具有结构清晰、并行计算方便等特点[3]。ROCKET 等
-方法则表明，随机卷积特征配合简单分类器也可以成为准确且高效的时序分类基线[4]。近年来，
-TS2Vec 等自监督表征方法[5]以及 MOMENT、TimesFM 和 Chronos 等时序基础模型[6-8]尝试利用跨数据集
-预训练获得可迁移表示。MOMENT 覆盖分类、插补和异常检测等任务，也强调有限监督下的统一评估[6]，
-因而可能适用于标注昂贵的充电故障识别。不过，预训练收益能否跨越领域差异、能否超过强专用模型，
-以及为此需要付出多少计算成本，仍需在目标数据上检验。
+国内时序分类研究已经讨论了特征表示、深度分类器和数据增强之间的关系[3]。近期工作又将多尺度
+Transformer 与形态卷积结合，用全局依赖和局部形态共同描述复杂序列[4]。这些方法说明，针对时序
+结构设计模型仍有价值。TCN 通过扩张因果卷积和残差连接建模序列[5]；ROCKET 则用随机卷积特征和
+线性分类器构成高效基线[6]。面对训练数据不足，王士同和杨子伦通过迁移相邻周期的模型输出改善
+周期性时序分类[7]，但这种迁移依赖明确的周期结构和特定分类器。
+
+另一条路线是从大量异构序列中预训练通用表征。TS2Vec 采用分层对比学习[8]，MOMENT、TimesFM
+和 Chronos 则分别探索多任务时序建模或零样本预测[9-11]。在故障诊断领域，邵海东等将振动信号
+转换为信号—文本联合表示，再通过跨模态对齐接入大语言模型[12]。这项研究需要专门的表示转换和
+特征对齐，输入形式、领域差异和下游适配都会影响迁移效果。MOMENT 原生接收时序输入，避免了
+语言模型所需的文本桥接，但其预训练收益能否跨越充电功率曲线的领域差异，仍需实证检验。
 
 现有应用研究常在单一训练规模下比较最终精度，容易混合三个不同问题：模型容量上限、标签效率
 和工程成本。对于电池异常，还存在第四个问题：默认分类阈值下的 Macro-F1 并不等价于可接受的
-漏检—误报权衡。本文不预设基础模型可以替代专用模型，具体考察以下问题：
+漏检—误报权衡。许建秋等对时序异常检测方法的梳理表明，浅层模型、深层模型和模型选择各有适用
+条件，并不存在跨场景占优的单一方案[13]。吕俊伟对时间序列早期分类的研究还区分了完整序列分类
+与前缀决策，后者需要同时权衡判断时点和准确性[14]。本文研究完整充电会话的离线分类，不把结果
+外推为在线早期预警；也不预设基础模型可以替代专用模型，具体考察以下问题：
 
 1. 完整标签条件下，统计模型、CNN、TCN 和 MOMENT 的效果—成本权衡如何？
 2. MOMENT 的不同适配策略能否释放预训练表示，冻结表示是否具有非线性可分性？
@@ -117,27 +125,39 @@ TS2Vec 等自监督表征方法[5]以及 MOMENT、TimesFM 和 Chronos 等时序�
 
 ### 2.1 充电设施与电池故障的数据驱动识别
 
-充电过程的功率或电流曲线包含设备控制、车辆需求和电池状态共同作用下的动态信息。Sakwa 等[1]
-使用真实充电功率曲线和自编码器开展充电设备早期异常检测；Duan 等[2]通过时域、频域和空间特征
-融合识别充电桩故障。这类研究说明，运行曲线能够支持非侵入式状态监测，也表明人工特征和传统
-机器学习仍是不可忽略的强基线。与其不同，本文关注单条变长功率曲线的三分类，并将低标签迁移、
-基础模型适配、安全阈值和计算成本作为同等重要的评价维度。
+充电过程的功率或电流曲线包含设备控制、车辆需求和电池状态共同作用下的动态信息。Park 等[1]
+采集快速充电机的交流输入、直流输出及环境数据，利用多层感知机区分正常充电、功率模块老化和
+电缆接触不良；Duan 等[2]通过时域、频域和空间特征融合识别充电桩故障。许建秋等将时序异常检测
+方法归为浅层、深层和模型选择三类，并指出候选方法的适用性会随数据与场景而变化[13]。本文处理
+的是带业务标签的完整充电会话三分类，不是对单点或
+子序列输出异常分数；但这项综述提出的模型选择问题同样适用。因此，本文同时保留人工统计特征、
+传统机器学习和专用神经网络，并在此基础上评估预训练模型。
 
 ### 2.2 专用时序分类模型
 
-TCN 使用扩张卷积扩大感受野，并通过残差结构改善深层训练[3]。对于规模有限、标签相对充分的
+TCN 使用扩张卷积扩大感受野，并通过残差结构改善深层训练[5]。对于规模有限、标签相对充分的
 单领域任务，TCN 的参数规模通常比大规模 Transformer 更小。另一方面，ROCKET
 使用大量随机卷积核生成特征，再训练线性分类器，在多项时序分类基准上取得较高精度，同时保持较低
-训练成本[4]。当前实验已包含统计特征、1D-CNN 和 TCN，但尚未完成 ROCKET/MiniROCKET、
-InceptionTime 等通用时序分类强基线；因此本文现阶段不使用“达到该领域最优”之类表述。
+训练成本[6]。陈炜从特征表示、深度分类模型和数据增强三个方面研究时序分类，并指出直接套用其他
+领域的网络未必能保留时序数据的结构[3]。刘思捷等进一步用多尺度 Transformer 建模全局依赖，
+以形态卷积提取局部模式，并在 27 个 UCR 数据集上进行比较[4]。这类研究表明，尺度和局部形态均
+可能影响分类结果，也解释了为何专用模型仍是基础模型比较中不可省略的对照。当前实验已包含统计
+特征、1D-CNN 和 TCN，但尚未完成 ROCKET/MiniROCKET、InceptionTime 等通用时序分类强基线；
+本文不据此声称达到该领域最优。
 
 ### 2.3 自监督表征与时序基础模型
 
-TS2Vec 通过分层对比学习获得时间戳和子序列级通用表示[5]。MOMENT 则在大规模异构时序集合上
-进行掩码重构预训练，提供面向多种下游任务的开放模型族[6]。TimesFM[7]和 Chronos[8]主要展示
-时序基础模型在零样本预测中的能力。单个完整标签任务的最终精度不足以概括基础模型的价值。
-预训练表示若能在低标签条件下取得更高性能，就可能减少标注需求；若必须全量微调且资源开销
-大幅增加，工程收益则会缩小。本文分别评价标签效率、适配深度、跨任务复用和计算成本。
+迁移学习可以缓解特定条件下的训练样本不足。王士同和杨子伦提出 OTL-RVFL，将前序周期模型的
+输出迁移至数据较少的周期段，并用解析解保持训练效率[7]。这一路线依赖可识别的相邻周期关系；
+跨数据集预训练则试图学习更通用的表示。TS2Vec 通过分层对比学习获得时间戳和子序列级表示[8]。
+MOMENT 在大规模异构时序集合上进行掩码重构预训练，并提供多个下游任务接口[9]；TimesFM[10]
+和 Chronos[11]主要面向零样本预测。
+
+通用模型进入故障诊断时仍需解决适配问题。邵海东等以统计描述作为语义引导，对振动信号和文本
+特征进行分层对齐，在跨工况和类别不平衡任务中测试大语言模型[12]。本文不采用语言模型或跨模态
+转换，而是直接评估时序基础模型 MOMENT。通用预训练是否有效，仍要用目标任务和强基线检验。
+单个完整标签任务的最终精度不足以概括这种能力，因此本文分别评价标签效率、
+适配深度、跨任务复用和计算成本。
 
 ## 3 数据与方法
 
@@ -187,7 +207,7 @@ TCN 使用原始尺度，MOMENT 使用 z-score。因此该比较回答的是“�
 
 统计特征包括序列长度、均值、标准差、最小值、最大值、10%/25%/50%/75%/90% 分位数、首尾差、
 线性斜率、一阶差分均值、一阶差分标准差和最大绝对突变，共 15 维。基于这些特征训练逻辑回归和
-300 棵树的随机森林[10]，并加入多数类和仅长度决策树作为机会水平与捷径审计。
+300 棵树的随机森林[15]，并加入多数类和仅长度决策树作为机会水平与捷径审计。
 
 1D-CNN 使用 32、64 和 128 个通道的三层卷积，卷积核大小为 5，dropout 为 0.3。TCN 使用
 64、64、128 和 128 个通道的四个残差块；每个残差块包含两层因果卷积，卷积核大小为 3，扩张率
@@ -200,12 +220,12 @@ TCN 使用原始尺度，MOMENT 使用 z-score。因此该比较回答的是“�
 
 1. **线性探测：**冻结 embedder 和 encoder，只训练 3,075 参数的线性分类头；
 2. **最后两层微调：**解冻 24 层编码器中的最后 2 层及分类头；
-3. **冻结表征 + RBF-SVM：**提取 1,024 维掩码池化表示，使用 RBF 核 SVM[9]；只在训练集中
+3. **冻结表征 + RBF-SVM：**提取 1,024 维掩码池化表示，使用 RBF 核 SVM[16]；只在训练集中
    分层抽取最多 10,000 条样本，以五折交叉验证从
    C ∈ {10⁻⁴, 10⁻³, …, 10⁴} 中选值，γ 取 `scale`；
 4. **完全微调：**更新全部参数，分类头学习率为 10⁻⁴，backbone 学习率为 10⁻⁵。
 
-第三种方法与 MOMENT 原论文的冻结表示分类思路对齐[6]，但本文对变长序列增加了掩码池化，且
+第三种方法与 MOMENT 原论文的冻结表示分类思路对齐[9]，但本文对变长序列增加了掩码池化，且
 目标数据不是 UCR 基准，故应称为“下游协议适配”，而非对原论文结果的严格复现。
 
 ### 3.6 少标签与跨任务协议
@@ -232,7 +252,7 @@ pooling、1,024 维表示和 RBF-SVM 搜索范围。随机 encoder 的初始化�
 将标签 2 视为正类，分别计算 Precision、Recall、假阴性率（FNR）、假阳性率（FPR）、F2 和
 PR-AUC。每个模型先在验证集连续分数上选择最大 F2 阈值或达到 95%/98%/99% Recall 的阈值，
 然后原样应用于测试集；测试标签不参与阈值选择。PR 曲线适合展示正类识别的排序质量和阈值权衡
-[11]。除三分类模型复评外，还比较专用 one-vs-rest MOMENT-SVM、逻辑回归和随机森林。
+[17]。除三分类模型复评外，还比较专用 one-vs-rest MOMENT-SVM、逻辑回归和随机森林。
 
 ### 3.8 评价指标与统计分析
 
@@ -503,7 +523,7 @@ MOMENT 检索明显受序列长度影响，但仅长度基线远低于 MOMENT，
 
 MOMENT 在本数据集 1%–10% 标签三分类中取得了更高的 Macro-F1，随机种子间的波动也更小。
 比较使用相同样本 ID、相同验证/测试集合和配对随机种子，效应量为 6.43–12.55 个百分点。这与
-跨数据集预训练在有限监督条件下提供先验表示的预期一致[6]。
+跨数据集预训练在有限监督条件下提供先验表示的预期一致[9]。
 
 同架构消融给出了更直接的证据：固定 RBF-SVM、样本、预处理和池化后，预训练表征在 1%–10% 标签下
 比随机初始化表征高 22.01–28.60 个百分点，三个配对区间均完全高于 0。这排除了“3.41 亿参数
@@ -559,10 +579,11 @@ MOMENT 的零样本插补落后于线性插值；对目标曲线而言，局部�
 ### 5.6 未来工作
 
 后续研究可加入 MiniROCKET、TS2Vec 等强通用表征基线，在相同低标签样本和调参预算下比较；
-也可继续测试训练集全局标准化、输入扰动鲁棒性和概率校准。如果讨论部署效率，还需在统一硬件和
-batch size 下测量推理延迟、吞吐、能耗与模型文件大小。业务人员复核固定规则错误样例和生产兼容
-离线回放也有实际价值，但无需改动现有生产系统。这些扩展应与本文已经锁定的五随机种子离线结果
-分开报告，无论结果是否有利于 MOMENT。
+也可继续测试训练集全局标准化、输入扰动鲁棒性和概率校准。如果研究目标从完整会话分类转为预警，
+则需按早期分类问题重新设计实验：只允许模型读取逐步增长的前缀，并同时报告准确性与决策时点[14]。
+讨论部署效率时，还需在统一硬件和 batch size 下测量推理延迟、吞吐、能耗与模型文件大小。业务
+人员复核固定规则错误样例和生产兼容离线回放也有实际价值，但无需改动现有生产系统。这些扩展应
+与本文已经锁定的五随机种子离线结果分开报告，无论结果是否有利于 MOMENT。
 
 ## 6 结论
 
@@ -603,45 +624,64 @@ Writing 等。】
 
 ## 参考文献
 
-[1] Sakwa M, Nespoli A, Matrone S, et al. Electric vehicle supply equipment monitoring and early
-fault detection through autoencoders[J]. *Sustainable Energy, Grids and Networks*, 2024, 40:
-101497. <https://doi.org/10.1016/j.segan.2024.101497>.
+[1] Park S J, Kim W J, Kang B S, et al. Development of a fault-diagnosis system through the power
+conversion module of an electric vehicle fast charger[J]. *Energies*, 2022, 15(14): 5056.
+<https://doi.org/10.3390/en15145056>.
 
 [2] Duan Y, Shu S, Zhao Y, et al. Machine learning-based spatiotemporal fusion method for
 non-intrusive charging pile fault identification[J]. *Frontiers in Electronics*, 2024, 5: 1490939.
 <https://doi.org/10.3389/felec.2024.1490939>.
 
-[3] Bai S, Kolter J Z, Koltun V. An empirical evaluation of generic convolutional and recurrent
+[3] 陈炜. 基于深度学习的时序数据分类方法研究[D]. 武汉: 华中科技大学, 2021.
+<https://doi.org/10.27157/d.cnki.ghzku.2021.000206>.
+
+[4] 刘思捷, 孙建彬, 秦宇琪, 等. 基于多尺度 Transformer 和形态卷积的时间序列分类方法[J/OL].
+*系统工程与电子技术*, 2026: 1-14.
+<https://link.cnki.net/urlid/11.2422.TN.20260430.0923.010>.
+
+[5] Bai S, Kolter J Z, Koltun V. An empirical evaluation of generic convolutional and recurrent
 networks for sequence modeling[EB/OL]. arXiv:1803.01271, 2018.
 <https://arxiv.org/abs/1803.01271>.
 
-[4] Dempster A, Petitjean F, Webb G I. ROCKET: exceptionally fast and accurate time series
+[6] Dempster A, Petitjean F, Webb G I. ROCKET: exceptionally fast and accurate time series
 classification using random convolutional kernels[J]. *Data Mining and Knowledge Discovery*,
 2020, 34: 1454-1495. <https://doi.org/10.1007/s10618-020-00701-z>.
 
-[5] Yue Z, Wang Y, Duan J, et al. TS2Vec: Towards universal representation of time series[C]//
+[7] 王士同, 杨子伦. 时序数据分类的迁移随机神经网络及其学习方法[J]. *科学技术与工程*, 2026,
+26(23): 10050-10061. <https://doi.org/10.12404/j.issn.1671-1815.2505857>.
+
+[8] Yue Z, Wang Y, Duan J, et al. TS2Vec: Towards universal representation of time series[C]//
 Proceedings of the AAAI Conference on Artificial Intelligence. 2022, 36(8): 8980-8987.
 <https://doi.org/10.1609/aaai.v36i8.20881>.
 
-[6] Goswami M, Szafer K, Choudhry A, et al. MOMENT: A family of open time-series foundation
+[9] Goswami M, Szafer K, Choudhry A, et al. MOMENT: A family of open time-series foundation
 models[C]//*Proceedings of the 41st International Conference on Machine Learning*. PMLR, 2024,
 235: 16115-16152. <https://proceedings.mlr.press/v235/goswami24a.html>.
 
-[7] Das A, Kong W, Sen R, Zhou Y. A decoder-only foundation model for time-series forecasting[C]//
+[10] Das A, Kong W, Sen R, Zhou Y. A decoder-only foundation model for time-series forecasting[C]//
 *Proceedings of the 41st International Conference on Machine Learning*. PMLR, 2024, 235:
 10148-10167. <https://proceedings.mlr.press/v235/das24c.html>.
 
-[8] Ansari A F, Stella L, Turkmen C, et al. Chronos: Learning the language of time series[J].
+[11] Ansari A F, Stella L, Turkmen C, et al. Chronos: Learning the language of time series[J].
 *Transactions on Machine Learning Research*, 2024.
 <https://arxiv.org/abs/2403.07815>.
 
-[9] Cortes C, Vapnik V. Support-vector networks[J]. *Machine Learning*, 1995, 20: 273-297.
-<https://doi.org/10.1007/BF00994018>.
+[12] 邵海东, 王杰, 张家乐, 等. 大模型驱动的旋转机械多场景通用故障诊断[J]. *机械工程学报*,
+2026, 62(11): 1-11. <https://doi.org/10.3901/JME.260774>.
 
-[10] Breiman L. Random forests[J]. *Machine Learning*, 2001, 45: 5-32.
+[13] 许建秋, 胡伟, 靳多思, 等. 时序数据异常检测方法综述[J]. *计算机科学与探索*, 2026,
+20(6): 1517-1544. <https://doi.org/10.3778/j.issn.1673-9418.2510014>.
+
+[14] 吕俊伟. 时间序列早期分类算法研究[D]. 合肥: 合肥工业大学, 2023.
+<https://doi.org/10.27101/d.cnki.ghfgu.2023.000020>.
+
+[15] Breiman L. Random forests[J]. *Machine Learning*, 2001, 45: 5-32.
 <https://doi.org/10.1023/A:1010933404324>.
 
-[11] Saito T, Rehmsmeier M. The precision-recall plot is more informative than the ROC plot when
+[16] Cortes C, Vapnik V. Support-vector networks[J]. *Machine Learning*, 1995, 20: 273-297.
+<https://doi.org/10.1007/BF00994018>.
+
+[17] Saito T, Rehmsmeier M. The precision-recall plot is more informative than the ROC plot when
 evaluating binary classifiers on imbalanced datasets[J]. *PLOS ONE*, 2015, 10(3): e0118432.
 <https://doi.org/10.1371/journal.pone.0118432>.
 
