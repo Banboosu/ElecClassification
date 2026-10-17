@@ -1,0 +1,24 @@
+extends: ../../moment.yaml
+
+# E01: original MOMENT preprocessing, raw statistics loaded separately.
+data:
+  normalize: zscore
+  train_fraction: 1.0
+
+model:
+  freeze_backbone: true
+  unfreeze_last_n_layers: 0
+  initialization: pretrained
+
+training:
+  output_dir: artifacts/improvements/e01
+  # V100: stable FP32 extraction; do not compare costs to historical AMP unqualified.
+  amp: false
+  feature_extraction_batch_size: 64
+  num_workers: 4
+
+svm:
+  cv_folds: 5
+  max_samples: 10000
+  n_jobs: 2
+  cache_size_mb: 512

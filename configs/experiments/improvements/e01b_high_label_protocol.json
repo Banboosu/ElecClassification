@@ -1,0 +1,46 @@
+{
+  "experiment_id": "E01B",
+  "protocol_version": 1,
+  "suite": "e01b_high_label_20261017_v1",
+  "parent_suite": "e01_20261017_v2",
+  "hypothesis": "Frozen MOMENT plus all raw statistical features adds practical validation Macro-F1 beyond the strongest existing single-branch baseline at 20% and 40% training labels.",
+  "origin": "Post-E01 exploratory hypothesis from seed 42; not a revision of the failed E01 low-label gate.",
+  "discovery_seeds_excluded_from_success_rule": [42],
+  "replication_seeds": [43, 44, 45, 46],
+  "fractions": [0.2, 0.4],
+  "models": ["fusion_stats_svm"],
+  "baseline_models": ["stats_rf", "stats_svm", "moment_paper_svm", "moment_tuned_svm"],
+  "baseline_run_root": "artifacts/improvements/e01",
+  "baseline_run_pattern": "e01_20261017_v2_expansion_seed{seed}",
+  "output_dir": "artifacts/improvements/e01b_high_label",
+  "cache_dir": "artifacts/improvements/e01_20261017_v2_features",
+  "training_config": "configs/experiments/improvements/feature_fusion.yaml",
+  "primary_metric": "validation_macro_f1",
+  "baseline_rule": "For each seed and fraction, compare against the maximum validation Macro-F1 of the four frozen parent baseline results.",
+  "success_rule": {
+    "minimum_mean_difference_pp_per_fraction": 1.0,
+    "minimum_strictly_positive_seeds_per_fraction": 3,
+    "require_both_fractions": true,
+    "number_of_replication_seeds": 4
+  },
+  "fixed_search": {
+    "cv_folds": 5,
+    "cv_shuffle": false,
+    "scoring": "macro_f1",
+    "C": [0.1, 1.0, 10.0, 100.0, 1000.0],
+    "gamma": ["scale", 0.05, 5.0],
+    "statistics_branch_weight": 1.0,
+    "preprocessing": "Original E01 fold-local BranchScaler; no new pooling, PCA, branch weighting, or model selection."
+  },
+  "execution": {
+    "feature_precision": "fp32",
+    "kernel_precision": "float64",
+    "kernel_device": "cuda",
+    "n_jobs": 5,
+    "reuse_verified_parent_features": true
+  },
+  "test_evaluated": false,
+  "stop_policy": "Complete all eight planned conditions regardless of intermediate outcomes; do not change thresholds, fractions, parameters, or seeds after inspecting replication results.",
+  "next_action": "Summarize validation replication only. No automatic test evaluation or LoRA/full-finetuning launch.",
+  "limitations": "Four remaining random splits are replications, not independent external data. Report descriptive uncertainty; seed 42 is discovery only. Validation labels have already been used by the parent comparison."
+}
