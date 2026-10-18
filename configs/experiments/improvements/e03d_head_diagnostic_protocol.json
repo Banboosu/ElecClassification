@@ -1,0 +1,50 @@
+{
+  "experiment_id": "E03D",
+  "suite": "e03d_head_diagnostic_20261018_v1",
+  "test_evaluated": false,
+  "seed": 43,
+  "train_fraction": 0.4,
+  "parent_protocol": "configs/experiments/improvements/e03_peft_pilot_protocol.json",
+  "output_dir": "artifacts/improvements/e03d_head_diagnostic",
+  "branches": ["statistics", "moment", "fusion"],
+  "modes": ["legacy_tail", "fanin_gain"],
+  "budgets": [30, 200],
+  "scope": "Six head-only fits and twelve branch/mode/budget cells; legacy30 reuses the parent and legacy200 continues its exact epoch30 checkpoint. No new encoder forward/backward, no adapted features, no test.",
+  "training": {
+    "maximum_epochs": 200,
+    "early_stopping": false,
+    "batch_size": 128,
+    "evaluation_batch_size": 64,
+    "head_learning_rate": 0.001,
+    "weight_decay": 0.01,
+    "gradient_clip_norm": 1.0,
+    "precision": "amp_fp16",
+    "grad_scaler_initial_scale": 1024,
+    "schedule": "Original E03P 30-epoch 10%-warmup/cosine prefix, then its terminal LR 0.0001 held constant through epoch200. Never stretch cosine over 200 epochs.",
+    "fresh_initialization": "Same parent head weights and training seed 20043; only the scalar input gain differs.",
+    "legacy_continuation": "Preserve exact epoch30 model, optimizer, scaler, shuffle/CPU/CUDA RNG; no reset.",
+    "checkpoint_selection": "Highest validation Macro-F1 within each budget; earliest exact tie; also report exact epoch30/epoch200 endpoints.",
+    "all_conditions_must_complete": true
+  },
+  "interventions": {
+    "legacy_tail": "Input gain1; continue original head from epoch30 to200.",
+    "fanin_gain": "Fresh shared head, global input gain sqrt(1039/active_branches); one active branch for statistics/moment, two for fusion. Relative within-branch normalization and inter-branch balance unchanged.",
+    "head": "Unchanged LayerNorm(moment)/sqrt(1024), train-fitted statistics/sqrt(15), zero excluded branch, Linear1039to128/GELU/dropout0.1/Linear128to3. Same nominal parameters, not equal effective capacity."
+  },
+  "diagnostic_rules": {
+    "budget_gain_threshold_pp": 1.0,
+    "budget_endpoint_gain_threshold_pp": 0.5,
+    "early_scale_gain_threshold_pp": 1.0,
+    "boundary_last_epochs": 10,
+    "interpretation": "Per branch, flag useful extra budget when best200-best30>=1pp and endpoint200-endpoint30>=0.5pp. Flag early scale sensitivity when gain_best30-legacy_best30>=1pp. These are conditional diagnostics, not unique-cause or external confirmation."
+  },
+  "candidate_rules": {
+    "minimum_gain_over_strongest_reference_pp": 0.5,
+    "minimum_gain_over_same_mode_moment_pp": 0.25,
+    "comparison": "Fusion best200 versus max(parent pretrained fusion SVM, parent matched statistics SVM, all diagnostic statistics/moment best200); also versus same-mode moment best200.",
+    "automatic_replication": false,
+    "automatic_lora_training": false,
+    "automatic_test": false
+  },
+  "limitations": "E03P validation outcomes already seen and used to motivate this diagnostic. Single data seed, validation reused up to200 epochs, so selection opportunity differs across budgets. Report endpoints and training loss alongside best scores. No claim of new independent evidence, fully converged heads, universal scaling fix, or recovered LoRA advantage. The original failed E03P gate remains unchanged."
+}

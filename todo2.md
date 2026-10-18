@@ -264,7 +264,7 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 固定 LR head1e-3 / adapter1e-4、weight decay0.01、10% warmup + cosine、最多30epoch/至少10epoch、patience7；min_delta只影响耐心，不丢弃更高分 checkpoint。
 - [x] **93 tests、6 subtests** 通过，新增 GPU 集成覆盖 epoch 中断恢复、optimizer/RNG 恢复和未提交 best/history 被覆盖后的恢复；Ruff 与 shell 语法检查通过。
 - [x] **2026-10-17 20:44:38（Asia/Shanghai）**首次新验证结果前冻结 **136 个文件**及依赖版本；协议 SHA-256 `8c20bc1050d24887940211db347eaeaa8320770b7535092a39f872f3a0276e12`。七条件套件已通过 nohup 启动，协调 PID **15646**；首次核验阶段为 `statistics_mlp`，测试集锁定。
-- [ ] 七条件全部完成后审计训练 ID、预测/概率、历史最优点、共享初值、adapter 数目和冻结参数；不依据中途结果调整范围。
+- [x] **2026-10-17 23:24:42（Asia/Shanghai）**七条件全部完成；2026-10-18 复核 136 个冻结输入/依赖、24,570 行 validation 预测/概率、训练 ID、历史最优点、共享初值、adapter 数目和冻结参数通过。七个运行均无跳过的 optimizer step，未变更范围，test 未评价。
 
 仅当某个 rank 的融合同时满足以下条件，才列为**建议后续复制**的候选：相对同头冻结融合至少 **+0.5 pp**；相对新旧非适配强参照的最高分至少 **+0.5 pp**；相对同 rank 仅 MOMENT LoRA 至少 **+0.25 pp**。合格候选取 validation 最高，差≤0.01 pp 优先低 rank。单分支正结果也保留，但不能冒充融合门控通过。
 
@@ -272,7 +272,72 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - 状态/汇总：`artifacts/improvements/e03_peft_pilot/e03_peft_pilot_20261017_v1_analysis/`。
 - AMP 缓存：`artifacts/improvements/e03_amp_features_v1/seed43_fraction40/`。
 - 日志：`artifacts/logs/e03_peft_pilot_20261017_v1.log`。
-- 预计为数小时量级，实际以日志为准；完成后只汇总，不自动复制、不全量微调、不测 test。
+- 实际从协议冻结到结束约 **2 h 40 min**，七运行累计 wall time158.69min；已按约定只汇总，不自动复制、不全量微调、不测 test。
+
+### E03P 结果与下一步（2026-10-18 复核）
+
+- [x] seed43、40% validation Macro-F1：统计 MLP **75.49%**；冻结 MOMENT MLP **77.29%**；冻结融合 MLP **83.85%**；LoRA8 仅 MOMENT/融合 **88.47/88.97%**；LoRA16 仅 MOMENT/融合 **88.14/88.98%**。
+- [x] 两个融合相对同头冻结各提高约 **5.13 pp**，统计支路在 rank8/16 分别带来 **+0.50/+0.84 pp**，但都低于既有融合 SVM **91.15%** 约 **2.17 pp**，也略低于匹配统计 SVM **89.48%**。两 rank 扩展门槛均失败，`selected_rank_for_proposed_replication=null`，不选择候选复制。
+- [x] rank16 融合仅比 rank8 高约 **0.0031 pp**；不能据单 seed 宣称显著优劣，也不能套用“合格者平局优先低 rank”去选择未合格候选。
+- [x] 事后曲线诊断（不改变门控）：三个冻结头的最优点均在30epoch边界，需检查头的收敛与缩放；LoRA 后期 train CE 下降而 validation CE 上升，不宜直接继续加 rank/训练时长。未将观察推断为确定原因或 LoRA 普遍无效。
+- [x] 本地完整备份 `artifacts/imports/e03_pilot_validation_20261017/`，约 **176 MiB**：7 best + 7 last + 7 标签编码器 **21/21 哈希一致**，2 个 AMP 缓存 NPZ 哈希一致。重建仍依赖已校验公共基座权重和源码。
+- [x] 结果记录：`docs/experiment_records/e03_peft_pilot_results_20261017.md`；历史检查：`derived_history_diagnostics.json`。GPU 当前空闲，未开始新训练或 test。
+- [x] 用户再次授权后进入独立 **E03D 廉价冻结头预算/尺度诊断**，范围见下节；暂不使用适配表征、不扩多 seed LoRA。对监督适配后的表征做头部 CV 会含有 held-out 标签已参与 encoder 训练的问题，未来若开展需固定探针参数、隔离调参数据或折内重训 encoder，不能冒充无泄漏端到端 CV。
+
+### E03D：缓存分类头的预算与输入尺度诊断（2026-10-18）
+
+启动前协议：`docs/experiment_records/e03d_head_diagnostic_protocol_20261018.md`；机器协议：`configs/experiments/improvements/e03d_head_diagnostic_protocol.json`。
+
+- [x] 固定 seed43、40% 标签、统计/MOMENT/融合三支路；**6 次头训练、12 个预算单元**，不执行 Transformer、不训练 LoRA、不使用 test。
+- [x] legacy_tail：继承原第30轮全部模型/optimizer/scaler/CPU-CUDA-shuffle RNG，继续到200；不拉长cosine、不重置学习率，固定在原终点1e-4。
+- [x] fanin_gain：相同参数初值，拼接输入乘固定 `sqrt(1039/有效支路数)`，仅改变全局幅度，不改支路比例或添加列标准化；第1–30轮保持原LR轨迹，后续固定1e-4至200。
+- [x] 每支路单独比较最好分与30/200端点：额外预算至少+1pp且端点至少+0.5pp才标记有帮助；gain的30轮最好分至少+1pp才标记早期尺度敏感。最佳点在最后10轮时仍标记边界问题，不能直接断言已收敛或找到唯一原因。
+- [x] **99 tests、6 subtests** 通过：gain1与父头完全等价、增益保留支路比例、固定30轮调度前缀、状态克隆不改父文件、拒绝adapter状态、GPU训练钩子与30轮快照；Ruff与shell语法检查通过。
+- [x] **2026-10-18 10:10:22（Asia/Shanghai）**首次新诊断结果前冻结 **167 个文件**及依赖版本；协议SHA-256 `b2d5a2141c6f089d5f58ab22c7801f83f065f2fbc3b9bed98460ffb88375f812`。六条件套件通过nohup启动，协调PID **1622**；首次核验为准备缓存/原始统计，编码器和test均未执行。
+- [x] 一次数据准备及训练集无标签探针完成；初始FC激活RMS约0.024–0.029，加增益后约0.49–0.55。v1三个legacy200完成，但第4项statistics_fanin_gain在132轮梯度溢出，套件按规则失败；已提交至131轮，动态loss scale已升到32768。v1不算完整六条件，不删改事故现场。
+- [x] 同一131轮模型/optimizer/RNG，仅重放训练集132轮：scale32768在第50窗口复现非有限梯度，scale1024全部77窗口有限；不计算validation/test，重放权重丢弃。记录 `artifacts/analysis/e03d_fixed_scale_replay_20261018.json`。
+- [x] 技术修订协议 `configs/experiments/improvements/e03d_head_diagnostic_stable_protocol.json`；记录 `docs/experiment_records/e03d_numerical_revision_20261018.md`。v2六组全部从同一初值重跑，固定loss scale1024；模式改为legacy_fresh/fanin_gain，其他模型/数据/预算/门槛不变，不混用v1结果。
+- [x] 修订后 **101 tests、6 subtests** 通过，包含固定scale不增长、拒绝错误旧scale恢复；旧E01/B/C/E03P/v1受保护文件不改。
+- [x] **2026-10-18 10:23:24（Asia/Shanghai）**v2新结果前冻结 **176 个文件**及依赖；协议SHA-256 `5611b044ad6f0c32ca2e7348197636a4153fb63f66c1ad7ece2968703752626b`。协调PID **2308**，六组从初值重跑，已核验固定scale1024。
+- [x] **2026-10-18 10:32:09（Asia/Shanghai）**v2六条件、十二预算单元全部完成并审计通过；176冻结输入/依赖、42,120行预测/概率、历史最优、端点和模型哈希核验一致。独立检查1,200个epoch均固定scale1024、无跳过optimizer step；未执行编码器、LoRA或test。
+
+融合候选仅当最好200相对旧融合SVM/旧匹配统计SVM/全部新统计及仅MOMENT最好200的最强者至少 **+0.5pp**，且比同模式仅MOMENT至少 **+0.25pp**，才可建议后续复制。不会自动复制或重跑LoRA；原E03P失败不改写，validation反复复用的选择偏差必须披露。
+
+- 入口：`scripts/run_e03d_remote.sh`；套件：`e03d_head_diagnostic_20261018_v1`。
+- 状态/汇总：`artifacts/improvements/e03d_head_diagnostic/e03d_head_diagnostic_20261018_v1_analysis/`。
+- 日志：`artifacts/logs/e03d_head_diagnostic_20261018_v1.log`。
+- 预计主要为分钟量级头训练，完成后只总结，不自动开始下个阶段。
+
+### E03D v2 结果与决策（2026-10-18）
+
+- [x] 原尺度30→200轮 validation Macro-F1：统计 **75.49→79.65%**，MOMENT **77.28→79.72%**，融合 **83.85→86.94%**；对应端点差也全部正向并过诊断幅度门槛。
+- [x] 增益尺度30/200轮：统计 **86.51/88.45%**，MOMENT **81.99/83.76%**，融合 **90.43/91.72%**。同30轮的尺度提升为+11.02/+4.71/+6.58pp，支持原冻结头训练/幅度设置有明显改进空间，不是唯一机制证明。
+- [x] 增益融合epoch169取得 **91.7225% Macro-F1、91.5954% Accuracy**；比同seed/预算原融合SVM **91.1459%**高 **+0.5766pp**、比同模式仅MOMENT高+7.9649pp，达到本轮建议复制门槛。余量很小，单seed且validation复用，不宣称显著或稳健领先。
+- [x] 200轮精确端点为 **91.5515%**，相对原SVM仅+0.4056pp，未达到0.5pp；候选通过基于原定预算内最好模型，不能改写为任意后期模型都过门槛。
+- [x] 充分训练/改尺度的冻结融合已高于旧LoRA融合约2.75pp；旧E03P失败不撤销，旧+5.13pp不能当作相对充分优化冻结头的稳健收益。本轮未在新头设置下重测LoRA，不断言LoRA为负贡献。
+- [x] v2约8分45秒结束，六运行wall合计7.03min、epoch计时合计6.44min；不等于完整线上管线耗时。101 tests、6 subtests通过。
+- [x] 本地备份 `artifacts/imports/e03d_head_validation_20261018/`：v2约96MiB，37/37模型/快照/标签编码器哈希一致、2/2 prepared NPZ哈希一致；另存v1事故后约176MiB。当前GPU空闲，无自动下一训练。
+- [x] 记录 `docs/experiment_records/e03d_head_diagnostic_results_20261018.md`；图 `docs/figures/e03d_head_diagnostic_20261018.svg`；v1事故与修订记录单独保留。
+- [x] 用户再次授权后进入独立 E03E 四种子复制方案，包含统计NN、仅MOMENT及既有强SVM参照；不直接重跑长LoRA。方案及启动状态见下节，不据单seed通过解锁test。
+
+### E03E：增益融合头的四种子复制（2026-10-18）
+
+启动前协议：`docs/experiment_records/e03e_gain_replication_protocol_20261018.md`；机器协议：`configs/experiments/improvements/e03e_gain_replication_protocol.json`。
+
+- [x] 固定 **seed42、44、45、46，40%标签**，排除选方案的seed43。每seed统计/仅MOMENT/融合三增益头，共 **12次NN训练**；同数据重叠划分及旧SVM结果已知，seed42曾用于E01探索，不称外部独立确认。
+- [x] 固定原GainFusionHead、解析输入增益、200epoch、30轮cosine前缀+恒定尾部、batch128、LR/weight decay/dropout、AMP及scale1024，不再搜索。头/训练seed分别10000+/20000+data seed，按seed三支路初值核验一致。
+- [x] 每seed只对9,827选定train和3,510validation提取一次未适配AMP特征；原始数据加载一次，按有效前缀调用原normalize_sequence，测试与原prepare_sequence逐元素相同。测试集不编码，骨干不监督训练。
+- [x] seed42补齐缺失的匹配核带宽统计SVM，其他三seed复用E01C。新控制仍用折内未适配FP32参照、5C×3gamma×5折，不将弱NN作唯一对比。
+- [x] **106 tests、6 subtests** 通过，覆盖pilot排除、12条件范围、有效前缀归一化精确等价、seed间不同/同seed支路相同初值、seed42正确参照和固定平均/方向门槛；Ruff与shell语法检查通过。
+- [x] **2026-10-18 10:46:53（Asia/Shanghai）**新NN结果前冻结 **208 个文件**及依赖；协议SHA-256 `f34f3fbedfbd910be32752e694640b2edd8d96c9dcf03ea7b659b591e357963d`。nohup协调PID **3388**；首次核验为准备seed42数据及补强统计控制，test仍锁定。
+- [ ] 完成全部12NN和缺失SVM控制，审计42,120行NN预测、参照、2,400个epoch的固定scale/无跳步、历史最优/端点和模型哈希。
+
+复制成功只按四个新seed：融合相对“本轮统计NN、仅MOMENT NN、父统计RF/SVM、匹配统计SVM、父融合SVM”的逐seed最强参照，平均至少 **+0.5pp**，至少 **3/4** 严格正向；相对仅MOMENT平均至少 **+0.25pp**，至少 **3/4** 正向。两项都过才记复制成功。pilot43不加入平均，区间仅描述，不自动test、LoRA或扩预算。
+
+- 入口：`scripts/run_e03e_remote.sh`；套件：`e03e_gain_replication_20261018_v1`。
+- 状态/汇总：`artifacts/improvements/e03e_gain_replication/e03e_gain_replication_20261018_v1_analysis/`。
+- 日志：`artifacts/logs/e03e_gain_replication_20261018_v1.log`。
+- 本轮需要未适配骨干前向提取，其后训练廉价缓存头；不是完全不执行Transformer，也不是LoRA训练。
 
 ### 结果判定提醒
 
