@@ -1,0 +1,38 @@
+{
+  "experiment_id": "E05C_N1",
+  "suite": "e05c_tcn_replication_20261019_v1",
+  "output_dir": "artifacts/improvements/e05c_tcn_replication",
+  "parent_protocol": "configs/experiments/improvements/e05b_tcn_legacy_pilot_protocol.json",
+  "pilot_root": "artifacts/improvements/e05b_tcn_legacy_pilot/e05b_tcn_legacy_pilot_20261019_v1",
+  "seeds": [42, 44, 45, 46],
+  "train_fractions": [0.1, 0.4, 1.0],
+  "conditions": ["current_fixed50", "legacy_masked50", "legacy_unmasked50"],
+  "split_manifests": {
+    "42": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    "44": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed44/split_manifest.json",
+    "45": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed45/split_manifest.json",
+    "46": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed46/split_manifest.json"
+  },
+  "diagnostics": {
+    "seed": 43,
+    "train_fractions": [0.1, 1.0],
+    "padding_widths": [1024, 1280, 1536],
+    "baseline_probability_atol": 0.00001,
+    "baseline_argmax_disagreements": 0,
+    "length_quantiles": [0.3333333333333333, 0.6666666666666666],
+    "tree_max_depth": [1, 2, 3, 5],
+    "tree_min_samples_leaf": 20,
+    "cv_folds": 5,
+    "features": ["length", "statistics15"],
+    "length_bypass_training": false
+  },
+  "epochs_per_condition": 50,
+  "maximum_training_conditions": 36,
+  "wall_time_limit_hours": 8,
+  "seed43_in_replication_mean": false,
+  "test_evaluated": false,
+  "prior_test_results_known": true,
+  "automatic_next_stage": false,
+  "automatic_shutdown": false,
+  "pi_wake_enabled": false
+}

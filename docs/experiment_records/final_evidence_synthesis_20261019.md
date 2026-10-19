@@ -54,7 +54,27 @@ E03F-v2已完成4条件/120epoch：强头起点LoRA融合92.4751%，相对继续
 
 E02/E03F终态分别保全117文件/608811803 bytes与109文件/274137701 bytes，SHA无不匹配；独立保存预测/指标审计均通过。详见[E02P结果](e02_pooling_pilot_results_20261019.md)与[E03F结果](e03f_strong_head_lora_results_20261019.md)。
 
-用户随后明确继续，已另立TCN legacy结构/早停/padding池化pilot，固定seed43、10%及100%标签、8条件最多400epoch，只用train/validation。它不是E05A的重测，也不修改E03T门槛。训练和审计完成前，不将预期收益列入已验证结论；[协议](e05b_tcn_legacy_pilot_protocol_20261019.md)披露受控PyTorch结构移植与原Keras训练的差异。
+TCN legacy结构/早停/padding池化pilot已完成：固定seed43、10%及100%标签、8条件，共355epoch、84240行保存validation预测审计通过，终态100文件/52906572 bytes已保全。10%标签当前fixed50为64.9645%，legacy masked为84.8182%、unmasked为93.6000%；100%标签对应96.9684%、98.1412%、98.1048%。本seed上仅延长当前训练不足以解释低标签差距，legacy结构移植显示更强表现；但单seed/重复validation及原Keras训练差异仍在，不宣称多seedtest收益或已穷尽性能。它不修改E03T门槛。详见[结果](e05b_tcn_legacy_pilot_results_20261019.md)与[协议](e05b_tcn_legacy_pilot_protocol_20261019.md)。
+
+本轮计算结束后，用户已卸载并明确停用pi-wake；工作区清理仅移除插件状态、缓存及已核对的重复备份，模型/预测/冻结证据保留。用户随后要求继续N1，已独立冻结E05C的36次TCN训练，无pi-wake或额外观察器，不自动进入N2/test。
+
+E05C的seed43长度/padding诊断已完成并保全：4个浅树控制及18组固定权重padding对照共77220行预测通过独立核验。仅length浅树10%/100% F1为43.2441/36.3936%；同预算15统计浅树75.5304/76.4047%，均是廉价信息来源控制，不是最强SVM。masked模型延长padding输出不变，unmasked增加到1536时分别改变100/33条预测，说明表示对padding敏感，不能据此认定长度是全部收益或泄漏。四seed36次复核现已完成，见下文；长度诊断本身不等于机制因果证明。详见[诊断](e05c_length_padding_diagnostics_20261019.md)及[冻结协议](e05c_tcn_replication_protocol_20261019.md)。
+
+## E05C / N1四seedTCN复核终态
+
+固定seed42/44/45/46、每条件50轮，1800epoch及379080行validation预测完成原审计和本地标准库独立复核；pilot43不进入均值。单位%，均值±样本SD：
+
+| 训练标签预算 | 当前残差masked | Legacy masked | Legacy unmasked |
+|---:|---:|---:|---:|
+| 10% | 69.2305 ± 1.6101 | 93.6758 ± 1.9260 | 93.8161 ± 1.0299 |
+| 40% | 92.2159 ± 2.4400 | 97.7790 ± 0.2277 | 97.7648 ± 0.3034 |
+| 100% | 96.6367 ± 0.5722 | 98.3959 ± 0.1729 | 98.2154 ± 0.1131 |
+
+Legacy masked相对当前结构平均+24.4453/+5.5631/+1.7592pp，三个预算均4/4正向；unmasked−masked均值+0.1403/−0.0142/−0.1805pp，各描述性区间跨0。seed43的大幅unmasked优势未稳定复制，后续建议legacy masked为主要TCN参照，unmasked保留为池化对照。这是结果后的参照建议，不冒充E03T事前清单。
+
+这进一步限制了“相对旧TCN的低标签优势”叙事；尚缺1%/5%新TCN曲线、有界调参与受限验证标签预算，不能声称已完成所有标签效率研究。旧test主表不改写，也不把新validation与旧test排名。
+
+521文件/248784612 bytes终态全部SHA一致，独立指标误差≤2.22e-16、AP误差≤2.22e-15。备份时实例为新hostname/RTX4080，冻结运行记录为旧hostname/RTX4080SUPER；原冻结文件与旧本地副本一致，但更换时刻未经核实，不认证所有计时为相同物理GPU。报告披露执行加速、基准暂停及完整保全。详见[E05C完整结果](e05c_tcn_replication_results_20261019.md)。本轮结束，不自动启动N2、test或pi-wake。
 
 ## 下一步的合理边界
 

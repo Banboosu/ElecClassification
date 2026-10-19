@@ -15,6 +15,8 @@ PROJECT = "/root/autodl-tmp/ElecClassification/"
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--remote-root", required=True)
+    parser.add_argument("--expected-host", default=EXPECTED_HOST,
+                        help="Explicit expected instance hostname; record migrations separately.")
     parser.add_argument("--destination", type=Path, required=True)
     parser.add_argument("--terminal-status", choices=("completed", "failed", "interrupted"), default="completed")
     args = parser.parse_args()
@@ -23,7 +25,7 @@ def main():
     code = f"""
 import hashlib,json,platform
 from pathlib import Path
-if platform.node() != {EXPECTED_HOST!r}: raise ValueError('Unexpected AutoDL instance')
+if platform.node() != {args.expected_host!r}: raise ValueError('Unexpected AutoDL instance')
 r=Path({(PROJECT + args.remote_root)!r})
 s=json.loads((r/'suite_status.json').read_text())
 if s['status'] != {args.terminal_status!r}: raise ValueError('Suite terminal state does not match request')
@@ -56,7 +58,8 @@ print(json.dumps({{'host':platform.node(),'status':s,'files':files}}))
             failures.append(relative)
     proof = {"status": "passed" if not failures else "failed",
              "verified_at": datetime.now(timezone.utc).isoformat(),
-             "remote_root": args.remote_root, "files_verified": len(manifest["files"]),
+             "remote_root": args.remote_root, "verified_remote_host": manifest["host"],
+             "files_verified": len(manifest["files"]),
              "bytes_verified": sum(f["bytes"] for f in manifest["files"].values()),
              "failures": failures, "test_inference_performed": False, "shutdown_performed": False}
     (destination / "preservation_verified.json").write_text(json.dumps(proof, indent=2) + "\n")

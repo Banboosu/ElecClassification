@@ -17,6 +17,9 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Removed pi-wake plugin: local alarm/session state must not re-enter Git.
+/.pi/wake-alarm*
+
 # Generated experiment outputs, checkpoints, logs, and imported result bundles.
 artifacts/
 *.pt
