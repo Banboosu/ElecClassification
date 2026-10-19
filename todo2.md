@@ -7,8 +7,8 @@
 ## 当前进度（2026-10-19）
 
 - **已完成**：E01统计强基线/融合及E01B/C复验归因；E02P池化/长度诊断；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头诊断与四seed复制；E03T一次固定正式test；E03F强头LoRA pilot；E05A历史同预算TCN补审及E05B-TCN结构/早停/padding pilot。
-- **当前状态**：N1/E05C已完成36条件、1800epoch、379080行validation预测，原审计与本地标准库独立复核通过；521文件/248784612 bytes完整保全且SHA零失败。检查时GPU无计算进程；pi-wake停用，不自动进入N2或test。备份实例已变更，原冻结记录与本地副本一致，但不同实例/GPU计时限制另行披露。
-- **接下来优先做**：TCN结构/池化的多seed复核与长度依赖诊断 → 有界优化及受限validation标签对照 → 同硬件成本/工程闭环。强头LoRA四seed复制单列，排在TCN强参照之后；详细范围见下方优先清单。
+- **当前状态**：N1/E05C与E06均完成保全，E06小幅互补未达原整体门槛。用户授权E07强融合头LoRA精简复制：固定40%标签、四seed×冻结/LoRA两条件，共8组/240轮。20:32:31（Asia/Shanghai）冻结397输入；协调PID4365及首组训练PID4555运行中，四seed初始迁移全部通过；20:40:27检查首组seed42 frozen已提交5/30轮，每轮约37秒、scale1024/零跳步。仅启动证据318文件/48128251bytes及28080行初始预测独立审计已保全，不称整套完成或已验证LoRA提升。无test/pi-wake/自动扩展/关机。
+- **接下来优先做**：仅执行当前明确授权的E07八条件精简复制，结束报告适配净增与同预算强TCN上下文，不因结果不理想扩参。既有“预训练MOMENT与原尺度统计互补”仍可作为成稿主线；N2/N3、成本/工程或完整四分支LoRA对照均不自动执行。
 - **仍可用现有数据推进**：统计置换解释、保存模型的错误分析、前缀/噪声/缺失诊断和统一predict；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
 - **结论边界**：融合test91.516%超过固定融合SVM90.952%，但历史同预算TCN均值92.614%更高；不宣称普遍胜过TCN，不在已消费test上反复追分。
@@ -23,7 +23,7 @@
 | N2 | 有界TCN优化 + 低标签学习曲线 | 合理优化后，MOMENT的低标签优势还剩多少？ | 下一阶段，尚未启动 |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
 | N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | 必做，可与分析工作并行 |
-| N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | 条件执行，接N1的40%强参照 |
+| N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | 已授权E07精简融合两分支8组；下文完整16组不自动执行 |
 | N6 | 解释、错误与鲁棒性 | 模型依赖什么信息，在哪些输入上失效？ | 先完成低成本解释/错误分析，再选一种扰动 |
 
 ### N1：先复核TCN，再解释padding收益
@@ -561,6 +561,32 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 首个加速完成条件seed44/10% current_fixed50已通过原审计器：50epoch、训练ID/保存模型SHA、逐行预测概率/真值、selected/peak/endpoint规则均通过；加速执行修订10个冻结输入的本地快照SHA再次核验一致。
 - [x] 原N1全套训练/审计和终态SHA保全完成；加速执行记录/等价证据均在归档。基准暂停计入少数旧epoch_seconds、整套约87.2分钟包含诊断/恢复/审计/写盘，不能当纯计算计时；另有备份实例/GPU变化，报告披露，未据此重算速度倍率。
 - 说明：`docs/experiment_records/tcn_speed_revision_20261019.md`；证据：`artifacts/analysis/tcn_resident_speed_20261019/`；执行修订：原E05C根下`execution_revisions/resident_async_v1/`；新日志：`artifacts/logs/e05c_tcn_replication_20261019_v1.fast.log`。无pi-wake/额外观察器/test/自动下一阶段。
+
+### E06：强TCN与冻结MOMENT互补（2026-10-19，已完成）
+
+- [x] 用户要求体现MOMENT至少一项优势，授权TCN表征互补实验；不保证正结果，不改旧test或E01C失败门控。固定10%训练标签2456条、validation3510条、seed42/44/45/46，复用E05C legacy masked selected模型，原TCN输出另作强参照。
+- [x] tcn_only/tcn_moment/tcn_random同形1152→128→3残差头、零输出初始化、配对随机种子；scaler只拟合selected train，AdamW1e-3/WD1e-4/batch128/100epoch/FP32。编码器全部冻结，12条件/1200epoch在2小时硬预算内全部完成。
+- [x] 158项回归（含8项新增E06测试）、Ruff/shell检查通过。20:05:37（Asia/Shanghai）冻结139输入，协议SHA `de6464bedfaafcaa525cf4d8464e04b753b74ecfd1b28609cf533e576ca88203`。结果前本地冻结文件SHA `657452bf6719af237be1325b1aa22e039b22dbc1c3962d5b594e96299968e454`；终态字节一致。
+- [x] 历史启动PID2747/训练PID2803，实际host `autodl-container-de774f9d7d-2319c4b0`、RTX4080；20:09:11全部完成，套件wall_seconds177.734（不含前置测试/冻结/历史缓存提取），不作端到端部署计时。预训练缓存及随机44/45/46复用，随机42只补selected train/validation。
+- [x] validation四seed均值±SD：原TCN93.6758±1.9260%、同形TCN头95.0480±1.2368%、TCN+MOMENT95.3127±1.0932%、TCN+随机95.1193±1.2198%。相对原TCN+1.6369pp，但相对同形头只有+0.2647pp，相对随机+0.1934pp；三项均4/4正向，后两项未达到原+0.5/+0.25pp门槛，**整体未通过**。不能把全部1.6369pp归给MOMENT，不下调门槛或追加预算。
+- [x] 1200epoch/98280行保存预测通过独立标准库审计：原CSV真值、有序ID、概率/混淆/电池AP、选轮/汇总/门槛/模型SHA通过；最大指标误差2.22e-14（含百分点汇总）、AP误差2.22e-15。
+- [x] 本地244文件/231934465bytes完整保全，逐SHA零不匹配。首次传输混入诊断stdout导致tar失败，纯tar重传后全文件集合/哈希一致；训练与科学输出未修改，维护事故如实记录于`preservation_verified.json`。
+- [x] 重复validation选择（父TCN和新头）及历史test已知限制保留，不称总标注仅2456条或独立泛化确认；检查时无训练/GPU计算进程，不自动扩展/test/关机/pi-wake。
+- 报告/图：`docs/experiment_records/e06_tcn_moment_complement_results_20261019.md`、`docs/figures/e06_tcn_moment_complement_20261019.svg`；协议：`docs/experiment_records/e06_tcn_moment_complement_protocol_20261019.md`；入口：`scripts/run_e06_remote.sh`。
+- 本地保全根：`artifacts/imports/e06_tcn_moment_complement_20261019/`，含startup、terminal_artifacts、independent_output_audit.json和preservation_verified.json；远端根：`artifacts/improvements/e06_tcn_moment_complement/e06_tcn_moment_complement_20261019_v1/`；日志：`artifacts/logs/e06_tcn_moment_complement_20261019_v1.log`。
+
+### E07：强融合头LoRA精简复制（2026-10-19，已启动）
+
+- [x] 用户明确授权上一轮建议的8组方案；固定seed42/44/45/46、40%标签9827 train/3510 validation，仅frozen_fusion/lora8_fusion两条件，各追加30epoch，共240epoch。不是原N5完整四分支16组，不新增rank-matched moment-only或搜索rank/LR。
+- [x] 167项回归（含9项E07新增）和Ruff/shell检查通过。四seed真实公共骨干+对应E03E强头、batch64合成检查通过：零适配、A/B梯度、固定scale1024、冻结参数不变、重载一致。
+- [x] 20:32:31（Asia/Shanghai）冻结397输入，协议SHA `92b75f5493fd2553dea00a2fecb9eaa49d6ee3c4af507321eeb356e70bf667d6`；本地结果前冻结文件SHA `9967d69e5addc40203548878d1f002f9b93256ec37a0afb47641e0bfc04fd963`，含原协议/合成smoke/测试日志和本地源码核对。
+- [x] 协调PID4365，20:33:11开始8小时原始墙钟预算；先prepare+全部四seed迁移，再执行真实训练。host `autodl-container-de774f9d7d-2319c4b0`、RTX4080。复用未修改的OnlineFrozenClassifier、train_e03及固定scale兼容层，两处理都在线encoder前向。
+- [x] 20:36:38全部迁移关卡通过后才允许真实更新。seed42每处理相对父头1条argmax变化/F1漂移0.026751pp，其他三seed0条；均在原≤1条/≤0.05pp范围。每seed两处理epoch0概率完全一致，没有放宽容差。初始28080行预测与原CSV真值/旧父预测通过本地标准库独立核验，最大指标误差1.11e-14。
+- [x] 首组seed42 frozen训练PID4555，20:40:27健康快照已提交5/30epoch，每轮约37秒，loss/验证有限、scale1024、零跳步；LoRA组尚未开始，不依据当前部分轨迹更改方案。历史终态证据待整套完成。
+- [x] 启动不可变快照318文件/48128251bytes逐SHA一致，含源码/输入快照、四seed迁移输出和prepared manifests；预启动397输入freeze与本地原副本一致。`startup/independent_startup_audit.json`、`runtime_preservation_verified.json`及`training_health.json`区分启动核验与未来终态。
+- [ ] 等待8条件/240epoch完成并审计初始/最佳/端点84240行预测；相对继续冻结及固定最强非适配集合分别平均≥+0.5pp且至少3/4正向，两项都满足才通过。强TCN单列上下文，不偷换为适配门槛或宣称必须胜TCN。
+- [ ] 完成后汇总、独立保存预测审计和终态备份；当前只有启动/合成与冻结证据，不冒称已完成。中断保存已提交epoch，显式恢复才可续训，不能重置8小时预算。
+- 协议：`docs/experiment_records/e07_fusion_lora_replication_protocol_20261019.md`；入口：`scripts/run_e07_remote.sh`；根：`artifacts/improvements/e07_fusion_lora_replication/e07_fusion_lora_replication_20261019_v1/`；日志：`artifacts/logs/e07_fusion_lora_replication_20261019_v1.log`；本地启动副本：`artifacts/imports/e07_fusion_lora_replication_20261019/startup/`。无旧test/自动下一实验/外部观察器/pi-wake/关机。
 
 ### 结果判定提醒
 
