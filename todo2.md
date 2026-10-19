@@ -4,6 +4,14 @@
 > 目标：在不夸大已有结论的前提下，提高 MOMENT 的分类效果，验证其低标签价值，并形成“方法—消融—成本—演示”的毕业设计闭环。
 > 本文件是新阶段计划；旧正式结果及 `todo.md` 保留，不覆盖、不混合汇总。
 
+## 当前进度（2026-10-19）
+
+- **已完成**：E01统计强基线/融合及E01B/C复验归因；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头诊断与四seed复制；E03T一次固定正式test；E05A历史同预算TCN补审。
+- **当前在做**：E02P池化/长度诊断pilot，seed43、40%标签、mean/mean+max/三段池化×单分支/统计融合，共6个train-CV拟合，validation-only。不是新test，也不重跑已完成E03T。
+- **仍可用现有数据推进**：统计置换解释、池化与长度分层、合理预算对照、受限validation标签、前缀/噪声/缺失诊断、模型互补、统一predict与同机成本基准。按单独冻结方案逐阶段执行，不把它们全部卡在元数据上。
+- **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
+- **结论边界**：融合test91.516%超过固定融合SVM90.952%，但历史同预算TCN均值92.614%更高；不宣称普遍胜过TCN，不在已消费test上反复追分。
+
 ## 0. 当前证据与问题
 
 - 完整标签：TCN Macro-F1 为 **95.99% ± 0.73%**，MOMENT 完全微调为 **95.37% ± 0.39%**；差距只有 0.62 个百分点，但后者训练成本明显更高。
@@ -63,8 +71,8 @@
 
 ## 3. E02：池化与时序局部信息
 
-- [ ] 比较 masked mean、mean+max、有效时间轴三段池化；首先缓存冻结特征，避免重复骨干计算。
-- [ ] 测试短序列、常量序列、不同 padding 长度及不完整尾部 patch。
+- [ ] 比较 masked mean、mean+max、有效时间轴三段池化；E02P已冻结并启动6条件pilot，缓存选定train/validation各一次前向，待完成/审计后再勾完成。
+- [x] E02P单测及真实MOMENT合成输入覆盖短/常量、非整patch尾部、512/1024 padding和掩码外junk；padding长度最大差约4.17e-7，junk差0。不把完整模型的尾部作用与局部池化性质混同。
 - [ ] 不直接将完整 patch 判定 `.all()` 改为 `.any()`；如保留尾部，必须同时处理内部 patch embedding、attention mask 和 pooling 的一致性。
 - [ ] 简单池化有效后再尝试注意力池化，并控制 head 容量，增加相近参数量的 MLP 对照。
 - [ ] 对最长区间和短序列区间单独报告效果；长度分层阈值只在训练集上确定。
@@ -88,7 +96,7 @@
 
 ## 6. E05：公平性、泛化、早期诊断与鲁棒性
 
-- [ ] 补充低标签 TCN 的合理学习率、正则化与优化步数搜索；为各模型声明相近调参预算。
+- [ ] 补充低标签 TCN 的合理学习率、正则化与优化步数搜索；为各模型声明相近调参预算。历史40%预算TCN已在E05A核对相同数据/子集指纹及预测行；这不是新的同机控参重训，不能把本项直接勾完。
 - [ ] 增加受限 validation 标签预算实验，或使用训练子集 CV；另报总标注成本。
 - [ ] 补 MiniRocket 等强时序分类基线，明确变长预处理及其影响。
 - [ ] 索取脱敏设备/站点/时间元数据，追加设备分组或时间外推测试；现有三个 CSV 字段不足，不能从唯一 sample ID 猜分组。
@@ -330,7 +338,7 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] seed42补齐缺失的匹配核带宽统计SVM，其他三seed复用E01C。新控制仍用折内未适配FP32参照、5C×3gamma×5折，不将弱NN作唯一对比。
 - [x] **106 tests、6 subtests** 通过，覆盖pilot排除、12条件范围、有效前缀归一化精确等价、seed间不同/同seed支路相同初值、seed42正确参照和固定平均/方向门槛；Ruff与shell语法检查通过。
 - [x] **2026-10-18 10:46:53（Asia/Shanghai）**新NN结果前冻结 **208 个文件**及依赖；协议SHA-256 `f34f3fbedfbd910be32752e694640b2edd8d96c9dcf03ea7b659b591e357963d`。nohup协调PID **3388**；首次核验为准备seed42数据及补强统计控制，test仍锁定。
-- [ ] 完成全部12NN和缺失SVM控制，审计42,120行NN预测、参照、2,400个epoch的固定scale/无跳步、历史最优/端点和模型哈希。
+- [x] 2026-10-18 11:10:45全部12NN和缺失SVM控制完成；11:12再次执行verify/summarize，208冻结输入/依赖、42,120行NN预测、参照、2,400个epoch的固定scale1024/无跳步、历史最优/端点和模型哈希通过。
 
 复制成功只按四个新seed：融合相对“本轮统计NN、仅MOMENT NN、父统计RF/SVM、匹配统计SVM、父融合SVM”的逐seed最强参照，平均至少 **+0.5pp**，至少 **3/4** 严格正向；相对仅MOMENT平均至少 **+0.25pp**，至少 **3/4** 正向。两项都过才记复制成功。pilot43不加入平均，区间仅描述，不自动test、LoRA或扩预算。
 
@@ -338,6 +346,117 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - 状态/汇总：`artifacts/improvements/e03e_gain_replication/e03e_gain_replication_20261018_v1_analysis/`。
 - 日志：`artifacts/logs/e03e_gain_replication_20261018_v1.log`。
 - 本轮需要未适配骨干前向提取，其后训练廉价缓存头；不是完全不执行Transformer，也不是LoRA训练。
+
+### 无人值守授权、pi-wake 与空闲关机（2026-10-18）
+
+用户明确授权：用pi-wake自主完成目标，只有重要需干预的决定才暂停，AutoDL空闲即shutdown。操作台账：`docs/autonomous_runbook_20261018.md`。
+
+- [x] 已核验pi-wake0.2.5 daemon/presence。原同owner外部API timer到期仍active：存活session从零闹钟启动时没有scheduler tick，daemon会避开live owner。该timer已暂停保留，不能伪称已递送。
+- [x] 通过Pi公开SessionManager创建独立持久无人值守接管会话（parent指向原会话，复制用户授权并附台账）；pi-wake timer `98tcn-autonomy-handoff-20261018-1` 指向此offline owner，于11:08:18触发。原交互会话交接后不同时写项目；无两个LLM并发写同session。owner及任务边界见`.pi/autonomy-handoff.json`与runbook。
+- [x] 启动后台保全 `scripts/backup_autodl_preservation.sh`，先备份静态artifact（暂排除运行中E03E），再dereference复制公共基座并校验a569...指纹。补齐旧E01完整模型、FP32缓存与公共基座，不能只备份新头。
+- [x] 唤醒后确认E03E全部完成并复跑审计；只按四seed汇总，pilot43未计入，门槛不变，test仍锁定。
+- [x] 最终差量及remote/local SHA核验完成，2,727文件、4,714,447,031 bytes全部一致。再次确认无训练/提取/SVM/kernel或其他作业，GPU compute为空；11:19:06执行**远程AutoDL** `sync; /usr/bin/shutdown`返回0，11:19:21一次SSH复验Connection refused。本机未关机，未用GPU短时0%判空闲。
+- [x] 已保全并在空闲时远程关机；未启动无限探索。下一步仅询问是否冻结最终方法/预算/比较清单后明确批准一次正式test，当前仍锁定test，等待这一重要决定。
+
+### 接管巡检 2026-10-18 11:08
+
+- [x] 专用owner收到真实pi-wake递送；E03E已到seed46_moment，协调器/训练仍活动，暂不关机。
+- [x] 初始静态备份 `static_backup_status.json=copied`，公共基座dereference和大小/SHA检查通过；最终E03E差量及remote/local全清单仍待完成。
+- [x] 3分钟timer于11:11:47实际递送，确认套件完成，转入最终保全；未启动新探索。
+
+### E03E 复制结果与最终保全（2026-10-18 11:14）
+
+- [x] 四seed融合validation Macro-F1 **92.04% ± 0.53%**（样本SD），Accuracy **91.90% ± 0.54%**；相对逐seed最强参照平均 **+0.656pp**，4/4正向，描述性95%配对区间 **[+0.213,+1.099]pp**；相对仅MOMENT平均 **+7.387pp**，4/4正向，**两项冻结规则均通过**。
+- [x] 200轮固定端点相对最强参照仅 **+0.359pp**、3/4正向，不替代预算内最好模型的主判定；重复validation和重叠划分偏差保留，不能与历史TCN test直接排名。
+- [x] 输出 `docs/experiment_records/e03e_gain_replication_results_20261018.md`、`docs/figures/e03e_gain_replication_20261018.svg`、`artifacts/analysis/e03e_replication_20261018/`；含逐运行Accuracy/Macro-F1、类别、电池AP/Recall/FPR、耗时和配对结果。
+- [x] 最终差量/源码配置数据快照与公共基座全部保全；11:15:47完成2,727文件SHA逐项核验，零失败。首次manifest的PATH技术错误及attempt1日志保留，改用绝对`.venv/bin/python`重试成功；未改科学代码或结果。11:18timer递送后完成空闲检查和远程关机。
+- [x] 报告12组电池AP与远程sklearn交叉检查，最大差1.85e-13个百分点；合成AP/SVG解析检查通过。seed44/46末10轮最好点的收敛边界已披露，不自动延长预算。
+
+### 最终关机与交付（2026-10-18 11:19）
+
+- [x] 证据：保全目录 `artifacts/imports/autodl_preservation_20261018/` 中的 `preservation_verified.json`、remote/local SHA清单、`shutdown_preflight.json`、`shutdown_command.json`、`shutdown_verification.json`。关机命令返回0，随后SSH Connection refused；没有独立平台电源/计费API读数，按证据边界记录。
+- [x] 最终报告/曲线/派生结果、辅助脚本、runbook/todo另存`completion_bundle`并列SHA；没有commit、回滚用户改动、自动test或自动扩展。所有本轮timer已触发，不再续订。
+- [x] **待用户重要决定（2026-10-19已确认）**：用户选择“1：冻结最终方案与40%预算对照，执行一次正式test”。旧validation阶段不回改，新授权仅在独立E03T生效，见下节；不授权按test调参或自动追加实验。
+
+### 新服务器恢复与环境配置（2026-10-19）
+
+- [x] 用户更换服务器但SSH别名仍为autodl；新主机 `autodl-container-f0c94cb49a-92794602`，RTX4080SUPER（驱动显示32760MiB）、SM8.9、16核CPU配额、62GiB内存；已挂载约50GiB数据盘。
+- [x] 原保全目录只读保留；恢复原路径 `/root/autodl-tmp/ElecClassification`，**2727文件 / 4,714,447,031 bytes全部SHA一致**，含旧E01全模型/缓存、失败现场、E03E和实体公共checkpoint。历史环境/指标/冻结协议不改写。
+- [x] 单独uv venv安装 **Python3.11.17、Torch2.12.1+cu126、MOMENT0.1.4、NumPy1.25.2**，pyproject/uv.lock不改；预装Python3.12/cu130保留。Python默认下载入口慢，改官方GitHub镜像下载同版本成功，首次日志保留。
+- [x] HF缓存按原revision重建，公共权重大小1385501256/SHA a569...一致，补取同revision config；offline模式真实模型加载通过。
+- [x] 新卡 **106 tests、6 subtests** 全过；合成FP32/AMP前向、48个q/v adapter梯度、全部冻结权重不变、零适配器/重载误差0、CUDA float64距离对CPU误差约5.68e-14通过。只用合成输入，没有业务数据训练或test评价。
+- [x] 只读检查E01B/E01C/E03P/E03D-v1/E03D-v2/E03E六套冻结输入/依赖全部通过；未调用summarize覆盖历史recorded_at。
+- [x] 归档完整性通过后叠加当前新文稿/脚本及todo2，不同步本地 `.pi/`、`.git/`、venv或敏感env文件。只增加新部署记录，不修改旧部署provenance。
+- [x] 入口 `source scripts/autodl_env.sh`；环境、归档核验、pytest和合成检查证据在 `artifacts/deployments/autodl_20261019/`，本地保留副本。说明 `docs/experiment_records/server_redeployment_20261019.md`。
+- [x] 未启动新实验、重算旧结果、解锁test或执行关机。新GPU耗时/浮点路径不能直接与旧V100合并，未来新实验/缓存需独立环境标识；RTX FP64核性能也不保证优于V100。
+
+### E03T：冻结方案后的正式test（2026-10-19）
+
+- [x] 用户明确选择选项1。固定 **seed42/44/45/46、40%标签、9827 train、3510 validation、7020 test**；不补pilot43，不拿历史全标签TCN/完全微调test混做同预算排名。
+- [x] **7方法×4seed=28项推理，0重训/搜索**：E03E增益融合/统计/仅MOMENT NN，父融合SVM，匹配统计SVM，原统计SVM/RF。NN只用已有validation选定model_best，SVM/RF只用已有classifier.joblib，不合并train+val或换端点。
+- [x] 新协议/模块/测试/启动器独立，**116 tests、13 subtests**，Ruff及shell检查通过。新GPU上四seed先全部通过validation-only恢复/256行新特征probe关卡，再允许任何test编码；容差预先固定，失败停止，不自动放宽。
+- [x] **2026-10-19 10:22:27 Asia/Shanghai**在任何test结果前冻结 **394文件、28模型**及包/新硬件；协议SHA **48509b15a6360f1bd713274a9ba774e5612dcbd3e9e7a064bb3ee4e9472f146d**。融合best epoch固定为42→181、44→200、45→173、46→191。
+- [x] 启动协调PID **6231**，入口`scripts/run_e03t_remote.sh`，套件`e03t_final_test_20261019_v1`；启动冻结清单本地副本`artifacts/analysis/e03t_startup_20261019/`。
+- [x] **10:25:14**四seed技术关卡全部通过（所有检查预测一致，完整旧AMP缓存NN Macro-F1恢复差0），随后才生成test特征；**10:31:30**全部28项完成。196560行预测、原CSV真值/顺序、全部嵌套指标和模型/cache哈希通过；独立stdlib混淆指标最大误差1.11e-16，16项原生概率AP独立重算最大差2.22e-15。
+- [x] 固定test确认规则全部通过：融合NN−**预先固定父融合SVM**平均 **+0.5636pp、4/4正向**，描述性95%配对区间[+0.5185,+0.6086]pp；融合NN−仅MOMENT **+7.0551pp、4/4正向**。完整报告其余固定配对差，不按test换参照/seed/阈值。
+- [x] 协议`docs/experiment_records/e03t_final_test_protocol_20261019.md`；机器协议`configs/experiments/improvements/e03t_final_test_protocol.json`。输出`artifacts/improvements/e03t_final_test/e03t_final_test_20261019_v1_analysis/`；日志`artifacts/logs/e03t_final_test_20261019_v1.log`。
+- [x] 原冻结阶段和V100结果保持不变。已有历史研究用过此数据test，不能称全项目首次触碰的全新数据；同数据重叠split/validation复用限制保留。完成后无论正负均停止，不自动LoRA/追加预算/关机。
+
+### E03T 结果与保全（2026-10-19 10:33）
+
+- [x] 正式test融合NN **Macro-F1 91.5160%±0.3758%，Accuracy 91.3711%±0.4011%**。父融合SVM 90.9524%±0.3516%，匹配统计SVM 90.1335%±0.3788%，统计NN 88.7578%，仅MOMENT 84.4608%，原统计SVM 89.6133%，原统计RF 87.8081%。四seed全部保留，预先固定两条门槛通过，不追加比较选择。
+- [x] 相对匹配带宽统计SVM净增 **+1.3825pp、4/4正向**，描述性区间[+0.3159,+2.4490]pp。联合系统有效，不是MOMENT单独优于统计；相对父融合SVM+0.5636pp为小幅改进。正常/充电器故障/电池异常F1均值90.5048/93.6516/90.3915%；电池默认Recall87.9580%、FPR3.8965%、AP96.4991%，无阈值搜索或安全保证。
+- [x] freeze→全部完成约9分03秒；两种精度路径test编码计时共3.89分钟，不含CSV解析/关卡/全部审计，非线上延迟，不与V100训练计时混用。
+- [x] **173文件、242,935,231 bytes（约232MiB）**远程/本地SHA全部通过，28/28模型和公共基座指纹与此前完整保全对应，零失败。备份`artifacts/imports/e03t_final_test_20261019/`，含test NPZ、全部CSV/metrics、冻结源码快照及独立审计。`preservation_verified.json`及manifestSHA a1617f...为证据。
+- [x] 报告`docs/experiment_records/e03t_final_test_results_20261019.md`；生成器`scripts/report_e03t_results.py`，独立审计`scripts/audit_e03t_predictions.py`。原E03E validation成功、E03P/E01C失败及数值事故记录均不回改。
+- [x] 本阶段test已消费，只报告这次固定评价，不按本次test继续调参/重选模型。未自动启动新实验、追加seed/预算/LoRA或关机；新机保持开机。后续若要研究外部泛化或公平完整标签TCN，需要独立方案和授权，不能把本轮直接写成历史完整标签排名。
+
+### E05A：历史同预算TCN可比性补审（2026-10-19）
+
+- [x] 用户继续后优先查找已有产物，发现20260728已完成40%TCN；不重复训练或test推理。独立协议明确**事后审计、原结果已知、无新确认性门槛**，E03T原7方法及通过结果不回改。
+- [x] 历史压缩包SHA b8367081...匹配；12个TCN metrics/config/status与原tar逐字节一致。四seed42/44/45/46的数据SHA、类别、过滤/split参数、9827训练样本指纹全部相同；历史TCN与融合各42120行validation/test预测的显式ID顺序、真值、指标与AP通过核对。
+- [x] test **历史TCN92.6136%±2.7260%，融合91.5160%±0.3758%**；融合−TCN平均 **−1.0976pp，仅1/4正向**，描述性配对区间[−5.6285,+3.4333]pp。validation差−0.9812pp。必须保留这个限制，不能只报相对SVM的优势或声称普遍胜过TCN。
+- [x] 电池默认Recall融合87.958%高于TCN85.056%，但FPR融合3.897%高于TCN0.706%，AP融合96.499%低于TCN97.907%；不挑单项指标作安全优势。
+- [x] 审计为同标签预算**历史管线**比较，非相同归一化/训练选择预算/硬件对照；旧TCN train ID数组及checkpoint/完整环境字节未随metadata包保全，明确只核对已有指纹与输出，不虚称权重重现。
+- [x] `122 tests、19 subtests`全部通过，Ruff通过；独立指标最大差1.11e-16，历史AP2.55e-15。测试helper有一次C408纯lint修订，初始capture/旧文件及维护记录保留；科学代码与结果不变，不伪装成前瞻冻结。
+- [x] 报告`docs/experiment_records/e05a_historical_tcn_audit_20261019.md`；总览`docs/experiment_records/final_evidence_synthesis_20261019.md`。数据/输入指纹`artifacts/analysis/e05a_historical_tcn_20261019_v1/`，模块`analyze_historical_tcn.py`只读取保存预测，无训练、模型推理或阈值选择。
+- [x] 本地及远程镜像备份`artifacts/imports/e05a_historical_tcn_20261019/`：**57文件、8,930,672 bytes**全SHA通过，包含47个输入路径的内容/映射及原archive、逐行预测、metadata、事后capture与报告。来源/结果全部保留，不改此前E03T保全包。
+- [ ] 后续重要方向：是否有可脱敏的设备/站点/会话时间元数据用于独立设备或时间外推？目前三字段不能猜分组。可以继续train/val探索，但不可继续依赖这份已消费test追分并称独立确认；没有自动启动下一训练或关机。
+
+### 独立设备/时间验证的材料检查（2026-10-19）
+
+- [x] 用户继续后检查data目录、字段字典及可能的metadata文件。唯一raw CSV仍为43,289,123 bytes/SHA5615...，仅`charging_station_id / InsertedColumn / charging_powers_str`；没有可核实设备/时间映射或新增采集批次。**当前被数据材料阻塞，不是已完成分组/时间实验。**
+- [x] `charging_station_id`仍只按样本唯一ID处理，未猜组、未生成伪元数据、未新训练/新增test推理。
+- [x] 准备说明`docs/external_validation_data_requirements.md`与仅含表头的模板`configs/data_templates/external_metadata.csv`；检查证据`artifacts/analysis/e05b_external_validation_readiness_20261019/readiness.json`。
+- [ ] 等待真实样本→充电设备/站点/电池ID或会话时间映射，或者真正新采集的带业务标签批次。旧样本补元数据只能支持回溯性分组研究；旧模型若见过留出组须重训，不能将改split冒充全新外部test。
+
+### E03F：强头起点的LoRA对照（2026-10-19，运行中）
+
+- [x] 用户选择继续validation探索，而非本轮解锁test；先前E03T报告已存在并被看到，明确标为post-test探索，不称独立确认，不再评价test。
+- [x] 固定seed43、40%标签，父E03D-v2 gain头best200 warm-start；同支路同一头参数/buffers。四条件frozen/lora8×fusion/moment，各追加30epoch，无早停、无rank/seed搜索，epoch0可选；报告best及末轮端点。
+- [x] 固定所有条件在线encoder前向、物理64/有效128；head/adapter LR均1e-4、全新AdamW及两处理统一重置30轮warmup/cosine、AMP-FP16固定scale1024。最强非适配参照、继续冻结控制、rank匹配MOMENT三门槛分别+0.5/+0.5/+0.25pp，全部通过才建议另立复制，不自动扩展。
+- [x] v1预检128tests/19subtests、强头batch64合成数值检查通过；218文件冻结后首个在线rank0控制触发旧训练器把backbone视作adapter的接口错误（int.sqrt），首个optimizer.step之前退出，0个已提交epoch。v1原协议/源码/状态/epoch0/日志保留，不改成成功。
+- [x] 新独立兼容层`strong_head_lora_online.py`将rank0真实冻结encoder注册为online_frozen_encoder，仍逐批在线前向；adapter角色为空，head物理batch显式64。原train_e03与v1源文件不修改、不伪造梯度。
+- [x] **132 tests、19 subtests**通过，新增在线包装逐位等价、参数/训练模式、GPU真实rank0训练微批64/64/2回归；两支路实际强头batch64的零适配/重载误差0、A/B梯度有限及冻结参数不变通过。
+- [x] **E03F-v2于2026-10-19 10:57:22（Asia/Shanghai）冻结228文件**；协议SHA `ae918b1536461892a36bf7fe5a6e72f75462076c3dacfeb2b6e6d324600338bb`。协调器PID7972，套件`e03f_strong_head_lora_20261019_v2`。四条件新目录重启，不混用v1轨迹。
+- [x] 首个frozen fusion epoch0迁移：预测0差异、Macro-F1漂移0；已提交前2轮，每轮约36秒，scale1024/零跳步。当前仍训练中，未判定效果成功；总耗时粗估2–3小时，LoRA实测后再更新。
+- [x] v1失败目录及v2冻结协议/两版smoke已初步复制本地：`artifacts/imports/e03f_strong_head_lora_20261019/failed_v1/`、`artifacts/analysis/e03f_startup_20261019/`；最终v2模型/预测/数据备份和SHA核验仍待完成。
+- [ ] 四条件/120epoch完成后审计初值/ID/模型哈希/三套预测共42120行、固定scale/无跳步及epoch0选择规则，再汇总全部结果和三个冻结门槛；不按中间分数删条件、不救门槛。
+- [x] 已启动本地只做备份的watcher（PID5104，`scripts/watch_e03f_backup.py`）：每120秒检查固定hostname/套件状态，终态后复制整个E03F根并按远端manifest逐文件核验；8小时超时即停，不训练、不test、不关机。依赖本机和SSH持续可用，当前waiting不等于已备份完成。
+- [ ] 完成后核对watcher的`watcher_status.json=verified`及实际suite终态，补齐日志/报告；保留v1技术失败及v2结果，无论正负。本轮不自动test、复制或关机。
+- 入口：`scripts/run_e03f_online_remote.sh`；协议/修订说明：`docs/experiment_records/e03f_strong_head_lora_protocol_20261019.md`、`e03f_online_interface_revision_20261019.md`。
+- 运行根：`artifacts/improvements/e03f_strong_head_lora/`；日志：`artifacts/logs/e03f_strong_head_lora_20261019_v2.log`。
+
+### E02P：继续现有数据可做的池化诊断（2026-10-19）
+
+- [x] 用户明确“只有这个数据，继续todo2未完成项目”；调整优先级，设备/时间研究仍被材料阻塞，但不再阻塞E02、解释性/鲁棒性/工程等任务。当前按单阶段推进，不自动连续扩展。
+- [x] 独立`pooling.py`/`run_pooling_pilot.py`、机器/文字协议和启动器；FP32提取mean1024、mean+max2048、thirds3072，同原15统计旁路。有效patch仍`.all()`，三段按有效patch时间排名分段，空段补零，不改编码器/注意力。
+- [x] 同train subset/5折/5C×3gamma的6个SVM条件；mean两条件须先精确复现旧best params/validation预测及75个fold分数，否则停止。候选要比mean融合≥0.5pp、比包含优化增益头的既有最强管线≥0.25pp才建议另立复制；同时报告历史TCN validation差。
+- [x] **143 tests、19 subtests**及Ruff/shell检查通过；合成真实模型padding/短常量检查通过。长度分层1/3、2/3分位点只由选定训练子集计算，不据validation/test定阈值。
+- [x] **2026-10-19 11:03:33 Asia/Shanghai**、新真实池化结果前冻结**240输入文件**；协议SHA **4728d78d3b90efde875b6f9c37cfabf6e4696bda0e03ce87828820bb5824541b**。nohup协调PID **8554**；套件`e02_pooling_pilot_20261019_v1`，本地启动快照`artifacts/analysis/e02_pooling_startup_20261019/`。
+- [ ] 等待6条件完成，审计21060行validation预测、CV/模型/cache哈希、长度分层及固定pilot规则，再完整保全，不按有利结果跳过分支。
+- [x] 入口`scripts/run_e02_pooling_remote.sh`；输出`artifacts/improvements/e02_pooling_pilot/e02_pooling_pilot_20261019_v1_analysis/`；日志`artifacts/logs/e02_pooling_pilot_20261019_v1.log`；协议`docs/experiment_records/e02_pooling_pilot_protocol_20261019.md`。
+- [x] 这是已知历史test之后的train/validation探索，不声称独立确认；不碰test、不训练encoder，不自动复制/LoRA/扩预算/关机。旧E03T/E05A输出和结论不回改。
 
 ### 结果判定提醒
 

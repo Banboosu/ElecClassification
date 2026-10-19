@@ -1,0 +1,68 @@
+{
+  "experiment_id": "E03F",
+  "suite": "e03f_strong_head_lora_20261019_v2",
+  "execution_revision": "v2_online_frozen_provider",
+  "seed": 43,
+  "train_fraction": 0.4,
+  "test_evaluated": false,
+  "prior_test_results_known": true,
+  "output_dir": "artifacts/improvements/e03f_strong_head_lora",
+  "training_config": "configs/experiments/improvements/feature_fusion.yaml",
+  "parent_protocol": "configs/experiments/improvements/e03d_head_diagnostic_stable_protocol.json",
+  "smoke_report": "artifacts/analysis/e03f_strong_head_online_smoke_20261019.json",
+  "conditions": [
+    {"name": "frozen_fusion", "branch": "fusion", "rank": 0},
+    {"name": "lora8_fusion", "branch": "fusion", "rank": 8},
+    {"name": "frozen_moment", "branch": "moment", "rank": 0},
+    {"name": "lora8_moment", "branch": "moment", "rank": 8}
+  ],
+  "architecture": {
+    "head": "Existing GainFusionHead, same branch-specific E03D-v2 best200 learned state for frozen/LoRA pair; global gain sqrt(1039/active_branches), hidden128, dropout0.1",
+    "warm_start": "Restore parent branch model_best.pt selected within its completed200 epochs. No inherited optimizer, scheduler or RNG; same parent for both treatments. No comparisons to weak original E03P head alone.",
+    "lora_targets": ["q", "v"],
+    "rank": 8,
+    "alpha": 16,
+    "lora_dropout": 0.05,
+    "adapter_seed": 30043,
+    "training_seed": 20043,
+    "base_dropout": "eval; only adapter/head dropout train",
+    "all_conditions_online": true,
+    "gradient_checkpointing": false
+  },
+  "training": {
+    "maximum_epochs": 30,
+    "early_stopping": false,
+    "head_learning_rate": 0.0001,
+    "adapter_learning_rate": 0.0001,
+    "physical_batch_size": 64,
+    "effective_batch_size": 128,
+    "evaluation_batch_size": 64,
+    "weight_decay": 0.01,
+    "gradient_clip_norm": 1.0,
+    "precision": "amp_fp16",
+    "loss_scale": 1024,
+    "loss_scale_growth_interval": 1000000000,
+    "warmup_fraction": 0.1,
+    "minimum_lr_ratio": 0.1,
+    "optimizer": "fresh nonfused AdamW for each condition; identical head LR schedule; no inherited optimizer state",
+    "scheduler": "new30-epoch per-update 10% linear warmup/cosine, explicitly reset for BOTH treatments; base head LR inherited from parent terminal1e-4; adapter LR same as original E03P1e-4",
+    "selection": "epoch0 and epochs1..30, highest validation Macro-F1, earliest exact tie; also report epoch30 endpoint",
+    "nonfinite_policy": "abort on nonfinite logits/loss/gradients, no automatic precision/batch/scale retry or skipped steps"
+  },
+  "technical_gate": {
+    "maximum_initial_prediction_disagreements": 1,
+    "maximum_initial_macro_f1_difference_pp": 0.05,
+    "zero_adapter_logit_tolerance": 0.00001,
+    "description": "Compare online epoch0 validation to already-known V100 parent validation, fixed before new training. At most1/3510 argmax differences and0.05pp Macro-F1 drift per branch; fail rather than tune if exceeded. Same branch treatment initial outputs must be exactly equal."
+  },
+  "success_rules": {
+    "minimum_over_continued_frozen_fusion_pp": 0.5,
+    "minimum_over_strongest_nonadapted_pp": 0.5,
+    "minimum_over_rank_matched_moment_pp": 0.25,
+    "require_all": true,
+    "automatic_replication": false,
+    "automatic_test": false,
+    "automatic_budget_expansion": false
+  },
+  "limitations": "Exploratory seed43 on reused validation; E03T test report already exists and has been seen before this stage. No claim of unseen-test-driven independent confirmation. Cross-seed random splits overlap. Rank8 only is a new bounded strong-head warm-start question, not a universal LoRA test. Parent branch checkpoints were individually validation-selected and differ across branches, but are identical WITHIN each treatment pair. Additional30-epoch opportunity and optimizer reset apply to BOTH treatments; costs differ because frozen encoder needs no backward. Historical E03P failures remain unchanged. This module never imports final_test, encodes test data, evaluates test, starts replication or shuts down."
+}
