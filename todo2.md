@@ -7,7 +7,7 @@
 ## 当前进度（2026-10-19）
 
 - **已完成**：E01统计强基线/融合及E01B/C复验归因；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头诊断与四seed复制；E03T一次固定正式test；E05A历史同预算TCN补审。
-- **当前在做**：E02P池化/长度诊断pilot，seed43、40%标签、mean/mean+max/三段池化×单分支/统计融合，共6个train-CV拟合，validation-only。不是新test，也不重跑已完成E03T。
+- **当前在做**：TCN legacy结构/早停/padding池化诊断pilot（独立E05B-TCN目录），seed43、10%及100%标签、最多8×50epoch，validation-only。E02P和E03F已完成并保全，不自动复制或test。
 - **仍可用现有数据推进**：统计置换解释、池化与长度分层、合理预算对照、受限validation标签、前缀/噪声/缺失诊断、模型互补、统一predict与同机成本基准。按单独冻结方案逐阶段执行，不把它们全部卡在元数据上。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
 - **结论边界**：融合test91.516%超过固定融合SVM90.952%，但历史同预算TCN均值92.614%更高；不宣称普遍胜过TCN，不在已消费test上反复追分。
@@ -71,7 +71,7 @@
 
 ## 3. E02：池化与时序局部信息
 
-- [ ] 比较 masked mean、mean+max、有效时间轴三段池化；E02P已冻结并启动6条件pilot，缓存选定train/validation各一次前向，待完成/审计后再勾完成。
+- [x] 比较 masked mean、mean+max、有效时间轴三段池化；E02P六条件已完整审计/保全。候选thirds/fusion 90.9733%，低于mean融合0.1726pp、低于既有最强0.7493pp，原门槛未通过，不扩展。
 - [x] E02P单测及真实MOMENT合成输入覆盖短/常量、非整patch尾部、512/1024 padding和掩码外junk；padding长度最大差约4.17e-7，junk差0。不把完整模型的尾部作用与局部池化性质混同。
 - [ ] 不直接将完整 patch 判定 `.all()` 改为 `.any()`；如保留尾部，必须同时处理内部 patch embedding、attention mask 和 pooling 的一致性。
 - [ ] 简单池化有效后再尝试注意力池化，并控制 head 容量，增加相近参数量的 MLP 对照。
@@ -430,7 +430,7 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 准备说明`docs/external_validation_data_requirements.md`与仅含表头的模板`configs/data_templates/external_metadata.csv`；检查证据`artifacts/analysis/e05b_external_validation_readiness_20261019/readiness.json`。
 - [ ] 等待真实样本→充电设备/站点/电池ID或会话时间映射，或者真正新采集的带业务标签批次。旧样本补元数据只能支持回溯性分组研究；旧模型若见过留出组须重训，不能将改split冒充全新外部test。
 
-### E03F：强头起点的LoRA对照（2026-10-19，运行中）
+### E03F：强头起点的LoRA对照（2026-10-19，已完成）
 
 - [x] 用户选择继续validation探索，而非本轮解锁test；先前E03T报告已存在并被看到，明确标为post-test探索，不称独立确认，不再评价test。
 - [x] 固定seed43、40%标签，父E03D-v2 gain头best200 warm-start；同支路同一头参数/buffers。四条件frozen/lora8×fusion/moment，各追加30epoch，无早停、无rank/seed搜索，epoch0可选；报告best及末轮端点。
@@ -439,11 +439,11 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 新独立兼容层`strong_head_lora_online.py`将rank0真实冻结encoder注册为online_frozen_encoder，仍逐批在线前向；adapter角色为空，head物理batch显式64。原train_e03与v1源文件不修改、不伪造梯度。
 - [x] **132 tests、19 subtests**通过，新增在线包装逐位等价、参数/训练模式、GPU真实rank0训练微批64/64/2回归；两支路实际强头batch64的零适配/重载误差0、A/B梯度有限及冻结参数不变通过。
 - [x] **E03F-v2于2026-10-19 10:57:22（Asia/Shanghai）冻结228文件**；协议SHA `ae918b1536461892a36bf7fe5a6e72f75462076c3dacfeb2b6e6d324600338bb`。协调器PID7972，套件`e03f_strong_head_lora_20261019_v2`。四条件新目录重启，不混用v1轨迹。
-- [x] 首个frozen fusion epoch0迁移：预测0差异、Macro-F1漂移0；已提交前2轮，每轮约36秒，scale1024/零跳步。当前仍训练中，未判定效果成功；总耗时粗估2–3小时，LoRA实测后再更新。
+- [x] 首个frozen fusion epoch0迁移：预测0差异、Macro-F1漂移0；启动时前2轮每轮约36秒，scale1024/零跳步。此为历史启动快照；终态结果及保全见下方完成项。
 - [x] v1失败目录及v2冻结协议/两版smoke已初步复制本地：`artifacts/imports/e03f_strong_head_lora_20261019/failed_v1/`、`artifacts/analysis/e03f_startup_20261019/`；最终v2模型/预测/数据备份和SHA核验仍待完成。
-- [ ] 四条件/120epoch完成后审计初值/ID/模型哈希/三套预测共42120行、固定scale/无跳步及epoch0选择规则，再汇总全部结果和三个冻结门槛；不按中间分数删条件、不救门槛。
+- [x] 四条件/120epoch完成；原始审计及本地独立核验42120行初始/最佳/端点预测、模型SHA、同支路初值、固定scale1024/零跳步和epoch0选择规则通过。LoRA融合92.4751%，继续冻结91.7479%，+0.7272pp；对最强非适配亦+0.7272pp，对同rank仅MOMENT+3.8524pp，三条原门槛均通过。仅seed43 validation探索，不自动复制或test。
 - [x] 已启动本地只做备份的watcher（PID5104，`scripts/watch_e03f_backup.py`）：每120秒检查固定hostname/套件状态，终态后复制整个E03F根并按远端manifest逐文件核验；8小时超时即停，不训练、不test、不关机。依赖本机和SSH持续可用，当前waiting不等于已备份完成。
-- [ ] 完成后核对watcher的`watcher_status.json=verified`及实际suite终态，补齐日志/报告；保留v1技术失败及v2结果，无论正负。本轮不自动test、复制或关机。
+- [x] 终态watcher备份已核对：109文件/274137701 bytes、SHA零不匹配；修复watcher将`st_size`属性误当函数后重试成功，失败日志保留。报告`docs/experiment_records/e03f_strong_head_lora_results_20261019.md`；v1技术失败和v2全部结果均保留，没有test/复制/关机。
 - 入口：`scripts/run_e03f_online_remote.sh`；协议/修订说明：`docs/experiment_records/e03f_strong_head_lora_protocol_20261019.md`、`e03f_online_interface_revision_20261019.md`。
 - 运行根：`artifacts/improvements/e03f_strong_head_lora/`；日志：`artifacts/logs/e03f_strong_head_lora_20261019_v2.log`。
 
@@ -454,9 +454,18 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 同train subset/5折/5C×3gamma的6个SVM条件；mean两条件须先精确复现旧best params/validation预测及75个fold分数，否则停止。候选要比mean融合≥0.5pp、比包含优化增益头的既有最强管线≥0.25pp才建议另立复制；同时报告历史TCN validation差。
 - [x] **143 tests、19 subtests**及Ruff/shell检查通过；合成真实模型padding/短常量检查通过。长度分层1/3、2/3分位点只由选定训练子集计算，不据validation/test定阈值。
 - [x] **2026-10-19 11:03:33 Asia/Shanghai**、新真实池化结果前冻结**240输入文件**；协议SHA **4728d78d3b90efde875b6f9c37cfabf6e4696bda0e03ce87828820bb5824541b**。nohup协调PID **8554**；套件`e02_pooling_pilot_20261019_v1`，本地启动快照`artifacts/analysis/e02_pooling_startup_20261019/`。
-- [ ] 等待6条件完成，审计21060行validation预测、CV/模型/cache哈希、长度分层及固定pilot规则，再完整保全，不按有利结果跳过分支。
+- [x] 6条件完整完成；独立复核21060行validation预测、450个CV fold分数、train-derived长度分层，最大指标误差1.11e-16；终态117文件/608811803 bytes逐SHA核验通过。候选thirds/fusion未过固定门槛，完整结果见`docs/experiment_records/e02_pooling_pilot_results_20261019.md`。
 - [x] 入口`scripts/run_e02_pooling_remote.sh`；输出`artifacts/improvements/e02_pooling_pilot/e02_pooling_pilot_20261019_v1_analysis/`；日志`artifacts/logs/e02_pooling_pilot_20261019_v1.log`；协议`docs/experiment_records/e02_pooling_pilot_protocol_20261019.md`。
 - [x] 这是已知历史test之后的train/validation探索，不声称独立确认；不碰test、不训练encoder，不自动复制/LoRA/扩预算/关机。旧E03T/E05A输出和结论不回改。
+
+### TCN legacy结构与训练长度诊断（E05B-TCN独立目录，2026-10-19）
+
+- [x] 用户再次要求继续，新增受控真实训练pilot；与旧`e05b_external_validation_readiness`材料检查分目录保留，不覆盖旧检查。固定seed43、10%/100%标签各四条件：当前early7/当前fixed50/legacy masked50/legacy unmasked50，共最多400epoch。
+- [x] 新入口只构造train/validation，统一raw/padding1024、AdamW/LR0.001/WD0.0001、scheduler F1、FP32且关闭TF32；legacy为六层128通道因果卷积。原Keras初始化/Adam/val_loss调度差异明确披露，不声称逐位复现或已穷尽性能。
+- [x] 5项单测覆盖因果性、masked padding、配对初始化、heldout行不解析及checkpoint恢复dropout/optimizer/打乱状态；远端通过后冻结并于2026-10-19 13:29启动，PID13790。8小时硬预算，不自动扩seed/test/关机。
+- [ ] 完成8条件后审计共享轨迹前缀、ID/真值、模型/预测SHA、每轮更新数及全部选择/峰值/端点预测；汇总后完整保全。运行中不宣称最终优劣。
+- [x] 专属当前pi会话的终态观察器PID4028已启动，180秒检查一次既有套件；完成后自动SHA保全、同步报告/曲线，失败则原样保全，不训练/test/扩展/关机。状态：`artifacts/imports/e05b_tcn_legacy_pilot_20261019/watcher_status.json`。10%四条件已完成并复制核对SHA；early7/fixed50/legacy masked/unmasked的选择validation F1分别64.9645/64.9645/84.8182/93.6000%，完整套件审计仍待进行。
+- 协议：`docs/experiment_records/e05b_tcn_legacy_pilot_protocol_20261019.md`。入口：`scripts/run_e05b_remote.sh`。独立根：`artifacts/improvements/e05b_tcn_legacy_pilot/e05b_tcn_legacy_pilot_20261019_v1/`。
 
 ### 结果判定提醒
 

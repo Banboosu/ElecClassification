@@ -46,6 +46,16 @@ TCN使用raw序列，MOMENT使用z-score序列加raw统计旁路；两者都获�
 - E03E validation复制成功，E03T固定方法test确认成功；其范围均不是完整标签TCN排名或独立外部泛化。
 - test此前在历史研究中已使用，当前结果也已查看；随机split跨seed重叠、validation反复复用。所有区间仅描述，不能当独立重复实验的总体置信保证。
 
+## 后续validation探索的终态
+
+E02P已完成6条件池化对照：thirds/fusion 90.9733%，相对mean融合−0.1726pp、相对既有最强管线−0.7493pp，未通过原pilot规则；mean+max也没有带来净改进。不自动扩展。
+
+E03F-v2已完成4条件/120epoch：强头起点LoRA融合92.4751%，相对继续冻结融合与最强非适配参照均+0.7272pp，相对同rank仅MOMENT+3.8524pp，达到原pilot规则。这是已知test后的单seed43、反复复用validation探索，只支持考虑另立复制协议，不能当作新的test确认或抹去E03P失败。
+
+E02/E03F终态分别保全117文件/608811803 bytes与109文件/274137701 bytes，SHA无不匹配；独立保存预测/指标审计均通过。详见[E02P结果](e02_pooling_pilot_results_20261019.md)与[E03F结果](e03f_strong_head_lora_results_20261019.md)。
+
+用户随后明确继续，已另立TCN legacy结构/早停/padding池化pilot，固定seed43、10%及100%标签、8条件最多400epoch，只用train/validation。它不是E05A的重测，也不修改E03T门槛。训练和审计完成前，不将预期收益列入已验证结论；[协议](e05b_tcn_legacy_pilot_protocol_20261019.md)披露受控PyTorch结构移植与原Keras训练的差异。
+
 ## 下一步的合理边界
 
 可以继续train/validation探索，但不能拿这份已消费的test反复追分，再把每次改进说成新的独立确认。更有价值的下一步是：
@@ -54,6 +64,6 @@ TCN使用raw序列，MOMENT使用z-score序列加raw统计旁路；两者都获�
 2. 保留TCN、强化统计方法和冻结MOMENT融合，预先固定比较与选择预算。若没有新数据，后续结论应明确是已知数据集上的探索性benchmark。
 3. 同硬件单独比较推理/训练成本与工程需求，不能把头参数量当作MOMENT整条管线大小，或把V100和RTX计时混用。
 
-本次E05A只审计保存预测，没有重训、重复test推理、再选阈值或改写E03T结果。当前没有自动启动下一实验。
+E05A本身只审计保存预测，没有重训、重复test推理、再选阈值或改写E03T结果。之后的单独授权validation探索见上文；没有自动扩seed或再评价test。
 
 证据：[E03T结果](e03t_final_test_results_20261019.md)、[E05A可比性审计](e05a_historical_tcn_audit_20261019.md)、`artifacts/analysis/e05a_historical_tcn_20261019_v1/`。

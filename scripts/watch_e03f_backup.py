@@ -119,7 +119,7 @@ print(json.dumps({{'files':files,'scope':'entire E03F v1/v2 artifact root; publi
             continue
         with path.open("rb") as h:
             digest = hashlib.file_digest(h, "sha256").hexdigest()
-        if {"sha256": digest, "bytes": path.stat().st_size()} != expected:
+        if {"sha256": digest, "bytes": path.stat().st_size} != expected:
             failures.append(relative)
     status(
         "verified" if not failures else "verification_failed",
