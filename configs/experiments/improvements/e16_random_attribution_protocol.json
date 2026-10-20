@@ -1,0 +1,34 @@
+{
+  "experiment_id": "E16",
+  "title": "Pretrained vs random initialization attribution for MOMENT original/diff/dual streams",
+  "date": "2026-10-20",
+  "suite": "e16_random_attribution_20261020_v1",
+  "output_dir": "artifacts/improvements/e16_random_attribution",
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "seeds": [42, 44, 45, 46],
+  "fractions": [0.1, 0.4],
+  "split_manifests": {
+    "42": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    "44": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed44/split_manifest.json",
+    "45": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed45/split_manifest.json",
+    "46": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed46/split_manifest.json"
+  },
+  "pretrained_caches": {
+    "orig": "artifacts/improvements/e01_20261017_v2_features",
+    "diff": "artifacts/improvements/e09_diff_features"
+  },
+  "random_cache": "artifacts/improvements/e16_random_features",
+  "streams": ["orig", "diff", "dual"],
+  "initializations": ["pretrained", "random"],
+  "classifier_c": 1.0,
+  "max_length": 1024,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Random control uses the same MOMENT architecture and patch embedding with randomly initialized weights; pretrained loading is forbidden by a runtime guard.",
+    "Original stream: per-series z-score on valid observations then zero-pad; diff stream: per-series z-scored first difference on valid observations, same as E09.",
+    "One random initialization per data seed, shared by orig/diff/dual; logistic C=1.0 for all streams.",
+    "Validation only; no test."
+  ]
+}

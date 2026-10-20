@@ -12,7 +12,11 @@
 - **E12已完成10%/40%**：5折交叉拟合、TCN固定50轮cosine、meta只在OOF上拟合；40% validation stack **98.09±0.23%**（相对同轮TCN full +0.56pp/4/4、相对无TCN stack +2.07pp/4/4），10% **95.02±0.33%**（相对同折无TCN stack +0.76pp/4/4）；两个suite各16条件/56160行审计0误差，无test。10%的TCN端点为固定50轮无选模的89.04%，不能把stack−tcn_full +5.98pp当成对强TCN的领先。
 - **E10已完成（P0修正）**：40% stack ECE 0.56%、温度1.001（无需缩放）；10%为**欠自信**（平均置信度92.21%<精度95.01%），温度0.853锐化后ECE 3.52%→0.94%、NLL 0.1717→0.1518，精度不变；McNemar 40%四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；电池固定FPR 1%时40%召回97.67%、10%仅89.66%；99%召回对应FPR 4.86%/13.55%。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界。
 - **E12b已完成（P1.1）**：完整融合消融，4seed×2预算×7条件/196,560行；40% `TCN+DYN` 97.93±0.22、完整三路98.09±0.23，MOMENT净增益仅+0.16±0.12pp（3/4）；10%完整三路95.02±0.33，相对最好两路+0.76±0.45pp（4/4）。MOMENT价值是条件性的：40%大部分信息已被TCN+DYN覆盖，10%才稳健。
-- **接下来优先做（2026-10-20 修订）**：按 E12b 重写主线——40% 下 TCN+DYN 已 97.93%，完整三路仅 +0.16pp/3/4；10% 下完整三路 +0.76pp/4/4。主线改为“MOMENT 的条件性互补”，不再写“40% 下 MOMENT 稳健净增益”。随后转入成稿与表图收口；P1.2 MultiRocket/随机初始化、P1.3 噪声/量化、同机成本为可选。不再用旧test追分；任何新test必须等新批次或明确授权。
+- **E16已完成（P1.2 随机初始化归因）**：同架构/池化/C=1.0，48条件/168,480行、0 test；预训练在所有流上优于随机（4/4）：10% orig +22.48、diff +9.36、dual +9.97；40% orig +20.57、diff +6.17、dual +6.00；随机 dual 40% 86.77% vs 预训练 92.77%。预训练权重有实质贡献，但不是低标签精度的唯一路线。
+- **E15已完成（P1.2 MiniRocket对照）**：同interp_z/num_features=10000/Ridge协议；10% 92.89±0.34%（与DYN持平+0.08±0.50、高于TCN+3.85、低于Full−2.13），40% 94.42±0.24%（低于DYN−0.58、TCN−3.11、Full−3.67）。MiniRocket单独不构成比MultiRocket更强的挑战。
+- **E14已完成（P1.2 第一项）**：MultiRocket 强基线，4seed×2预算×1变体/28,080行、0 test；10% **96.36±0.35%**，高于完整三路95.02%（+1.34pp/4/4）、TCN89.04%（+7.32）、DYN95.00%（+3.55）；40% **97.28±0.40%**，与TCN97.53%基本持平（−0.25）、低于完整三路98.09%（−0.81）。固定interp_z（z-score+256点插值）、num_features=2000、RidgeClassifierCV训练内选alpha；MultiRocket不支持mask。该结果挑战“低标签下融合/预训练更优”的主线。
+- **E13已完成（P1.3，负结果）**：clean 训练、扰动 validation，720条件/2,527,200行、0 test。40%下 TCN 在 0.1%/0.25% 噪声仍 97.58/97.19，但 0.5% 降到 72.00、1% 降到 29.13；完整三路在 0.5% 为 64.00，低于 TCN。DYN 最脆弱（0.1% 即 95.00→86.80，0.25%→70.89）；MOM/ΔP 相对更稳但1%也坍塌。量化2W尚可（TCN 96.86、Full 95.44），5W起明显下降；电池FPR在0.5%噪声下53.21%。另发现 DYN `max_runup`/`max_drawdown` 分母在最小值近0时会产生1e14–1e15，微小噪声即数量级跳变；未改特征契约/未重训主表。
+- **接下来优先做（2026-10-20 修订）**：E14 进一步改写主线——10% 下 MultiRocket 96.36% 已超过完整三路 95.02%（+1.34/4/4），说明“预训练+融合”不是低标签精度的必要条件；40% 下完整三路 98.09% 仅比 TCN/MultiRocket 高约 0.3–0.8pp。论文不能再写“低标签稳健领先”，应写成“MultiRocket 强基线下的条件性收益”。E13 还表明 clean 训练的完整系统不具备部署鲁棒性（0.5% 噪声悬崖、DYN 特征不稳定、电池 FPR 爆炸），工程可靠性只能作为边界/负结果。随后转入成稿与表图收口；P1.2 随机初始化归因、特征修正后重训、同机成本为可选。不再用旧test追分；任何新test必须等新批次或明确授权。
 - **仍可用现有数据推进**：E09/E12的train/validation探索、保存预测的错误分析、前缀/噪声/缺失诊断、统一predict和同机成本；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
 - **结论边界**：E03T test 91.516%是15维统计基线时代的历史结果；E08已把同预算validation强基线抬到95.46%，不能再用旧test证明“融合优于统计基线”是当前最优。E08本身validation-only、split重叠、特征在seed42探针后冻结；不宣称外部泛化或已超过TCN。
@@ -29,6 +33,10 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 | E12 | TCN logits + DYN + MOMENT OOF堆叠 | 能否把40%的97.78%再抬高0.3–0.6pp？ | 已完成10%/40%：98.09%/95.02%；相对无TCN stack +2.07/+0.76pp |
 | E10 | 校准/错误互补/电池风险 | 概率是否可信、错误是否互补、报警阈值如何取舍？ | 已完成（修正）：40% ECE 0.56%；10%欠自信、锐化后0.94%；固定1% FPR召回97.67%/89.66% |
 | E12b | 完整融合消融 | 相对最好两路，MOMENT净增益多少？ | 已完成：40% +0.16pp/3/4；10% +0.76pp/4/4；MOMENT条件性有价值 |
+| E13 | 噪声/量化鲁棒性 | clean 训练的模型能否经受采集扰动？ | 已完成（负结果）：0.5%噪声悬崖；DYN最脆弱；Full不优于TCN；电池FPR爆炸 |
+| E14 | MultiRocket 强基线 | 经典卷积核基线能否挑战融合？ | 已完成：10% 96.36% 超过Full 95.02%（+1.34/4/4）；40% 97.28% 低于Full 98.09% |
+| E15 | MiniRocket 对照 | 更轻的卷积核基线是否同样强？ | 已完成：10% 92.89%（与DYN持平）；40% 94.42%（低于DYN/TCN/Full） |
+| E16 | 预训练 vs 随机初始化归因 | 预训练权重是否不可替代？ | 已完成：预训练全流优于随机（4/4）；dual +9.97/+6.00；随机40% 86.77% vs 92.77% |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
 | N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10已完成校准/风险；同机端到端成本仍可选 |
 | N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
@@ -611,6 +619,47 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 电池固定工作点（四seed均值）：40%下0.5%/1%/2% FPR对应recall95.58/97.67/98.46%，99% recall对应4.86% FPR；10%下1% FPR仅89.66% recall、99% recall对应13.55% FPR。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界，不是模型缺陷；未调阈值、不是部署保证。
 - 报告/图：`docs/experiment_records/e10_calibration_safety_results_20261020.md`、`docs/figures/e10_{reliability,risk_coverage}_{10p,40p}_20261020.svg`；本地保全`artifacts/imports/e10_calibration_safety_20261020/`；远端根`artifacts/improvements/e10_calibration_safety/`。
 - 边界：OOF/validation分布不完全一致；ECE/Brier描述性；四seed split重叠；无test/鲁棒性/端到端成本。
+
+### E16：预训练 vs 随机初始化归因（2026-10-20，已完成）
+
+- [x] 同 MOMENT 架构、mask-aware pooling、1024维、同数据/预算、同 logistic C=1.0；随机初始化每 seed 一次，原/差分/双流共用；预训练加载 guard 禁止。
+- [x] 4 seed×2预算×2初始化×3流=48条件/168,480行；Macro-F1复算误差0；0 test。
+- [x] 预训练−随机（pp，4/4）：10% orig +22.48±0.91、diff +9.36±1.18、dual +9.97±0.73；40% orig +20.57±1.10、diff +6.17±1.06、dual +6.00±0.56。
+- [x] 电池40%：预训练dual recall/FPR 93.33/3.81%；随机dual 88.45/5.75%。
+- [x] 随机原序列特征与既有E01C random cache（seed44–46）最大差异1.8e-6–2.9e-6，provenance一致。
+- 报告：`docs/experiment_records/e16_random_attribution_results_20261020.md`；本地保全`artifacts/imports/e16_random_attribution_20261020/`（suite 13MB + random cache 892MB / 168,480行）；远端`artifacts/improvements/e16_random_attribution/e16_random_attribution_20261020_v1/`、`e16_random_features/`；协议`configs/experiments/improvements/e16_random_attribution_protocol.json`；代码`src/tcn_moment/run_e16_random_attribution.py`；测试`tests/test_e16_random_attribution.py`。
+- 结论：预训练权重本身有实质贡献，不能由随机架构/池化替代；E14说明预训练+融合不是低标签精度的唯一路线。两者不矛盾。边界：单次随机draw/seed、冻结backbone、无test/外部数据。
+
+### E15：MiniRocket 对照基线（2026-10-20，已完成）
+
+- [x] vendored 官方 MiniRocket（GPL-3.0），只调用 fit/transform；固定 interp_z（z-score+256点插值）、num_features=10000（官方默认）、RidgeClassifierCV 训练内 3 折 {100,1000} 选 alpha；无 test。
+- [x] 4 seed×2预算=8条件/28,080行；Macro-F1复算误差0；0 test。
+- [x] 10%：MiniRocket 92.89±0.34%；vs DYN +0.08±0.50（基本持平）、vs TCN +3.85（0.13）、vs Full −2.13（0.21）。
+- [x] 40%：MiniRocket 94.42±0.24%；vs DYN −0.58（0.34）、vs TCN −3.11（0.25）、vs Full −3.67（0.19）。
+- [x] 电池40%：recall/FPR 90.68/2.54%；低于DYN/TCN/Full，也低于MultiRocket 97.15/1.76%。
+- 报告：`docs/experiment_records/e15_minirocket_results_20261020.md`；本地保全`artifacts/imports/e15_minirocket_20261020/`（2.28MB/28,080行）；远端`artifacts/improvements/e15_minirocket/e15_minirocket_20261020_v1/`；协议`configs/experiments/improvements/e15_minirocket_protocol.json`；代码`src/tcn_moment/run_e15_minirocket.py`；vendor`vendor/minirocket/`；测试`tests/test_e15_minirocket.py`。
+- 结论：MiniRocket单独不构成比MultiRocket更强的挑战；经典卷积核基线内部差异大，不能用MiniRocket替代MultiRocket结论。
+
+### E14：MultiRocket 强基线（2026-10-20，已完成）
+
+- [x] vendored 官方 MultiRocket（GPL-3.0），只调用 fit/transform；固定 interp_z（逐序列 z-score + 线性插值到 256 点），num_features=2000，RidgeClassifierCV 训练内 3 折从 {100,1000} 选 alpha；验证不参与选择。
+- [x] 4 seed × 10%/40% = 8 条件 / 28,080 行；Macro-F1 复算误差 0；无 test。
+- [x] 10%：MultiRocket **96.36±0.35%**；vs DYN +3.55（SD0.40）、vs TCN +7.32（0.36）、vs Full +1.34（0.27），全部 4/4 正向。
+- [x] 40%：MultiRocket **97.28±0.40%**；vs DYN +2.28（0.37）；vs TCN −0.25（0.24，基本持平）；vs Full −0.81（0.36，Full 仍最高）。
+- [x] 电池40%：MultiRocket recall/FPR 97.15/1.76%；Full 97.38/0.85%；召回接近但 FPR 更高，未调阈值。
+- 报告：`docs/experiment_records/e14_multirocket_results_20261020.md`；本地保全`artifacts/imports/e14_multirocket_20261020/`（2.7MB / 28,080 行 fast suite；另保留 CV-ridge 版 aborted partial）；远端`artifacts/improvements/e14_multirocket/e14_multirocket_fast_20261020_v1/`；协议`configs/experiments/improvements/e14_multirocket_fast_protocol.json`；代码`src/tcn_moment/run_e14_multirocket.py`；vendor`vendor/multirocket/`；测试`tests/test_e14_multirocket.py`。
+- 边界：MultiRocket 不支持 mask；interp_z 固定；num_features=2000 低于论文默认 50k；四seed split重叠；无test/外部数据；不是 MultiRocket 上限。
+- 结论：低标签下经典卷积核基线即可超过当前融合；论文必须把 MultiRocket 放进主表，并改写“预训练/融合低标签优势”。随机初始化对照（P1.2 第二项）尚未做。
+
+### E13：噪声与量化鲁棒性（2026-10-20，已完成，负结果）
+
+- [x] 两套冻结协议：E13 v1 stress test（噪声2/5/10%×192.31W，量化2/5/10W；336条件/1,179,360行）与E13b阈值细化（噪声0.1/0.25/0.5/1%，量化2/5/10W；384条件/1,347,840行）；均为clean训练、perturbed validation、0 test。
+- [x] 40%：TCN 97.53→97.58/97.19/72.00/29.13（clean/0.1/0.25/0.5/1%）；Full 98.10→97.72/92.49/64.00/28.20；DYN 95.00→86.80/70.89/42.19/21.12；MOM+ΔP 92.77→91.86/85.89/68.23/46.64。
+- [x] 量化40%：TCN 96.86/66.26/35.55（2/5/10W）；Full 95.44/64.73/35.09；DYN 88.55/59.76/49.75。2W尚可，5W起明显下降。
+- [x] 电池40% Full：clean 97.42/0.85→0.25%噪声 98.73/11.02→0.5% 99.71/53.21→1% 99.92/92.42；Quant2W 98.75/5.93、5W 99.63/52.92。召回上升是偏向电池类，FPR不可接受。
+- [x] 诊断：DYN `max_runup`/`max_drawdown` 分母 `abs(running_min)+1e-12` 在最小值近0时产生1e14–1e15；seed42 validation 4.8%样本>1e6，微小噪声即数量级跳变。未改特征契约/未重训，E08/E12 clean数字仍有效，但不能宣称鲁棒。
+- 报告：`docs/experiment_records/e13_robustness_results_20261020.md`；本地保全`artifacts/imports/e13_robustness_20261020/`（1,458文件/200.7MB/2,527,200行）；远端`artifacts/improvements/e13_robustness/{e13_robustness_20261020_v1,e13b_robustness_20261020_v1}/`；协议`configs/experiments/improvements/e13*_protocol.json`；脚本`src/tcn_moment/run_e13_robustness.py`；测试`tests/test_e13_robustness.py`。
+- 边界：clean训练无增广；噪声为全局RMS比例、0W截断；量化绝对W；无脉冲/缺失/漂移/前缀；四seed split重叠；无test/外部数据；不是部署保证。
 
 ### E12b：完整融合消融（2026-10-20，已完成）
 

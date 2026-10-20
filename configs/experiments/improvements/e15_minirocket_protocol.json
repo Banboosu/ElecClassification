@@ -1,0 +1,47 @@
+{
+  "experiment_id": "E15",
+  "title": "MiniRocket strong baseline (interp_z + fixed ridge selection)",
+  "date": "2026-10-20",
+  "suite": "e15_minirocket_20261020_v1",
+  "output_dir": "artifacts/improvements/e15_minirocket",
+  "dataset": "data/raw/\u6700\u65b0\u591a.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "fractions": [
+    0.1,
+    0.4
+  ],
+  "split_manifests": {
+    "42": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    "44": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed44/split_manifest.json",
+    "45": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed45/split_manifest.json",
+    "46": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed46/split_manifest.json"
+  },
+  "variants": {
+    "interp_z": {
+      "length": 256,
+      "normalization": "per_series_zscore_valid_then_linear_interp"
+    }
+  },
+  "num_features": 10000,
+  "threads": 16,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "MiniRocket official implementation (vendored); only fit/transform are used.",
+    "Fixed interp_z: per-series z-score on valid observations, then linear interpolation to 256 points.",
+    "Input is float32; num_features=10000 is the official default.",
+    "RidgeClassifierCV selects alpha from {100,1000} by 3-fold CV on the training subset only.",
+    "Four seeds, 10%/40%, validation only, no test."
+  ],
+  "ridge_alphas": [
+    100.0,
+    1000.0
+  ],
+  "ridge_cv": 3
+}

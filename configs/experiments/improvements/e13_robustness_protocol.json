@@ -1,0 +1,88 @@
+{
+  "experiment_id": "E13",
+  "title": "Noise and quantization robustness of clean-trained final systems",
+  "date": "2026-10-20",
+  "suite": "e13_robustness_20261020_v1",
+  "output_dir": "artifacts/improvements/e13_robustness",
+  "dataset": "data/raw/\u6700\u65b0\u591a.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "fractions": [
+    0.1,
+    0.4
+  ],
+  "split_manifests": {
+    "42": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    "44": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed44/split_manifest.json",
+    "45": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed45/split_manifest.json",
+    "46": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed46/split_manifest.json"
+  },
+  "e12_suites": {
+    "10p": "artifacts/improvements/e12_tcn_stack/e12_tcn_stack_10p_20261020_v1",
+    "40p": "artifacts/improvements/e12_tcn_stack/e12_tcn_stack_20261020_v1"
+  },
+  "e08_suite": "artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1",
+  "e01_cache": "artifacts/improvements/e01_20261017_v2_features",
+  "e09_cache": "artifacts/improvements/e09_diff_features",
+  "max_length": 1024,
+  "train_count": 24569,
+  "validation_count": 3510,
+  "methods": [
+    "dyn_hgb",
+    "md_logit",
+    "tcn",
+    "tcn_dyn",
+    "dyn_md",
+    "full"
+  ],
+  "perturbations": {
+    "clean": {
+      "kind": "none"
+    },
+    "noise_2pct": {
+      "kind": "noise",
+      "sigma_fraction": 0.02
+    },
+    "noise_5pct": {
+      "kind": "noise",
+      "sigma_fraction": 0.05
+    },
+    "noise_10pct": {
+      "kind": "noise",
+      "sigma_fraction": 0.1
+    },
+    "quant_2w": {
+      "kind": "quantization",
+      "step_w": 2.0
+    },
+    "quant_5w": {
+      "kind": "quantization",
+      "step_w": 5.0
+    },
+    "quant_10w": {
+      "kind": "quantization",
+      "step_w": 10.0
+    }
+  },
+  "noise_scale": "train_valid_rms",
+  "noise_clip_min": 0.0,
+  "quant_native_resolution_w": 1.0,
+  "training_on_perturbed": false,
+  "labels_assumed_unchanged": true,
+  "gate": null,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Train clean, evaluate perturbed validation only; no augmentation and no retraining on perturbed inputs.",
+    "Noise sigma is a fraction of the train valid-observation RMS and is clipped at 0 W; quantization steps are absolute watts.",
+    "MOMENT and diff embeddings are recomputed from perturbed raw input before per-series z-scoring; DYN features are recomputed on valid observations.",
+    "Labels are assumed unchanged: perturbations model acquisition/recording conditions, not physical state changes.",
+    "Validation only; no test."
+  ],
+  "config": "configs/moment.yaml"
+}
