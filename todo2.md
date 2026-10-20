@@ -4,18 +4,18 @@
 > 目标：在不夸大已有结论的前提下，提高 MOMENT 的分类效果，验证其低标签价值，并形成“方法—消融—成本—演示”的毕业设计闭环。
 > 本文件是新阶段计划；旧正式结果及 `todo.md` 保留，不覆盖、不混合汇总。
 
-## 当前进度（2026-10-19）
+## 当前进度（2026-10-20）
 
-- **已完成**：E01统计强基线/融合及E01B/C复验归因；E02P池化/长度诊断；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头诊断与四seed复制；E03T一次固定正式test；E03F强头LoRA pilot；E05A历史同预算TCN补审及E05B-TCN结构/早停/padding pilot。
-- **当前状态**：N1/E05C与E06均完成保全，E06小幅互补未达原整体门槛。用户授权E07强融合头LoRA精简复制：固定40%标签、四seed×冻结/LoRA两条件，共8组/240轮。20:32:31（Asia/Shanghai）冻结397输入；协调PID4365及首组训练PID4555运行中，四seed初始迁移全部通过；20:40:27检查首组seed42 frozen已提交5/30轮，每轮约37秒、scale1024/零跳步。仅启动证据318文件/48128251bytes及28080行初始预测独立审计已保全，不称整套完成或已验证LoRA提升。无test/pi-wake/自动扩展/关机。
-- **接下来优先做**：仅执行当前明确授权的E07八条件精简复制，结束报告适配净增与同预算强TCN上下文，不因结果不理想扩参。既有“预训练MOMENT与原尺度统计互补”仍可作为成稿主线；N2/N3、成本/工程或完整四分支LoRA对照均不自动执行。
+- **已完成**：E01统计强基线/融合及E01B/C归因；E02P池化/长度诊断；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头及复制；E03T固定test；E03F强头LoRA pilot；E05A/B/C强TCN补审、结构/长度诊断与复制；E06互补；E07强融合头LoRA精简复制。
+- **当前状态**：E07八条件/240轮于2026-10-20 00:48:02（Asia/Shanghai）全部完成，墙钟4小时14分51秒。validation所选模型：继续冻结92.2306±0.5480%、LoRA8 92.6782±0.5958%，净增+0.4475pp、4/4正向，但未达事前平均≥0.5pp，两条原门槛均未通过；端点仅2/4正向。同40%强TCN97.7790%。84240行预测/16 checkpoint审计通过，完整终态及日志436文件/171950897bytes保全，另32份固定参照已核验。无训练/GPU计算进程，无test/pi-wake/自动扩展/关机。
+- **接下来优先做**：结束本轮适配探索，不因+0.4475pp未过门槛继续追分。建议以既有“预训练MOMENT与原尺度统计互补”成稿，E07作为小幅适配收益与成本取舍的补充；N2/N3、统一成本/工程或完整四分支LoRA对照均不自动执行。
 - **仍可用现有数据推进**：统计置换解释、保存模型的错误分析、前缀/噪声/缺失诊断和统一predict；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
 - **结论边界**：融合test91.516%超过固定融合SVM90.952%，但历史同预算TCN均值92.614%更高；不宣称普遍胜过TCN，不在已消费test上反复追分。
 
-## 接下来要做的实验（2026-10-19更新，N1已完成）
+## 后续候选工作（2026-10-20更新，N1及N5精简方案已完成）
 
-先解决参照是否充分的问题，再决定MOMENT是否值得增加适配成本。N1固定复核和已有权重诊断已完成，支持legacy masked作为后续主要TCN参照，unmasked保留为池化对照。下一步建议N2有界优化与1%/5%/10%曲线，N3–N6仍未启动；可选length旁路暂缓。不使用pi-wake、不启动test或自动连续扩展。
+N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TCN参照，unmasked保留为池化对照。N5已按单独授权的E07精简融合两处理执行完毕，幅度门槛未通过；原完整16组方案未执行，不为勾完清单追加。N2/N3/N4/N6仍是需另行取舍的候选，时间紧时优先成稿与必要工程收尾。可选length旁路暂缓，不使用pi-wake、不启动test或自动连续扩展。
 
 | 顺序 | 工作 | 要回答的问题 | 优先级 |
 |---|---|---|---|
@@ -23,7 +23,7 @@
 | N2 | 有界TCN优化 + 低标签学习曲线 | 合理优化后，MOMENT的低标签优势还剩多少？ | 下一阶段，尚未启动 |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
 | N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | 必做，可与分析工作并行 |
-| N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | 已授权E07精简融合两分支8组；下文完整16组不自动执行 |
+| N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07精简8组已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
 | N6 | 解释、错误与鲁棒性 | 模型依赖什么信息，在哪些输入上失效？ | 先完成低成本解释/错误分析，再选一种扰动 |
 
 ### N1：先复核TCN，再解释padding收益
@@ -54,12 +54,14 @@
 - [ ] 同时报总参数/可训练参数、模型与公共依赖大小、峰值显存/内存、特征提取/搜索/训练耗时。历史V100和RTX训练计时不拼接为同机成本；LoRA合并权重推理与未合并推理若都测，分别命名。
 - [ ] 统一predict入口并核对保存模型重载预测一致性；覆盖单条/批量、过短/非法输入、标签编码、mask与有效长度。演示中显示类别/曲线/统计信息；未经校准的softmax不标成可信概率保证。
 
-### N5：有条件复制强头LoRA信号
+### N5：精简复制已完成，原16组候选方案未执行
+
+> 2026-10-20更新：用户授权的是E07融合两处理8组/240轮，已完成审计与保全；所选模型净增+0.4475pp、4/4正向，未达原+0.5pp。下列完整四条件16组方案仅保留为此前候选，不自动补跑仅MOMENT支路，也不新增交互归因。
 
 - [ ] 只有需要验证“MOMENT适配增量”时执行，顺序在N1之后。固定seed42/44/45/46、40%标签、E03E各支路best200强头为起点；每seed frozen/lora8 × fusion/moment四条件，统一追加30epoch，共 **16次、480epoch**，排除pilot43，不再搜rank或延长训练。
 - [ ] 保留E03F同支路相同头/缓冲、epoch0可选、两处理均重置optimizer/scheduler、在线encoder前向和相同训练预算；软件/硬件迁移先过技术一致性检查。不能复用只在缓存上训练的冻结控制计时来冒充相同在线训练成本。
 - [ ] 启动前独立冻结复制判定：建议融合相对继续冻结融合、逐seed最强非适配参照分别平均≥0.5pp、至少3/4正向，相对同rank仅MOMENT平均≥0.25pp、至少3/4正向。非适配集合含本轮冻结控制、父统计/仅MOMENT/融合NN及既有SVM；**N1的同40% TCN**另外固定列为整体方法参照，不根据结果临时换比较对象。实用收益阈值和成本判定写入新协议后才执行，不改E03F原pilot规则，也不把超过冻结控制等同于超过TCN。
-- [ ] 若复制不稳定或收益不足以抵消成本，保留单seed信号及失败复制，停止追加适配实验。无论通过与否，不自动打开旧test。
+- [x] E07保留seed43 pilot通过及四seed复制幅度门槛失败；本次追加30轮LoRA均时42.91分钟、冻结在线控制18.67分钟（约2.30倍），端点仅2/4正向。停止追加适配实验，不自动打开旧test。
 
 ### N6：解释和一种受控鲁棒性实验
 
@@ -79,7 +81,7 @@
 - 完整标签：TCN Macro-F1 为 **95.99% ± 0.73%**，MOMENT 完全微调为 **95.37% ± 0.39%**；差距只有 0.62 个百分点，但后者训练成本明显更高。
 - 1%/5%/10% 训练标签：历史冻结 MOMENT-SVM Macro-F1 为 **68.05/77.40/80.77%**，比当时TCN配置高 **6.43/10.86/12.55** 个百分点；只是旧配置的test对照。E01已补低标签统计强基线，validation整体高于仅MOMENT；E05B又显示legacy TCN有明显潜力，不能继续据旧差值概括低标签总体优势。
 - E05B-TCN单seed43 validation：10%标签当前fixed50 **64.9645%**、legacy masked **84.8182%**、unmasked **93.6000%**；100%标签对应 **96.9684/98.1412/98.1048%**。延长当前模型在10%没有收益，需先复核结构与长度信息；这不是原Keras逐位复现，也不是新的test结论。
-- E03F强头LoRA单seed43、40% validation **92.4751%**，相对继续冻结融合 **+0.7272pp**，原pilot三门槛通过；尚缺四seed复制及同预算强化TCN上下文。E02P多段/mean+max池化未通过门槛，不自动扩展。
+- E03F强头LoRA单seed43、40% validation **92.4751%**，净增 **+0.7272pp**，原pilot通过；E07四seed精简复制为 **92.6782%**、净增 **+0.4475pp**、4/4正向，但未达原平均≥0.5pp门槛。同预算强TCN validation **97.7790%**，不混入test排名。E02P多段/mean+max池化未通过门槛，不自动扩展。
 - 同架构预训练与随机初始化对照已支持预训练贡献；不必重复做成新的“创新点”。
 - 统计特征对电池异常很有效，`diff_std`、`max_abs_diff` 排名靠前。不能将总体三分类优势外推为电池安全优势。
 - `momentfm==0.1.4` 的 `embed()` 内部执行 RevIN；仅修改外部 `normalize: none` 不能保证分类器获得原始幅值信息。优先尝试原始统计信息旁路，而不是盲目移除内部归一化。
@@ -147,10 +149,10 @@
 
 - **暂缓**：最后2/8/12层与完全微调网格；已有冻结头和历史完全微调只作现有管线上下文，环境/协议差异保留。
 - [x] encoder q/v原生LoRA工程与冻结/零适配/恢复检查完成；E03P rank8/16门控失败保留，E03F强头rank8 pilot通过，不自动追加rank4。
-- **暂缓**：扩展q/k/v/o、LayerNorm/patch embedder；先完成N5四seed固定rank8复制，再决定是否还有必要。
-- [ ] 比较验证效果、可训练参数、总参数、峰值显存、训练耗时与推理延迟（N4）；E03F已报告在线训练成本，但不能替代同机端到端推理基准。
+- **暂缓**：扩展q/k/v/o、LayerNorm/patch embedder；E07四seed固定rank8复制已完成但幅度不足，当前不追加搜索。
+- [ ] 统一端到端推理延迟基准（N4）尚未做；E03F/E07已有validation效果、可训练/总参数、峰值allocated显存与在线追加训练计时，不能替代部署基准。
 - [x] E03F已使用同起点/相同追加预算的frozen与LoRA、moment与fusion四条件，完成强头下逐项消融与统一warmup/cosine；不声称验证了分层学习率衰减。
-- [ ] 强头LoRA四seed复制（N5，条件执行）；额外调度/分层学习率搜索暂缓。
+- [x] E07强融合头四seed精简复制8组/240轮完成；+0.4475pp、4/4正向但两项幅度门槛未过。没有新仅MOMENT支路；额外调度/分层学习率搜索暂缓。
 
 ## 5. E04：自监督领域适配（暂缓，非当前必做）
 
@@ -575,18 +577,22 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - 报告/图：`docs/experiment_records/e06_tcn_moment_complement_results_20261019.md`、`docs/figures/e06_tcn_moment_complement_20261019.svg`；协议：`docs/experiment_records/e06_tcn_moment_complement_protocol_20261019.md`；入口：`scripts/run_e06_remote.sh`。
 - 本地保全根：`artifacts/imports/e06_tcn_moment_complement_20261019/`，含startup、terminal_artifacts、independent_output_audit.json和preservation_verified.json；远端根：`artifacts/improvements/e06_tcn_moment_complement/e06_tcn_moment_complement_20261019_v1/`；日志：`artifacts/logs/e06_tcn_moment_complement_20261019_v1.log`。
 
-### E07：强融合头LoRA精简复制（2026-10-19，已启动）
+### E07：强融合头LoRA精简复制（2026-10-20，已完成审计与保全）
 
 - [x] 用户明确授权上一轮建议的8组方案；固定seed42/44/45/46、40%标签9827 train/3510 validation，仅frozen_fusion/lora8_fusion两条件，各追加30epoch，共240epoch。不是原N5完整四分支16组，不新增rank-matched moment-only或搜索rank/LR。
 - [x] 167项回归（含9项E07新增）和Ruff/shell检查通过。四seed真实公共骨干+对应E03E强头、batch64合成检查通过：零适配、A/B梯度、固定scale1024、冻结参数不变、重载一致。
 - [x] 20:32:31（Asia/Shanghai）冻结397输入，协议SHA `92b75f5493fd2553dea00a2fecb9eaa49d6ee3c4af507321eeb356e70bf667d6`；本地结果前冻结文件SHA `9967d69e5addc40203548878d1f002f9b93256ec37a0afb47641e0bfc04fd963`，含原协议/合成smoke/测试日志和本地源码核对。
 - [x] 协调PID4365，20:33:11开始8小时原始墙钟预算；先prepare+全部四seed迁移，再执行真实训练。host `autodl-container-de774f9d7d-2319c4b0`、RTX4080。复用未修改的OnlineFrozenClassifier、train_e03及固定scale兼容层，两处理都在线encoder前向。
 - [x] 20:36:38全部迁移关卡通过后才允许真实更新。seed42每处理相对父头1条argmax变化/F1漂移0.026751pp，其他三seed0条；均在原≤1条/≤0.05pp范围。每seed两处理epoch0概率完全一致，没有放宽容差。初始28080行预测与原CSV真值/旧父预测通过本地标准库独立核验，最大指标误差1.11e-14。
-- [x] 首组seed42 frozen训练PID4555，20:40:27健康快照已提交5/30epoch，每轮约37秒，loss/验证有限、scale1024、零跳步；LoRA组尚未开始，不依据当前部分轨迹更改方案。历史终态证据待整套完成。
-- [x] 启动不可变快照318文件/48128251bytes逐SHA一致，含源码/输入快照、四seed迁移输出和prepared manifests；预启动397输入freeze与本地原副本一致。`startup/independent_startup_audit.json`、`runtime_preservation_verified.json`及`training_health.json`区分启动核验与未来终态。
-- [ ] 等待8条件/240epoch完成并审计初始/最佳/端点84240行预测；相对继续冻结及固定最强非适配集合分别平均≥+0.5pp且至少3/4正向，两项都满足才通过。强TCN单列上下文，不偷换为适配门槛或宣称必须胜TCN。
-- [ ] 完成后汇总、独立保存预测审计和终态备份；当前只有启动/合成与冻结证据，不冒称已完成。中断保存已提交epoch，显式恢复才可续训，不能重置8小时预算。
-- 协议：`docs/experiment_records/e07_fusion_lora_replication_protocol_20261019.md`；入口：`scripts/run_e07_remote.sh`；根：`artifacts/improvements/e07_fusion_lora_replication/e07_fusion_lora_replication_20261019_v1/`；日志：`artifacts/logs/e07_fusion_lora_replication_20261019_v1.log`；本地启动副本：`artifacts/imports/e07_fusion_lora_replication_20261019/startup/`。无旧test/自动下一实验/外部观察器/pi-wake/关机。
+- [x] 2026-10-20 00:48:02全部8条件/240epoch完成，墙钟15290.721秒（4小时14分51秒），未触及8小时上限。无技术失败、自动重试、扩参或新test；终态无训练/GPU计算进程。
+- [x] validation所选模型：继续冻结92.2306±0.5480%、LoRA8 92.6782±0.5958%。逐seed净增+1.0294/+0.1135/+0.5671/+0.0801pp，平均+0.4475pp、4/4正向；最强非适配集合每seed均为本轮冻结，故两条门槛数值相同且均未达≥0.5pp。描述性95%区间[-0.2637,+1.1588]pp跨0，不改门槛或并入pilot43。
+- [x] 原父融合头92.0423%，LoRA相对父头总差+0.6359pp含继续训练收益，不能全部归给适配。末轮端点差+0.2685pp、仅2/4正向；同40%强TCN97.7790%，LoRA低5.1008pp，不宣称总体领先。电池AP/FPR平均改善但Recall下降，不只挑正指标。
+- [x] 每seed追加30轮在线计时：冻结18.671分钟、LoRA42.911分钟（约2.30倍）；可训练135555/921987参数，完整管线仍约3.41/3.42亿参数。不是统一端到端训练/推理成本基准。
+- [x] 84240行初始/最佳/端点预测、240轮history及原CSV真值/有序ID/概率/选轮/两门槛通过独立标准库审计，最大指标误差1.48e-14、AP误差1.67e-15。CPU核对16个best/last checkpoint，best与已提交状态一致，全部固定scale1024/零跳步，每条件2310次optimizer更新、合计18480次，optimizer/scaler/CPU/CUDA/shuffle RNG完整；没有新增推理。
+- [x] 完整终态套件及日志436文件/171950897bytes逐SHA零不匹配；另32份固定参照4859076bytes/112320行保存预测保全并独立重算。原结果前freeze字节、397冻结输入和运行环境终态核验一致。启动318文件快照保留不覆盖，原训练源/协议/科学输出不修改；新增收尾脚本只做保存结果审计/制表。
+- [x] 收尾回归171项通过（原167项+4项报告统计/证据门控测试），Ruff、编译、shell及diff检查通过。重复validation/重叠split/旧test已知及9827 train+3510 validation成本边界保留，不称新盲测或统计分支×适配交互归因。
+- 报告/图：`docs/experiment_records/e07_fusion_lora_replication_results_20261020.md`、`docs/figures/e07_fusion_lora_replication_20261020.svg`；协议：`docs/experiment_records/e07_fusion_lora_replication_protocol_20261019.md`；入口：`scripts/run_e07_remote.sh`；远端根：`artifacts/improvements/e07_fusion_lora_replication/e07_fusion_lora_replication_20261019_v1/`；日志：`artifacts/logs/e07_fusion_lora_replication_20261019_v1.log`。
+- 本地根：`artifacts/imports/e07_fusion_lora_replication_20261019/`，含startup、terminal_artifacts、logs、fixed_references及独立预测/checkpoint/固定参照审计和保全proof。本轮结束，不自动下一实验/旧test/外部观察器/pi-wake/关机。
 
 ### 结果判定提醒
 
