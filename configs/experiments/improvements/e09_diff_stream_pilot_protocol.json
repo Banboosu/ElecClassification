@@ -1,0 +1,37 @@
+{
+  "experiment_id": "E09P",
+  "title": "Frozen MOMENT original vs first-difference stream pilot",
+  "date": "2026-10-20",
+  "seed": 42,
+  "fractions": [
+    0.1,
+    0.4
+  ],
+  "config": "configs/moment.yaml",
+  "diff_cache_dir": "artifacts/improvements/e09_diff_features",
+  "output_dir": "artifacts/improvements/e09_diff_stream",
+  "suite": "e09_diff_pilot_20261020_v2",
+  "streams": [
+    "moment_original",
+    "moment_diff"
+  ],
+  "models": [
+    "moment_logit",
+    "diff_logit",
+    "moment_diff_logit",
+    "stack_moment",
+    "stack_moment_diff",
+    "stack_three"
+  ],
+  "gate": {
+    "rule": "40p MOM+DIFF - MOM >= 1.0pp and stack_moment_diff - stack_moment >= 0.2pp",
+    "expansion": "four seeds and 1%/10%/40% only if both pass"
+  },
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Only the MOMENT input stream changes; the backbone stays frozen.",
+    "Difference series is computed on valid observations and z-scored per series; test is never parsed for scoring.",
+    "Seed42 is the E08 hypothesis seed and is used only as a pilot gate."
+  ]
+}

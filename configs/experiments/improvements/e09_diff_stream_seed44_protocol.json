@@ -1,0 +1,38 @@
+{
+  "experiment_id": "E09",
+  "title": "Frozen MOMENT original vs first-difference stream pilot",
+  "date": "2026-10-20",
+  "seed": 44,
+  "fractions": [
+    0.01,
+    0.1,
+    0.4
+  ],
+  "config": "configs/moment.yaml",
+  "diff_cache_dir": "artifacts/improvements/e09_diff_features",
+  "output_dir": "artifacts/improvements/e09_diff_stream",
+  "suite": "e09_diff_stream_20261020_seed44",
+  "streams": [
+    "moment_original",
+    "moment_diff"
+  ],
+  "models": [
+    "moment_logit",
+    "diff_logit",
+    "moment_diff_logit",
+    "stack_moment",
+    "stack_moment_diff",
+    "stack_three"
+  ],
+  "gate": {
+    "rule": "40p MOM+DIFF - MOM >= 5pp (>=3/4); stack_moment_diff - stack_moment >= 0.3pp at 40p and 10p (>=3/4)",
+    "note": "Expansion of the seed42 pilot; validation-only."
+  },
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Four-seed expansion of the seed42 pilot.",
+    "Same diff cache family; no test."
+  ],
+  "write_report": false
+}

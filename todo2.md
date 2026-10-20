@@ -6,12 +6,13 @@
 
 ## 当前进度（2026-10-20）
 
-- **已完成**：E01统计强基线/融合及E01B/C归因；E02P池化/长度诊断；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头及复制；E03T固定test；E03F强头LoRA pilot；E05A/B/C强TCN补审、结构/长度诊断与复制；E06互补；E07强融合头LoRA精简复制。
-- **当前状态**：E07八条件/240轮于2026-10-20 00:48:02（Asia/Shanghai）全部完成，墙钟4小时14分51秒。validation所选模型：继续冻结92.2306±0.5480%、LoRA8 92.6782±0.5958%，净增+0.4475pp、4/4正向，但未达事前平均≥0.5pp，两条原门槛均未通过；端点仅2/4正向。同40%强TCN97.7790%。84240行预测/16 checkpoint审计通过，完整终态及日志436文件/171950897bytes保全，另32份固定参照已核验。无训练/GPU计算进程，无test/pi-wake/自动扩展/关机。
-- **接下来优先做**：结束本轮适配探索，不因+0.4475pp未过门槛继续追分。建议以既有“预训练MOMENT与原尺度统计互补”成稿，E07作为小幅适配收益与成本取舍的补充；N2/N3、统一成本/工程或完整四分支LoRA对照均不自动执行。
-- **仍可用现有数据推进**：统计置换解释、保存模型的错误分析、前缀/噪声/缺失诊断和统一predict；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
+- **已完成**：E01统计强基线/融合及E01B/C归因；E02P池化/长度诊断；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头及复制；E03T固定test；E03F强头LoRA pilot；E05A/B/C强TCN补审、结构/长度诊断与复制；E06互补；E07强融合头LoRA精简复制；**E08强动力学特征基线与MOMENT堆叠（2026-10-20，四seed/88条件，validation-only）**。
+- **当前状态**：E08已完成并审计。40%标签validation：F15+HGB 90.60±0.20%、DYN+HGB 95.00±0.17%、DYN+MOMENT stack 95.46±0.19%；stack−DYN +0.46pp（4/4），DYN−F15 +4.41pp（4/4）；1%标签stack 87.12%，比DYN高+1.06pp。四条事前门槛全部通过；88条件逐样本预测复算最大误差0.0；无test、无source drift。N2/N2b已完成：legacy TCN 1%仅55.51±14.67%、5% 84.03±4.50%，低于同预算DYN/stack；10% 93.68%与stack 93.28%持平，40% 97.78%才领先2.32pp。bounded LR（3e-4/1e-3/3e-3）未修复1%坍塌，1e-3仍是均值最优；不能把固定结构下的坍塌写成TCN架构上限。
+- **E09已完成**：四seed、1%/10%/40%、72条件；差分ΔP流使MOM+ΔP单支40%达93.57%（+9.66pp/4/4），DYN+(MOM+ΔP) stack达96.01%（+0.55/4/4）、10% 94.26%（+0.99/4/4）、1% 88.69%（+1.57/4/4），三条门槛全部通过；72条件/252720行审计最大误差0.0，无test。与TCN：10% +0.58但仅2/4、40% −1.76、1% +4.66（TCN坍塌背景）。
+- **接下来优先做**：E12（TCN logits + DYN + MOMENT/ΔP OOF堆叠），检验能否把40%的97.78%再抬高、并保留10%的stack优势；随后E10（校准/保形/鲁棒性/同机成本）。不再用旧test追分；任何新test必须等新批次或明确授权。
+- **仍可用现有数据推进**：E09/E12的train/validation探索、保存预测的错误分析、前缀/噪声/缺失诊断、统一predict和同机成本；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
-- **结论边界**：融合test91.516%超过固定融合SVM90.952%，但历史同预算TCN均值92.614%更高；不宣称普遍胜过TCN，不在已消费test上反复追分。
+- **结论边界**：E03T test 91.516%是15维统计基线时代的历史结果；E08已把同预算validation强基线抬到95.46%，不能再用旧test证明“融合优于统计基线”是当前最优。E08本身validation-only、split重叠、特征在seed42探针后冻结；不宣称外部泛化或已超过TCN。
 
 ## 后续候选工作（2026-10-20更新，N1及N5精简方案已完成）
 
@@ -20,11 +21,13 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 | 顺序 | 工作 | 要回答的问题 | 优先级 |
 |---|---|---|---|
 | N1 | TCN跨seed复核 + 长度/padding诊断 | legacy优势能否复现，未掩码池化依赖什么信息？ | 已完成，主参照建议legacy masked |
-| N2 | 有界TCN优化 + 低标签学习曲线 | 合理优化后，MOMENT的低标签优势还剩多少？ | 下一阶段，尚未启动 |
+| N2 | TCN低标签学习曲线（1%/5%） | 强特征stack的低标签优势还剩多少？ | 已完成：1%/5% TCN明显低于DYN/stack；N2b LR未修复1%坍塌 |
+| E09 | MOMENT+ΔP双流 / patch动态特征 | 给MOMENT补局部动力学后，单支和stack能提高多少？ | 已完成：四seed全部门槛通过；40% stack 96.01%，10% 94.26% |
+| E12 | TCN logits + DYN + MOMENT OOF堆叠 | 能否把40%的97.78%再抬高0.3–0.6pp？ | 下一阶段，需TCN交叉拟合 |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
-| N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | 必做，可与分析工作并行 |
-| N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07精简8组已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
-| N6 | 解释、错误与鲁棒性 | 模型依赖什么信息，在哪些输入上失效？ | 先完成低成本解释/错误分析，再选一种扰动 |
+| N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10必做，可与分析并行 |
+| N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
+| N6 | 解释、错误与鲁棒性 | 模型依赖什么信息，在哪些输入上失效？ | E10先做低成本解释/错误分析，再选一种扰动 |
 
 ### N1：先复核TCN，再解释padding收益
 
@@ -593,6 +596,41 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 收尾回归171项通过（原167项+4项报告统计/证据门控测试），Ruff、编译、shell及diff检查通过。重复validation/重叠split/旧test已知及9827 train+3510 validation成本边界保留，不称新盲测或统计分支×适配交互归因。
 - 报告/图：`docs/experiment_records/e07_fusion_lora_replication_results_20261020.md`、`docs/figures/e07_fusion_lora_replication_20261020.svg`；协议：`docs/experiment_records/e07_fusion_lora_replication_protocol_20261019.md`；入口：`scripts/run_e07_remote.sh`；远端根：`artifacts/improvements/e07_fusion_lora_replication/e07_fusion_lora_replication_20261019_v1/`；日志：`artifacts/logs/e07_fusion_lora_replication_20261019_v1.log`。
 - 本地根：`artifacts/imports/e07_fusion_lora_replication_20261019/`，含startup、terminal_artifacts、logs、fixed_references及独立预测/checkpoint/固定参照审计和保全proof。本轮结束，不自动下一实验/旧test/外部观察器/pi-wake/关机。
+
+### E09：MOMENT 原序列 vs 一阶差分双流（2026-10-20，已完成）
+
+- [x] 先做seed42、10%/40% pilot：MOM+ΔP相对MOM +10.22/+10.18pp，stack再+1.46/+0.72pp；原gate通过后才扩展，未直接跑满四seed。
+- [x] 四seed42/44/45/46、1%/10%/40%、6方法（MOM logit、ΔP logit、MOM+ΔP logit、E08 stack、DYN+(MOM+ΔP) stack、stack_three），72条件全部完成；每个seed协议独立冻结，差分cache在`artifacts/improvements/e09_diff_features/seed<seed>/`。
+- [x] 40%：MOM 83.91±0.44、ΔP 91.04±0.69、MOM+ΔP 93.57±0.56、E08 stack 95.46±0.19、DYN+(MOM+ΔP) stack **96.01±0.31**。10%：94.26±0.56；1%：88.69±1.79。
+- [x] 门槛：G1 MOM+ΔP−MOM@40% +9.66pp/4/4；G2 stack−E08stack@40% +0.55pp/4/4；G3 @10% +0.99pp/4/4，全部通过。1%增量+1.57pp/4/4。
+- [x] 与TCN同预算：1% +4.66pp（3/4，TCN坍塌背景）、10% +0.58pp（2/4，不能称稳健超过）、40% −1.76pp（0/4，TCN仍领先）。
+- [x] 40%电池：stack recall/FPR 96.35/2.18%；MOM+ΔP单支94.31/3.43%；默认argmax未调阈值。
+- [x] `stack_three`（MOM与ΔP分成两支）低于拼接：1/10/40%为71.99/91.43/94.56%；当前样本量下拼接更稳。
+- [x] 72条件/252,720行预测重新核对ID/真值/有限分数/行数并复算Macro-F1，最大误差0.0；无test行、无source drift。
+- 报告/证据：`docs/experiment_records/e09_diff_stream_results_20261020.md`、`docs/experiment_records/e09_diff_stream_pilot_results_20261020.md`；本地保全`artifacts/imports/e09_diff_stream_20261020/`、`artifacts/imports/e09_diff_pilot_20261020/`；远端根`artifacts/improvements/e09_diff_stream/`。
+- 本轮结束；不自动启动E12/E10、test、扩seed或关机。
+
+### N2/N2b：低标签TCN学习曲线与LR敏感性（2026-10-20，已完成）
+
+- [x] N2在1%/5%训练标签、seed42/44/45/46、同E01 split/训练ID/validation上补legacy masked TCN；8条件/400epoch完成，84240行预测独立复算，test_evaluated=false。
+- [x] 1% selected F1逐seed 66.39/68.20/37.06/50.40（均值55.51±14.67），5%为86.93/77.40/85.00/86.77（84.03±4.50）；同预算DYN/stack为86.05/87.12与91.07（5%无stack）。10%/40%/100%复用E05C：93.68/97.78/98.40。
+- [x] 配对：TCN−DYN在1%/5%为−30.54/−7.05pp（0/4），10% +0.87（3/4），40% +2.78（4/4）；TCN−stack在1% −31.60（0/4），10% +0.40（2/4），40% +2.32（4/4）。交叉点在5%–10%之间。
+- [x] N2b只改AdamW LR：1%下3e-4/1e-3/3e-3为46.74/55.51/51.14，5%下79.80/84.03/81.86；1e-3仍是均值最优，24条件/252720行审计通过、0失败。1%坍塌不是简单LR失配；但未做架构/调度/正则搜索，不能写成TCN架构上限。
+- 报告：`docs/experiment_records/n2_tcn_low_label_results_20261020.md`、`docs/experiment_records/n2b_lr_sensitivity_results_20261020.md`；本地保全：`artifacts/imports/n2_tcn_low_label_20261020/`、`artifacts/imports/n2b_lr_sweep_20261020/`；远端根：`artifacts/improvements/n2_tcn_low_label/n2_tcn_low_label_20261020_v1/`、`artifacts/improvements/n2b_lr_sweep/n2b_lr_sweep_20261020_v1/`。
+- [x] 本轮结束；不自动test/扩seed/下一实验。
+
+### E08：强动力学特征基线与MOMENT堆叠（2026-10-20，已完成）
+
+- [x] 由seed42本地探针提出假设后，独立冻结E08协议：60维原始尺度动力学特征（15维E01基础+45维新特征）、四seed42/44/45/46、1%/5%/10%/40%/100%、HGB/RBF-SVM/MOMENT-logistic/DYN+MOMENT概率堆叠，共22条件/seed。协议SHA `de3ad5e74c1571bd74d923cf6bc744d4214e104a40c710edfe01e67e9f0d06e9`，特征契约SHA `0948dfb183cd71d9e2189fe52a7b3b08a7ac7b77bdc0da4f76b01a7cfc52edce`。
+- [x] 80个单元测试通过（含基础15维与原extractor一致、padding不变性、组分区、预测审计）；四seed并行、每进程4线程，单seed约690–707秒，总墙钟约11.5分钟；无test、无source drift、无MOMENT cache签名不匹配。
+- [x] 40% validation：F15+HGB 90.60±0.20%、DYN+HGB 95.00±0.17%、F15+SVM 89.84±0.56%、DYN+SVM 93.81±0.54%、MOMENT-logistic 83.90±0.47%、stack 95.46±0.19%；同预算E05C legacy TCN 97.78±0.23%作上下文。
+- [x] 四条事前门槛全部通过：G1 DYN−F15@40% +4.41pp/4/4；G2 @10% +5.22pp/4/4；G3 stack−DYN@40% +0.46pp/4/4；G4 DYN−F15 SVM@40% +3.97pp/4/4。1%上stack−DYN为+1.06pp/4/4，10%为+0.47pp/4/4；不能只报“通过门槛”而忽略绝对差距仍低于TCN 2.32pp。
+- [x] 电池40%默认argmax：DYN recall/FPR/AP 95.10/2.71/98.98；stack 95.52/2.44/98.61；F15 89.56/4.92/96.85。未调阈值，不宣称安全保证。
+- [x] 特征组消融（40%，HGB）：去roughness −4.13pp、只用roughness 90.48%；去length +0.03pp；置换重要性前列为increasing_fraction、diff_abs_mean、max_abs_diff、diff_abs_over_mean、direction_turn_rate、plateau_fraction、diff_autocorrelation。描述性，不作因果。
+- [x] 成本（含训练内CV，4线程）：40% DYN HGB 54.5s、stack 127.3s；不是端到端推理/部署基准，完整MOMENT管线仍需3.41亿参数骨干。
+- [x] 88个条件/308,880行逐样本预测独立复算，Macro-F1最大误差0.0；无模型序列化，特征矩阵/选中参数/预测/协议/环境均已保存，可用固定参数确定性重拟合。本地保全71MB。
+- 报告/图：`docs/experiment_records/e08_strong_features_results_20261020.md`、`docs/figures/e08_macro_f1_vs_budget_20261020.svg`；协议：`configs/experiments/improvements/e08_strong_features_protocol.json`；入口：`src/tcn_moment/run_e08.py`、`scripts/run_e08_remote.sh`；远端根：`artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1/`；本地根：`artifacts/imports/e08_strong_features_20261020/`。
+- 本轮结束，不自动启动N2/E09/E12、旧test、pi-wake或关机。
 
 ### 结果判定提醒
 

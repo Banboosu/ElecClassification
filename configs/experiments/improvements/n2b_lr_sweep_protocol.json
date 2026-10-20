@@ -1,0 +1,67 @@
+{
+  "experiment_id": "N2B",
+  "title": "Legacy masked TCN learning-rate sensitivity at 1%/5%",
+  "date": "2026-10-20",
+  "suite": "n2b_lr_sweep_20261020_v1",
+  "output_dir": "artifacts/improvements/n2b_lr_sweep",
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "split_manifests": {
+    "42": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    "44": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed44/split_manifest.json",
+    "45": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed45/split_manifest.json",
+    "46": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed46/split_manifest.json"
+  },
+  "train_fractions": [
+    0.01,
+    0.05
+  ],
+  "learning_rates": [
+    0.0003,
+    0.001,
+    0.003
+  ],
+  "condition": "legacy_masked50",
+  "classes": [
+    "0",
+    "1",
+    "2"
+  ],
+  "train_count": 24569,
+  "validation_count": 3510,
+  "max_length": 1024,
+  "normalization": "none",
+  "batch_size": 32,
+  "evaluation_batch_size": 64,
+  "epochs": 50,
+  "weight_decay": 0.0001,
+  "dropout": 0.3,
+  "scheduler": {
+    "monitor": "validation_macro_f1",
+    "mode": "max",
+    "factor": 0.5,
+    "patience": 3
+  },
+  "early_stopping_patience": 7,
+  "early_stopping_min_delta": 0.0001,
+  "gradient_clip_norm": 1.0,
+  "optimizer": "AdamW",
+  "initialization": "torch_default_for_all_arms",
+  "precision": "fp32_tf32_disabled",
+  "wall_time_limit_hours": 1,
+  "test_evaluated": false,
+  "prior_test_results_known": true,
+  "automatic_expansion": false,
+  "automatic_shutdown": false,
+  "notes": [
+    "Only AdamW learning rate changes; structure, data, epochs, batch and selection rule are fixed.",
+    "LR 1e-3 is the N2 baseline and must reproduce N2 for the same seed/fraction.",
+    "Validation only; four overlapping splits; no test."
+  ]
+}

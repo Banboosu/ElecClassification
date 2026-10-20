@@ -417,6 +417,24 @@ bash scripts/analyze_battery_binary_derived_remote.sh
 FPR，但少样本电池检测的 Random Forest 更强；完整标签仍由 TCN 明显领先。结果保存在
 `artifacts/battery_binary_analysis/formal_five_seed/`。
 
+### 9. E08 强动力学特征基线与冻结 MOMENT 堆叠（validation-only）
+
+E08 在 E01 的 15 维统计特征上增加 45 维原始尺度动力学/频谱/形状特征，共 60 维；比较
+HGB、RBF-SVM、MOMENT-logistic 和 HGB+MOMENT 概率堆叠，固定 1%/5%/10%/40%/100% 标签预算、
+seed 42/44/45/46。完全不构造、预测或评价 test。
+
+```bash
+bash scripts/run_e08_remote.sh \
+  e08_strong_features_20261020_v1 \
+  artifacts/improvements/e01_20261017_v2_features
+```
+
+脚本会先跑特征/分析单元测试，再冻结协议、四个 seed 并行运行，最后生成
+`artifacts/improvements/e08_strong_features/<suite>/analysis/summary.{json,md}`、
+`aggregate.csv`、`paired.csv` 和 Fig。入口为 `python -m tcn_moment.run_e08 {freeze,run}`，
+特征模块为 `src/tcn_moment/dynamics_features.py`。详见
+[E08 结果](docs/experiment_records/e08_strong_features_results_20261020.md)。
+
 ## 八、训练功能与指标
 
 TCN、CNN 和 MOMENT 支持：

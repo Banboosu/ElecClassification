@@ -1,0 +1,295 @@
+{
+  "version": 1,
+  "experiment": "E08",
+  "title": "Strong dynamics-feature baselines and frozen MOMENT stacking",
+  "date": "2026-10-20",
+  "no_test_access": true,
+  "data": {
+    "config": "configs/moment.yaml",
+    "normalization_for_features": "none",
+    "max_length": 1024,
+    "min_length": 18,
+    "classes": [
+      "0",
+      "1",
+      "2"
+    ]
+  },
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "fractions": [
+    0.01,
+    0.05,
+    0.1,
+    0.4,
+    1.0
+  ],
+  "base_feature_count": 15,
+  "feature_names": [
+    "length",
+    "mean",
+    "std",
+    "minimum",
+    "maximum",
+    "q10",
+    "q25",
+    "median",
+    "q75",
+    "q90",
+    "last_minus_first",
+    "slope",
+    "diff_mean",
+    "diff_std",
+    "max_abs_diff",
+    "length_over_max",
+    "coefficient_of_variation",
+    "iqr_over_sum",
+    "last_over_first",
+    "last_over_mean",
+    "max_over_mean",
+    "min_over_mean",
+    "q05",
+    "q95",
+    "slope_head",
+    "slope_tail",
+    "trend_total_change",
+    "tail_trend_change",
+    "head_mean",
+    "tail_mean",
+    "head_std",
+    "tail_std",
+    "tail_minus_head",
+    "third1_mean",
+    "third2_mean",
+    "third3_mean",
+    "third1_std",
+    "third2_std",
+    "third3_std",
+    "third3_minus_third1",
+    "diff_abs_mean",
+    "diff_abs_q90",
+    "diff_abs_over_mean",
+    "diff_std_over_mean",
+    "increasing_fraction",
+    "direction_turn_rate",
+    "plateau_fraction",
+    "longest_plateau_over_length",
+    "diff_autocorrelation",
+    "spectral_band1",
+    "spectral_band2",
+    "spectral_band3",
+    "spectral_band4",
+    "dominant_frequency",
+    "level_autocorrelation",
+    "histogram_entropy",
+    "max_drawdown",
+    "max_runup",
+    "skewness",
+    "kurtosis"
+  ],
+  "feature_groups": {
+    "length": [
+      "length",
+      "length_over_max"
+    ],
+    "amplitude": [
+      "mean",
+      "std",
+      "minimum",
+      "maximum",
+      "q05",
+      "q10",
+      "q25",
+      "median",
+      "q75",
+      "q90",
+      "q95",
+      "coefficient_of_variation",
+      "iqr_over_sum",
+      "last_over_first",
+      "last_over_mean",
+      "max_over_mean",
+      "min_over_mean"
+    ],
+    "trend": [
+      "slope",
+      "last_minus_first",
+      "slope_head",
+      "slope_tail",
+      "trend_total_change",
+      "tail_trend_change",
+      "head_mean",
+      "tail_mean",
+      "head_std",
+      "tail_std",
+      "tail_minus_head",
+      "third1_mean",
+      "third2_mean",
+      "third3_mean",
+      "third1_std",
+      "third2_std",
+      "third3_std",
+      "third3_minus_third1"
+    ],
+    "roughness": [
+      "diff_mean",
+      "diff_std",
+      "max_abs_diff",
+      "diff_abs_mean",
+      "diff_abs_q90",
+      "diff_abs_over_mean",
+      "diff_std_over_mean",
+      "increasing_fraction",
+      "direction_turn_rate",
+      "plateau_fraction",
+      "longest_plateau_over_length",
+      "diff_autocorrelation"
+    ],
+    "spectral": [
+      "spectral_band1",
+      "spectral_band2",
+      "spectral_band3",
+      "spectral_band4",
+      "dominant_frequency",
+      "level_autocorrelation",
+      "histogram_entropy"
+    ],
+    "shape": [
+      "max_drawdown",
+      "max_runup",
+      "skewness",
+      "kurtosis"
+    ]
+  },
+  "models": [
+    "f15_hgb",
+    "dyn_hgb",
+    "f15_svm",
+    "dyn_svm",
+    "moment_logit",
+    "stack"
+  ],
+  "hgb": {
+    "folds": 3,
+    "grid": [
+      {
+        "max_iter": 200,
+        "learning_rate": 0.05,
+        "max_leaf_nodes": 31,
+        "min_samples_leaf": 20,
+        "l2_regularization": 1.0
+      },
+      {
+        "max_iter": 400,
+        "learning_rate": 0.08,
+        "max_leaf_nodes": 31,
+        "min_samples_leaf": 20,
+        "l2_regularization": 1.0
+      },
+      {
+        "max_iter": 400,
+        "learning_rate": 0.08,
+        "max_leaf_nodes": 63,
+        "min_samples_leaf": 10,
+        "l2_regularization": 1.0
+      }
+    ]
+  },
+  "svm": {
+    "budgets": [
+      0.01,
+      0.1,
+      0.4
+    ],
+    "c_values": [
+      10.0,
+      100.0
+    ],
+    "gamma": "scale",
+    "folds": 3
+  },
+  "logit": {
+    "budgets": [
+      0.01,
+      0.1,
+      0.4
+    ],
+    "c_values": [
+      0.1,
+      1.0
+    ],
+    "folds": 3
+  },
+  "stack": {
+    "budgets": [
+      0.01,
+      0.1,
+      0.4
+    ],
+    "folds": 5,
+    "moment_c": 1.0,
+    "meta_c_values": [
+      0.01,
+      0.1,
+      1.0
+    ]
+  },
+  "moment_cache": {
+    "dir": "artifacts/improvements/e01_20261017_v2_features",
+    "files": [
+      "train.npz",
+      "validation.npz"
+    ],
+    "normalization": "zscore",
+    "model_id": "AutonLab/MOMENT-1-large"
+  },
+  "selection": "All hyperparameters are selected by stratified CV inside the selected training subset; validation is evaluated once per condition. No test split is constructed, predicted, or evaluated.",
+  "primary_gates": [
+    {
+      "id": "G1",
+      "comparison": "dyn_hgb - f15_hgb at 0.4",
+      "mean_gain_pp": 2.0,
+      "positive_seeds": 3
+    },
+    {
+      "id": "G2",
+      "comparison": "dyn_hgb - f15_hgb at 0.1",
+      "mean_gain_pp": 2.0,
+      "positive_seeds": 3
+    },
+    {
+      "id": "G3",
+      "comparison": "stack - dyn_hgb at 0.4",
+      "mean_gain_pp": 0.3,
+      "positive_seeds": 3
+    },
+    {
+      "id": "G4",
+      "comparison": "dyn_svm - f15_svm at 0.4",
+      "mean_gain_pp": 1.0,
+      "positive_seeds": 3
+    }
+  ],
+  "reporting": {
+    "primary_metric": "validation macro-F1",
+    "secondary": [
+      "accuracy",
+      "class F1",
+      "battery average precision",
+      "battery recall",
+      "battery false-positive rate"
+    ],
+    "uncertainty": "mean and sample SD across seeds; paired differences are descriptive only because splits overlap"
+  },
+  "notes": [
+    "f15 is the unchanged E01 statistical branch.",
+    "dyn adds 45 raw-scale dynamics descriptors; both are computed on valid observations only.",
+    "The MOMENT branch is a frozen z-score embedding cache from E01; it is never re-extracted here.",
+    "Group ablation and permutation importance are descriptive and are not used for feature selection.",
+    "Nested CV over the whole dataset is not performed; test reuse remains a limitation."
+  ]
+}
