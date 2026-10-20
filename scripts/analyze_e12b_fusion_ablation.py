@@ -17,6 +17,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 
 from tcn_moment import run_e08
+from tcn_moment.config import load_config, replace, with_random_seed
+from tcn_moment.data import load_dataset, stratified_train_subset_indices
 from tcn_moment.e08_analysis import paired_summary
 from tcn_moment.io_utils import atomic_write_json
 
@@ -24,11 +26,13 @@ SEEDS = (42, 44, 45, 46)
 TAGS = ("10p", "40p")
 E08 = Path("artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1")
 E09 = Path("artifacts/improvements/e09_diff_stream")
+E01_CACHE = Path("artifacts/improvements/e01_20261017_v2_features")
+E09_CACHE = Path("artifacts/improvements/e09_diff_features")
 E12 = {
     "10p": Path("artifacts/improvements/e12_tcn_stack/e12_tcn_stack_10p_20261020_v1"),
     "40p": Path("artifacts/improvements/e12_tcn_stack/e12_tcn_stack_20261020_v1"),
 }
-METHODS = ("tcn", "dyn", "md", "tcn+dyn", "tcn+md", "dyn+md", "full")
+METHODS = ("tcn", "tcn_meta", "dyn", "md", "tcn+dyn", "tcn+md", "dyn+md", "full")
 BASE_FILES = {
     "dyn": lambda seed, tag: E08 / f"seed{seed}" / "conditions" / tag / "dyn_hgb" / "predictions.csv",
     "md": lambda seed, tag: E09 / f"e09_diff_stream_20261020_seed{seed}" / "conditions" / tag / "moment_diff_logit" / "predictions.csv",
@@ -77,6 +81,23 @@ def _meta(
     return model.predict_proba(validation), selected, cv_results
 
 
+def _md_validation(seed: int, tag: str, reference_ids: list[str]) -> np.ndarray:
+    """Recompute the MD validation branch with the same C=1.0 used for OOF."""
+    fraction = 0.1 if tag == "10p" else 0.4
+    config = with_random_seed(load_config(Path("configs/moment.yaml")), seed)
+    raw = load_dataset(replace(config.data, normalize="none"))
+    moment_train, _ = run_e08._load_moment_split(E01_CACHE, seed=seed, split="train", ids=raw.ids_train)
+    moment_val, _ = run_e08._load_moment_split(E01_CACHE, seed=seed, split="validation", ids=raw.ids_val)
+    diff_train, _ = run_e08._load_moment_split(E09_CACHE, seed=seed, split="train", ids=raw.ids_train)
+    diff_val, _ = run_e08._load_moment_split(E09_CACHE, seed=seed, split="validation", ids=raw.ids_val)
+    indices = stratified_train_subset_indices(raw.y_train, raw.ids_train, fraction, seed)
+    model = run_e08._logit_factory({"C": 1.0}, seed).fit(
+        np.hstack([moment_train[indices], diff_train[indices]]), raw.y_train[indices]
+    )
+    probabilities = model.predict_proba(np.hstack([moment_val, diff_val]))
+    return _align(reference_ids, raw.ids_val.astype(str).tolist(), probabilities)
+
+
 def _run_seed(tag: str, seed: int, root: Path) -> list[dict[str, Any]]:
     with np.load(E12[tag] / f"seed{seed}" / f"oof_{tag}.npz", allow_pickle=False) as archive:
         oof = {
@@ -93,6 +114,9 @@ def _run_seed(tag: str, seed: int, root: Path) -> list[dict[str, Any]]:
         if not np.array_equal(y, y_val):
             raise ValueError(f"Validation labels differ: {path}")
         validation[name] = _align(reference_ids, ids, probs)
+    # E09 saved MD validation with its own selected C (usually 0.1); E12 OOF MD
+    # used C=1.0.  Recompute validation with C=1.0 so the ablation is not mixed.
+    validation["md"] = _md_validation(seed, tag, reference_ids)
     conditions: list[dict[str, Any]] = []
     for method in METHODS:
         if method in REFERENCE:
@@ -106,7 +130,12 @@ def _run_seed(tag: str, seed: int, root: Path) -> list[dict[str, Any]]:
             probs = validation[method]
             pred = probs.argmax(1)
             selected = {"source": str(BASE_FILES[method](seed, tag))}
+            if method == "md":
+                selected = {"C": 1.0, "source": "recomputed clean MD validation (matches E12 OOF)"}
             cv_results = []
+        elif method == "tcn_meta":
+            probs, selected, cv_results = _meta(oof["tcn"], y_train, validation["tcn"], seed)
+            pred = probs.argmax(1)
         else:
             left, right = method.split("+")
             oof_matrix = np.hstack([oof[left], oof[right]])
@@ -204,6 +233,8 @@ def _markdown(rows: list[dict[str, Any]], audit: dict[str, Any]) -> str:
         ("full", "tcn+md"),
         ("full", "dyn+md"),
         ("full", "tcn"),
+        ("full", "tcn_meta"),
+        ("tcn_meta", "tcn"),
         ("tcn+dyn", "tcn"),
         ("tcn+md", "tcn"),
         ("dyn+md", "tcn"),
@@ -238,6 +269,7 @@ def _markdown(rows: list[dict[str, Any]], audit: dict[str, Any]) -> str:
         "",
         "- 这是**同 validation 行、同 OOF 折**的廉价 meta 消融，不是重新训练基模型；10% 的 TCN 端点是固定 50 轮无选模。",
         "- `full` 与 `dyn+md` 直接使用 E12 已保存的 `stack_tcn`/`stack_no_tcn`，其余两路组合重新拟合 meta；C 仍只在 OOF 上选。",
+        "- `tcn_meta` 是 TCN 概率经同型 meta 头的控制；`tcn+md` 的 MD validation 已重算为 C=1.0，与 E12 OOF 的 MD 分支一致（E09 保存的 validation 通常用 C=0.1）。",
         "- 四 seed split 重叠；不能把差值写成独立确认。没有 test、校准、鲁棒性。",
     ]
     return "\n".join(lines)
@@ -264,7 +296,7 @@ def _audit(root: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", default="artifacts/improvements/e12b_fusion_ablation")
+    parser.add_argument("--output-dir", default="artifacts/improvements/e12b_fusion_ablation_corrected")
     args = parser.parse_args()
     root = Path(args.output_dir)
     conditions = []

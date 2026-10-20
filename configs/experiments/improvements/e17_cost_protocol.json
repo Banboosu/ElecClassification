@@ -1,0 +1,27 @@
+{
+  "experiment_id": "E17",
+  "title": "Same-hardware end-to-end cost of the clean-trained final pipeline",
+  "date": "2026-10-20",
+  "suite": "e17_cost_20261020_v1",
+  "output_dir": "artifacts/improvements/e17_cost",
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "seed": 42,
+  "tag": "40p",
+  "split_manifest": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+  "e08_suite": "artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1",
+  "e01_cache": "artifacts/improvements/e01_20261017_v2_features",
+  "e09_cache": "artifacts/improvements/e09_diff_features",
+  "e12_suite": "artifacts/improvements/e12_tcn_stack/e12_tcn_stack_20261020_v1",
+  "batch_sizes": [1, 32, 128],
+  "warmup": 3,
+  "repeats": {"1": 30, "32": 10, "128": 10},
+  "single_sample_count": 30,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Measures the full online path: raw preprocessing, DYN extraction, MOMENT original and diff encoding, TCN forward, and the HGB/logistic/meta heads.",
+    "Single seed 42 / 40% checkpoint; cost is a pipeline measurement, not a multi-seed accuracy result.",
+    "No test split is read; no cached head timing is used as end-to-end latency."
+  ]
+}

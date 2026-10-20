@@ -1,4 +1,9 @@
+> **已被修正版取代（2026-10-20）**：本文件是旧版 56 条件结果，缺少 `tcn_meta` 控制，且 `tcn+md` 的 MD validation 分支使用 E09 的 C=0.1，与 E12 OOF 的 C=1.0 不一致。请使用
+> `docs/experiment_records/e12b_fusion_ablation_corrected_20261020.md`。以下内容仅保留为历史记录，不再用于论文结论。
+
 # E12b：完整融合消融——MOMENT 到底提供了多少净增益（validation-only）
+
+> **独立验收补充（2026-10-20）**：保存预测与指标复算通过，但协议仅部分通过。`tcn+md`使用E12的C=1.0 OOF和E09的C=0.1 validation概率（8/8条件），不能作为严格匹配的组件消融；单支`md`也是E09选参结果。此前清单所称的TCN＋同型meta头并未实现。`full`、`dyn+md`、`tcn+dyn`不因该错配被判无效，但“优于最佳两路”的概括暂缓，待统一支路并补齐控制。下文保留原始记录，修订见[验收报告](todo3_acceptance_20261020.md)。
 
 **状态：4 seed × 2 预算 × 7 条件 = 56 条件 / 196,560 行；只复用 E08/E09/E12 冻结预测并重拟合廉价 meta；无 test。**
 

@@ -10,13 +10,14 @@
 - **当前状态**：E08已完成并审计。40%标签validation：F15+HGB 90.60±0.20%、DYN+HGB 95.00±0.17%、DYN+MOMENT stack 95.46±0.19%；stack−DYN +0.46pp（4/4），DYN−F15 +4.41pp（4/4）；1%标签stack 87.12%，比DYN高+1.06pp。四条事前门槛全部通过；88条件逐样本预测复算最大误差0.0；无test、无source drift。N2/N2b已完成：legacy TCN 1%仅55.51±14.67%、5% 84.03±4.50%，低于同预算DYN/stack；10% 93.68%与stack 93.28%持平，40% 97.78%才领先2.32pp。bounded LR（3e-4/1e-3/3e-3）未修复1%坍塌，1e-3仍是均值最优；不能把固定结构下的坍塌写成TCN架构上限。
 - **E09已完成**：四seed、1%/10%/40%、72条件；差分ΔP流使MOM+ΔP单支40%达93.57%（+9.66pp/4/4），DYN+(MOM+ΔP) stack达96.01%（+0.55/4/4）、10% 94.26%（+0.99/4/4）、1% 88.69%（+1.57/4/4），三条门槛全部通过；72条件/252720行审计最大误差0.0，无test。与TCN：10% +0.58但仅2/4、40% −1.76、1% +33.18（TCN 1%仅55.51%的坍塌背景；此前误用N2 5%记录，已修正）。
 - **E12已完成10%/40%**：5折交叉拟合、TCN固定50轮cosine、meta只在OOF上拟合；40% validation stack **98.09±0.23%**（相对同轮TCN full +0.56pp/4/4、相对无TCN stack +2.07pp/4/4），10% **95.02±0.33%**（相对同折无TCN stack +0.76pp/4/4）；两个suite各16条件/56160行审计0误差，无test。10%的TCN端点为固定50轮无选模的89.04%，不能把stack−tcn_full +5.98pp当成对强TCN的领先。
-- **E10已完成（P0修正）**：40% stack ECE 0.56%、温度1.001（无需缩放）；10%为**欠自信**（平均置信度92.21%<精度95.01%），温度0.853锐化后ECE 3.52%→0.94%、NLL 0.1717→0.1518，精度不变；McNemar 40%四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；电池固定FPR 1%时40%召回97.67%、10%仅89.66%；99%召回对应FPR 4.86%/13.55%。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界。
-- **E12b已完成（P1.1）**：完整融合消融，4seed×2预算×7条件/196,560行；40% `TCN+DYN` 97.93±0.22、完整三路98.09±0.23，MOMENT净增益仅+0.16±0.12pp（3/4）；10%完整三路95.02±0.33，相对最好两路+0.76±0.45pp（4/4）。MOMENT价值是条件性的：40%大部分信息已被TCN+DYN覆盖，10%才稳健。
+- **E10已完成（P0修正）**：40% stack ECE 0.56%、温度1.001（无需缩放）；10%为**欠自信**（平均置信度92.21%<精度95.01%），温度0.853锐化后ECE 3.52%→0.94%、NLL 0.1717→0.1518，精度不变；McNemar 40%四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；电池固定FPR 1%时40%召回97.67%、10%仅89.66%（均为validation内选阈值的描述性工作点，不是部署保证）；99%召回对应FPR 4.86%/13.55%。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界。
+- **E12b已完成（P1.1，修正版）**：4seed×2预算×8方法/64条件/224,640行；补`tcn_meta`，MD validation统一C=1.0。40% `TCN+DYN` 97.93±0.22、完整三路98.09±0.23，MOMENT净增益仅+0.16±0.12pp（3/4）；`tcn_meta` 97.65（+0.12/4/4），完整−`tcn_meta` +0.44。10%完整三路95.02±0.33，相对最好两路+0.76±0.45pp（4/4）。MOMENT价值是条件性的：40%大部分信息已被TCN+DYN覆盖，10%才稳健。
+- **E17已完成（C 同机成本）**：RTX4080完整在线路径 batch1 46.3ms/sample、batch32 10.9ms/sample（batch≈349ms，≈92/s）、batch128 11.5ms/sample（batch≈1,469ms，≈87/s）；GPU峰值2,493MB；MOMENT341.24M/1,302MB；TCN 0.25M。40% Full−TCN+DYN +0.16pp/3/4但batch32成本约5.3×；Full−TCN +0.56pp/4/4但约285×。
 - **E16已完成（P1.2 随机初始化归因）**：同架构/池化/C=1.0，48条件/168,480行、0 test；预训练在所有流上优于随机（4/4）：10% orig +22.48、diff +9.36、dual +9.97；40% orig +20.57、diff +6.17、dual +6.00；随机 dual 40% 86.77% vs 预训练 92.77%。预训练权重有实质贡献，但不是低标签精度的唯一路线。
 - **E15已完成（P1.2 MiniRocket对照）**：同interp_z/num_features=10000/Ridge协议；10% 92.89±0.34%（与DYN持平+0.08±0.50、高于TCN+3.85、低于Full−2.13），40% 94.42±0.24%（低于DYN−0.58、TCN−3.11、Full−3.67）。MiniRocket单独不构成比MultiRocket更强的挑战。
 - **E14已完成（P1.2 第一项）**：MultiRocket 强基线，4seed×2预算×1变体/28,080行、0 test；10% **96.36±0.35%**，高于完整三路95.02%（+1.34pp/4/4）、TCN89.04%（+7.32）、DYN95.00%（+3.55）；40% **97.28±0.40%**，与TCN97.53%基本持平（−0.25）、低于完整三路98.09%（−0.81）。固定interp_z（z-score+256点插值）、num_features=2000、RidgeClassifierCV训练内选alpha；MultiRocket不支持mask。该结果挑战“低标签下融合/预训练更优”的主线。
-- **E13已完成（P1.3，负结果）**：clean 训练、扰动 validation，720条件/2,527,200行、0 test。40%下 TCN 在 0.1%/0.25% 噪声仍 97.58/97.19，但 0.5% 降到 72.00、1% 降到 29.13；完整三路在 0.5% 为 64.00，低于 TCN。DYN 最脆弱（0.1% 即 95.00→86.80，0.25%→70.89）；MOM/ΔP 相对更稳但1%也坍塌。量化2W尚可（TCN 96.86、Full 95.44），5W起明显下降；电池FPR在0.5%噪声下53.21%。另发现 DYN `max_runup`/`max_drawdown` 分母在最小值近0时会产生1e14–1e15，微小噪声即数量级跳变；未改特征契约/未重训主表。
-- **接下来优先做（2026-10-20 修订）**：E14 进一步改写主线——10% 下 MultiRocket 96.36% 已超过完整三路 95.02%（+1.34/4/4），说明“预训练+融合”不是低标签精度的必要条件；40% 下完整三路 98.09% 仅比 TCN/MultiRocket 高约 0.3–0.8pp。论文不能再写“低标签稳健领先”，应写成“MultiRocket 强基线下的条件性收益”。E13 还表明 clean 训练的完整系统不具备部署鲁棒性（0.5% 噪声悬崖、DYN 特征不稳定、电池 FPR 爆炸），工程可靠性只能作为边界/负结果。随后转入成稿与表图收口；P1.2 随机初始化归因、特征修正后重训、同机成本为可选。不再用旧test追分；任何新test必须等新批次或明确授权。
+- **E13已完成（P1.3，负结果）**：clean 训练、扰动 validation，720条件/2,527,200行、0 test。40%下 TCN 在 0.1%/0.25% 噪声仍 97.58/97.19，但 0.5% 降到 72.00、1% 降到 29.13；完整三路在 0.5% 为 64.00，低于 TCN。DYN 最脆弱（0.1% 即 95.00→86.80，0.25%→70.89）；MOM/ΔP 相对更稳但1%也坍塌。量化2原始单位尚可（TCN 96.86、Full 95.44），5单位起明显下降；电池FPR在0.5%噪声下53.21%。另发现 DYN `max_runup`/`max_drawdown` 分母在最小值近0时会产生1e14–1e15，微小噪声即数量级跳变；未改特征契约/未重训主表。
+- **接下来优先做（2026-10-20 修订）**：A/B/C/D 已完成，转入正文改写与表图收口。论文定位为“功率动力学与预训练时序表征的互补及适用边界”，不写“低标签最优/预训练不可替代/工程鲁棒”。E14 MultiRocket 按用户要求不进入论文主线，但内部证据限制“全面最优”措辞；E16 提供预训练归因；E17 提供成本-收益；E13 提供鲁棒性边界。剩余可选：数值稳定 DYN 对照（需另立协议）、10% 成本、独立新数据。不再用旧test追分。
 - **仍可用现有数据推进**：E09/E12的train/validation探索、保存预测的错误分析、前缀/噪声/缺失诊断、统一predict和同机成本；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
 - **结论边界**：E03T test 91.516%是15维统计基线时代的历史结果；E08已把同预算validation强基线抬到95.46%，不能再用旧test证明“融合优于统计基线”是当前最优。E08本身validation-only、split重叠、特征在seed42探针后冻结；不宣称外部泛化或已超过TCN。
@@ -37,6 +38,7 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 | E14 | MultiRocket 强基线 | 经典卷积核基线能否挑战融合？ | 已完成：10% 96.36% 超过Full 95.02%（+1.34/4/4）；40% 97.28% 低于Full 98.09% |
 | E15 | MiniRocket 对照 | 更轻的卷积核基线是否同样强？ | 已完成：10% 92.89%（与DYN持平）；40% 94.42%（低于DYN/TCN/Full） |
 | E16 | 预训练 vs 随机初始化归因 | 预训练权重是否不可替代？ | 已完成：预训练全流优于随机（4/4）；dual +9.97/+6.00；随机40% 86.77% vs 92.77% |
+| E17 | 同机端到端成本 | 40%多0.16pp是否值得？ | 已完成：batch1 46.3ms、batch32 10.9ms/sample、GPU2.5GB；Full−TCN+DYN +0.16pp/3/4但成本5.3× |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
 | N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10已完成校准/风险；同机端到端成本仍可选 |
 | N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
@@ -66,8 +68,8 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 
 ### N4：同机成本与交付
 
-- [ ] 固定同一硬件/软件环境，先测N1/N2保留的TCN、统计SVM和冻结MOMENT融合；若执行N5，再补LoRA。测batch1和同一批量的端到端延迟/吞吐，预热、重复次数和CUDA同步事前固定，含预处理与统计旁路，缓存分类头计时单列。
-- [ ] 同时报总参数/可训练参数、模型与公共依赖大小、峰值显存/内存、特征提取/搜索/训练耗时。历史V100和RTX训练计时不拼接为同机成本；LoRA合并权重推理与未合并推理若都测，分别命名。
+- [x] E17 已在固定 RTX4080 环境测最终系统的 DYN/TCN/TCN+DYN/Full 端到端延迟与吞吐（batch1/32/128，含预处理、DYN、双流MOMENT、TCN、heads），不是缓存头计时。统计SVM/LoRA 未纳入本轮。
+- [x] E17 报总参数、FP32权重、HGB/MD/meta pickle、峰值显存/host RSS；训练耗时未与历史V100拼接。
 - [ ] 统一predict入口并核对保存模型重载预测一致性；覆盖单条/批量、过短/非法输入、标签编码、mask与有效长度。演示中显示类别/曲线/统计信息；未经校准的softmax不标成可信概率保证。
 
 ### N5：精简复制已完成，原16组候选方案未执行
@@ -620,6 +622,16 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - 报告/图：`docs/experiment_records/e10_calibration_safety_results_20261020.md`、`docs/figures/e10_{reliability,risk_coverage}_{10p,40p}_20261020.svg`；本地保全`artifacts/imports/e10_calibration_safety_20261020/`；远端根`artifacts/improvements/e10_calibration_safety/`。
 - 边界：OOF/validation分布不完全一致；ECE/Brier描述性；四seed split重叠；无test/鲁棒性/端到端成本。
 
+### E17：同硬件端到端成本（2026-10-20，已完成）
+
+- [x] RTX4080，seed42/40% checkpoint；完整在线路径：预处理、DYN、MOMENT原序列/ΔP、TCN、heads；不是缓存头计时；0 test。
+- [x] batch=1 46.3ms/sample（p95 67.5）；batch32 10.9ms/sample（batch≈349ms，≈92/s）；batch128 11.5ms/sample（batch≈1,469ms，≈87/s）；GPU峰值2,493MB；host RSS3,815MB。
+- [x] 模型：MOMENT341.24M/1,302MB FP32；TCN0.25M/0.9MB；HGB pickle4.18MB、MD0.07MB、meta0.001MB。
+- [x] 方法级：DYN 11.11/2.00/1.73ms；TCN0.88/0.039/0.050；TCN+DYN12.32/1.97/1.84；Full44.41/10.96/11.43（batch1/32/128）。
+- [x] 成本-收益：40% Full−TCN+DYN +0.16pp/3/4但batch32成本5.3×；Full−TCN +0.56pp/4/4但约285×。10% Full−TCN+DYN +0.76/4/4，未单独测10%成本。
+- 报告：`docs/experiment_records/e17_cost_results_20261020.md`；本地`artifacts/imports/e17_cost_20261020/`；远端`artifacts/improvements/e17_cost/e17_cost_20261020_v1/`；协议`configs/experiments/improvements/e17_cost_protocol.json`；代码`src/tcn_moment/benchmark_e17_cost.py`。
+- 边界：单seed/40%、单卡、无并发/I/O/服务化/量化编译；不是部署SLA。
+
 ### E16：预训练 vs 随机初始化归因（2026-10-20，已完成）
 
 - [x] 同 MOMENT 架构、mask-aware pooling、1024维、同数据/预算、同 logistic C=1.0；随机初始化每 seed 一次，原/差分/双流共用；预训练加载 guard 禁止。
@@ -661,14 +673,15 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - 报告：`docs/experiment_records/e13_robustness_results_20261020.md`；本地保全`artifacts/imports/e13_robustness_20261020/`（1,458文件/200.7MB/2,527,200行）；远端`artifacts/improvements/e13_robustness/{e13_robustness_20261020_v1,e13b_robustness_20261020_v1}/`；协议`configs/experiments/improvements/e13*_protocol.json`；脚本`src/tcn_moment/run_e13_robustness.py`；测试`tests/test_e13_robustness.py`。
 - 边界：clean训练无增广；噪声为全局RMS比例、0W截断；量化绝对W；无脉冲/缺失/漂移/前缀；四seed split重叠；无test/外部数据；不是部署保证。
 
-### E12b：完整融合消融（2026-10-20，已完成）
+### E12b：完整融合消融（2026-10-20，修正版已完成）
 
-- [x] 复用E08/E09/E12冻结预测，只重拟合廉价meta；4seed×2预算×7条件（tcn/dyn/md/tcn+dyn/tcn+md/dyn+md/full），56条件/196,560行，Macro-F1复算误差1.1e-16，0 test。
-- [x] 40%：tcn 97.53±0.29、dyn 95.00±0.17、md 93.57±0.56、tcn+dyn **97.93±0.22**、tcn+md 97.84±0.23、dyn+md 96.02±0.28、full **98.09±0.23**；full−tcn+dyn **+0.16±0.12pp（3/4）**，full−tcn+md +0.25±0.11（4/4）。
-- [x] 10%：tcn 89.04±0.38、dyn 92.81±0.30、md 91.64±0.57、tcn+dyn 94.26±0.47、tcn+md 93.97±0.61、dyn+md 94.26±0.56、full **95.02±0.33**；full−tcn+dyn **+0.76±0.45pp（4/4）**。
-- [x] 结论：MOMENT不是40%下的稳健净增益来源（+0.16/3/4）；10%下三路互补稳健（+0.76/4/4）。40%电池full 97.38/0.85%，tcn+dyn 96.88/0.79%，tcn+md 96.55/0.67%。
-- 报告：`docs/experiment_records/e12b_fusion_ablation_results_20261020.md`；本地保全`artifacts/imports/e12b_fusion_ablation_20261020/`（15MB）；远端`artifacts/improvements/e12b_fusion_ablation/`。
-- 边界：同validation行、同OOF折的廉价消融；10%的TCN端点为固定50轮无选模；四seed split重叠；无test。
+- [x] **P0修正**：补`tcn_meta`（TCN概率经同型meta头）；`tcn+md`的MD validation按C=1.0重算，与E12 OOF一致（E09保存的validation通常C=0.1）。旧56条件表废弃，保留历史。
+- [x] 4seed×2预算×8方法（tcn/tcn_meta/dyn/md/tcn+dyn/tcn+md/dyn+md/full），64条件/224,640行，Macro-F1复算误差1.1e-16，0 test。
+- [x] 40%：tcn 97.53、tcn_meta 97.65、dyn 95.00、md 92.77（C=1.0）、tcn+dyn 97.93、tcn+md 97.82、dyn+md 96.02、full 98.09；full−tcn+dyn **+0.16±0.12（3/4）**、full−tcn+md +0.27±0.15（4/4）、full−tcn_meta +0.44±0.13（4/4）；tcn_meta−tcn +0.12±0.05（4/4）。
+- [x] 10%：tcn 89.04、tcn_meta 90.71、dyn 92.81、md 91.24、tcn+dyn 94.26、tcn+md 93.81、dyn+md 94.26、full 95.02；full−tcn+dyn **+0.76±0.45（4/4）**、full−tcn+md +1.21±0.34（4/4）；tcn_meta−tcn +1.67±1.08（4/4）。
+- [x] 结论：meta头本身只解释约+1.67/+0.12pp，完整−tcn_meta仍+4.31/+0.44；40% MOMENT相对TCN+DYN仅+0.16/3/4，10%三路互补稳健+0.76/4/4。40%电池full 97.38/0.85%、tcn+dyn 96.88/0.79%、tcn+md 96.57/0.69%。
+- 报告：`docs/experiment_records/e12b_fusion_ablation_corrected_20261020.md`；旧版`e12b_fusion_ablation_results_20261020.md`仅历史；本地保全`artifacts/imports/e12b_fusion_ablation_corrected_20261020/`（17.6MB/224,640行）；远端`artifacts/improvements/e12b_fusion_ablation_corrected/`。
+- 边界：同validation行、同OOF折；10%的TCN端点为固定50轮无选模；四seed split重叠；无test。
 
 ### E12：TCN + DYN + MOMENT/ΔP 交叉拟合堆叠（2026-10-20，10%/40%已完成）
 
