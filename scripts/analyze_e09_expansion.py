@@ -32,12 +32,28 @@ def _read(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _load_suites(root: Path) -> list[dict[str, Any]]:
+def _load_suites(root: Path, repair_root: Path | None = None) -> list[dict[str, Any]]:
     results = []
     for path in sorted(root.glob("e09_diff_stream_20261020_seed*/pilot_summary.json")):
         results.append(_read(path))
     if {result["seed"] for result in results} != set(SEEDS):
         raise ValueError("Expected four E09 seed suites")
+    if repair_root is not None:
+        repairs = {
+            int(_read(path)["seed"]): _read(path)
+            for path in sorted(repair_root.glob("e09_stack_three_fix_20261020_seed*/pilot_summary.json"))
+        }
+        if set(repairs) != set(SEEDS):
+            raise ValueError("Expected four repaired stack_three suites")
+        for result in results:
+            repaired = {row["tag"]: row for row in repairs[int(result["seed"])]["conditions"]}
+            result["conditions"] = [
+                repaired[row["tag"]]
+                if row["method"] == "stack_three" and row["tag"] in repaired
+                else row
+                for row in result["conditions"]
+            ]
+            result["stack_three_repair"] = "e09_stack_three_fix_20261020"
     return sorted(results, key=lambda result: result["seed"])
 
 
@@ -86,6 +102,11 @@ def _paired(rows: list[dict[str, Any]], left: str, right: str, tag: str) -> dict
     return paired_summary([a - b for a, b in zip(left_values, right_values, strict=True)])
 
 
+def _fraction_tag(fraction: float) -> str | None:
+    mapping = {0.01: "1p", 0.05: "5p", 0.1: "10p", 0.4: "40p"}
+    return mapping.get(round(fraction, 2))
+
+
 def _context(rows: list[dict[str, Any]]) -> dict[str, Any]:
     context: dict[str, Any] = {"e08": {}, "tcn": {}, "paired": []}
     for seed in SEEDS:
@@ -99,7 +120,9 @@ def _context(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if N2_SUMMARY.exists():
         saved = _read(N2_SUMMARY)
         for record in saved["per_condition"]:
-            context["tcn"][(int(record["seed"]), "1p")] = float(record["selected_macro_f1"])
+            tag = _fraction_tag(float(record["fraction"]))
+            if tag is not None:
+                context["tcn"][(int(record["seed"]), tag)] = float(record["selected_macro_f1"])
     if E05C_SUMMARY.exists():
         saved = _read(E05C_SUMMARY)
         for record in saved["per_condition"]:
@@ -181,6 +204,9 @@ def _markdown(gates: list[dict[str, Any]], rows: list[dict[str, Any]], context: 
         "",
         "四 seed42/44/45/46；1%/10%/40% 训练标签；冻结 backbone，仅改变 MOMENT 输入流；无 test。",
         "",
+        "**修复说明：** 历史 `stack_three` 的 OOF 列写成了 3:6 与 4:7，第二块覆盖第一块且 7:9 未写入；",
+        "本轮只重算 `stack_three`（3:6 与 6:9），其他 E09 条件不变。",
+        "",
         "## 主结果（Macro-F1 %，均值 ± 样本 SD）",
         "",
         "| 方法 | 1% | 10% | 40% |",
@@ -225,8 +251,8 @@ def _markdown(gates: list[dict[str, Any]], rows: list[dict[str, Any]], context: 
         "",
         "- 四个 seed 的 split 重叠、validation 反复使用；这不是独立外部确认，也没有 test。",
         "- 差分流是在有效观测上计算并逐序列 z-score；幅值/尺度信息仍由 DYN 统计分支提供。",
-        "- `stack_three` 把 MOM 与 DIFF 分成两个 logistic 分支，结果反而低于拼接的 `stack_moment_diff`；",
-        "  说明当前数据量下提前分开两支会损失交互，不能据此说差分信息无用。",
+        "- `stack_three` 把 MOM 与 DIFF 分成两个 logistic 分支；修正历史 OOF 列重叠后，它仍略低于拼接的 `stack_moment_diff`（约 0.1–0.3pp），",
+        "  说明当前数据量下提前分开两支的代价很小，不能据此说差分信息无用。历史损坏版本（约 72%/91%/95%）已替换。",
         "- 与 TCN 的差值是同训练标签/同 validation 行的管线比较；TCN 的训练/选择预算不同。",
         "- 1% 的 MOMENT 单支仍弱；差分流的主要收益在 10%/40% 和电池类。",
         "- 所有逐样本预测在聚合时重新核对 ID/真值/有限分数/行数，并复算 Macro-F1。",
@@ -244,14 +270,16 @@ def _audit(suites: list[dict[str, Any]], root: Path) -> dict[str, Any]:
         with np.load(E08_SUITE / f"seed{seed}" / "features.npz", allow_pickle=False) as archive:
             expected_ids = set(archive["validation_ids"].astype(str))
         for condition in suite["conditions"]:
-            path = (
-                root
-                / f"e09_diff_stream_20261020_seed{seed}"
-                / "conditions"
-                / condition["tag"]
-                / condition["method"]
-                / "predictions.csv"
-            )
+            path = Path(condition["predictions"])
+            if not path.exists():
+                path = (
+                    root
+                    / f"e09_diff_stream_20261020_seed{seed}"
+                    / "conditions"
+                    / condition["tag"]
+                    / condition["method"]
+                    / "predictions.csv"
+                )
             with path.open("r", encoding="utf-8", newline="") as file:
                 predictions = list(csv.DictReader(file))
             if len(predictions) != 3510:
@@ -278,11 +306,12 @@ def _audit(suites: list[dict[str, Any]], root: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default="artifacts/improvements/e09_diff_stream")
+    parser.add_argument("--repair-root", default="artifacts/improvements/e09_stack_three_fix")
     parser.add_argument("--output-dir", default=None)
     args = parser.parse_args()
     root = Path(args.root)
-    output = Path(args.output_dir) if args.output_dir else root / "analysis_four_seed"
-    suites = _load_suites(root)
+    output = Path(args.output_dir) if args.output_dir else root / "analysis_four_seed_corrected"
+    suites = _load_suites(root, Path(args.repair_root))
     rows = _aggregate(suites)
     context = _context(rows)
     gates = _gates(rows)

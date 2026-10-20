@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
-from tcn_moment.run_e09_diff_stream import _diff_arrays, _gate, _load
+from tcn_moment.run_e09_diff_stream import _diff_arrays, _gate, _load, _stack_three
 
 
 class E09PilotTests(unittest.TestCase):
@@ -50,6 +51,59 @@ class E09PilotTests(unittest.TestCase):
         self.assertTrue(gate["passed"])
         conditions[7]["validation"]["macro_f1"] = 0.96
         self.assertFalse(_gate(conditions)["passed"])
+
+
+    def test_stack_three_oof_blocks_do_not_overlap(self):
+        recorded = []
+
+        class DummyModel:
+            def __init__(self, kind):
+                self.kind = kind
+
+            def fit(self, x, y):
+                return self
+
+            def predict_proba(self, x):
+                if self.kind == "hgb":
+                    out = np.zeros((len(x), 3))
+                    out[:, 2] = 1.0
+                    return out
+                return np.eye(3)[x[:, 0].astype(int)]
+
+            def predict(self, x):
+                return self.predict_proba(x).argmax(1)
+
+        class RecordingMeta(DummyModel):
+            def __init__(self, *args, **kwargs):
+                super().__init__("meta")
+
+            def fit(self, x, y):
+                recorded.append(np.asarray(x))
+                return self
+
+        x_train = np.zeros((15, 2), dtype=np.float32)
+        y_train = np.repeat(np.arange(3), 5)
+        moment_train = np.zeros((15, 2), dtype=np.float32)
+        diff_train = np.ones((15, 2), dtype=np.float32)
+        x_val = np.zeros((3, 2), dtype=np.float32)
+        moment_val = np.zeros((3, 2), dtype=np.float32)
+        diff_val = np.ones((3, 2), dtype=np.float32)
+        factory = lambda kind: (lambda params, seed: DummyModel(kind))
+        with mock.patch("tcn_moment.run_e08._hgb_factory", factory("hgb")), \
+             mock.patch("tcn_moment.run_e08._logit_factory", factory("logit")), \
+             mock.patch("tcn_moment.run_e08._cv_select", return_value=({"C": 1.0}, [])), \
+             mock.patch("sklearn.linear_model.LogisticRegression", RecordingMeta):
+            _stack_three(
+                x_train, y_train, x_val,
+                moment_train, moment_val, diff_train, diff_val,
+                hgb_params={}, seed=42,
+            )
+        self.assertEqual(len(recorded), 1)
+        oof = recorded[0]
+        self.assertEqual(oof.shape, (15, 9))
+        np.testing.assert_allclose(oof[:, :3], np.tile([0, 0, 1], (15, 1)))
+        np.testing.assert_allclose(oof[:, 3:6], np.tile([1, 0, 0], (15, 1)))
+        np.testing.assert_allclose(oof[:, 6:9], np.tile([0, 1, 0], (15, 1)))
 
 
 if __name__ == "__main__":

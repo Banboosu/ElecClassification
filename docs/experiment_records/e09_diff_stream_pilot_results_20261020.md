@@ -1,3 +1,8 @@
+> **更正说明（2026-10-20）**：本 pilot 的 `stack_three` 受 OOF 列重叠 bug 影响（写入 3:6 与 4:7），
+> 表内 91.39/94.67 不能作为最终值。修正后 seed42 的 `stack_three` 为 **94.16/95.73%**（10%/40%），
+> 其余条件（MOM、ΔP、MOM+ΔP、stack_moment、stack_moment_diff）不受影响。详见
+> `docs/experiment_records/e09_diff_stream_results_20261020.md` 与修正套件 `artifacts/improvements/e09_stack_three_fix/`。
+
 # E09 pilot：冻结 MOMENT 原序列 vs 一阶差分双流（validation-only）
 
 seed42、10%/40% 标签；只改变 MOMENT 输入流，不训练 backbone，不打开 test。

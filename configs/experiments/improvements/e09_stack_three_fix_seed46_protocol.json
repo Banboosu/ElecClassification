@@ -1,0 +1,29 @@
+{
+  "experiment_id": "E09",
+  "title": "E09 stack_three OOF column-layout repair",
+  "date": "2026-10-20",
+  "config": "configs/moment.yaml",
+  "diff_cache_dir": "artifacts/improvements/e09_diff_features",
+  "output_dir": "artifacts/improvements/e09_stack_three_fix",
+  "streams": [
+    "moment_original",
+    "moment_diff"
+  ],
+  "models": [
+    "stack_three"
+  ],
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "write_report": false,
+  "notes": [
+    "Repair run: historical stack_three OOF blocks overlapped (3:6 and 4:7); corrected to 3:6 and 6:9.",
+    "Only stack_three is recomputed; all other E09 artifacts remain unchanged."
+  ],
+  "seed": 46,
+  "fractions": [
+    0.01,
+    0.1,
+    0.4
+  ],
+  "suite": "e09_stack_three_fix_20261020_seed46"
+}

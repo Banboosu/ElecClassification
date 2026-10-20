@@ -87,6 +87,21 @@ def _fit_temperature(probabilities: np.ndarray, y: np.ndarray) -> float:
     return float(np.exp(result.x))
 
 
+def _outer_meta_oof(
+    oof: np.ndarray, y: np.ndarray, folds: np.ndarray, c_value: float, seed: int
+) -> np.ndarray:
+    """Cross-fitted stack probabilities: fit meta on other folds, predict held-out fold."""
+    stack_oof = np.zeros((len(oof), 3), dtype=np.float64)
+    for fold in np.unique(folds):
+        train = folds != fold
+        valid = folds == fold
+        meta = LogisticRegression(C=c_value, max_iter=5000, random_state=seed).fit(
+            oof[train], y[train]
+        )
+        stack_oof[valid] = meta.predict_proba(oof[valid])
+    return stack_oof
+
+
 def _calibration_for_seed(tag: str, seed: int) -> dict[str, Any]:
     suite = SUITES[tag]
     seed_results = _read_json(suite / f"seed{seed}" / "seed_results.json")
@@ -97,8 +112,10 @@ def _calibration_for_seed(tag: str, seed: int) -> dict[str, Any]:
     with np.load(suite / f"seed{seed}" / f"oof_{tag}.npz", allow_pickle=False) as archive:
         oof = np.hstack([archive["oof_dyn"], archive["oof_md"], archive["oof_tcn"]])
         y_train = archive["y_train"]
-    meta = LogisticRegression(C=c_value, max_iter=5000, random_state=seed).fit(oof, y_train)
-    oof_prob = meta.predict_proba(oof)
+        folds = archive["fold_assignment"]
+    if len(np.unique(folds)) != 5:
+        raise ValueError("Expected five E12 folds")
+    oof_prob = _outer_meta_oof(oof, y_train, folds, c_value, seed)
     ids, y_val, _, val_prob = _read_predictions(
         suite / f"seed{seed}" / "conditions" / tag / "stack_tcn" / "predictions.csv"
     )
@@ -111,6 +128,8 @@ def _calibration_for_seed(tag: str, seed: int) -> dict[str, Any]:
         "seed": seed,
         "C": c_value,
         "temperature": temperature,
+        "stack_oof_accuracy": float((oof_prob.argmax(1) == y_train).mean()),
+        "stack_oof_nll": _nll(oof_prob, y_train),
         "before": {
             "nll": _nll(val_prob, y_val),
             "brier": _brier(val_prob, y_val),
@@ -207,7 +226,53 @@ def _battery_curve(tag: str, seed: int) -> dict[str, Any]:
                 "precision": tp / max(count, 1),
             }
         )
-    return {"seed": seed, "curve": curve}
+    return {"seed": seed, "curve": curve, "operating_points": _operating_points(y_true, scores)}
+
+
+def _operating_points(y: np.ndarray, scores: np.ndarray) -> dict[str, Any]:
+    positive = y == BATTERY
+    negative = ~positive
+    positive_scores = scores[positive]
+    negative_scores = scores[negative]
+    prevalence = float(positive.mean())
+    fixed_fpr = []
+    for target in (0.005, 0.01, 0.02):
+        threshold = float(np.quantile(negative_scores, 1.0 - target))
+        selected = scores >= threshold
+        tp = int((selected & positive).sum())
+        fp = int((selected & negative).sum())
+        fixed_fpr.append(
+            {
+                "target_fpr": target,
+                "threshold": threshold,
+                "actual_fpr": fp / max(int(negative.sum()), 1),
+                "recall": tp / max(int(positive.sum()), 1),
+                "alert_rate": float(selected.mean()),
+                "precision": tp / max(tp + fp, 1),
+            }
+        )
+    fixed_recall = []
+    for target in (0.95, 0.98, 0.99):
+        threshold = float(np.quantile(positive_scores, 1.0 - target))
+        selected = scores >= threshold
+        tp = int((selected & positive).sum())
+        fp = int((selected & negative).sum())
+        fixed_recall.append(
+            {
+                "target_recall": target,
+                "threshold": threshold,
+                "actual_recall": tp / max(int(positive.sum()), 1),
+                "fpr": fp / max(int(negative.sum()), 1),
+                "alert_rate": float(selected.mean()),
+                "precision": tp / max(tp + fp, 1),
+            }
+        )
+    return {
+        "prevalence": prevalence,
+        "fixed_fpr": fixed_fpr,
+        "fixed_recall": fixed_recall,
+        "perfect_ranking_fpr_at_50pct_alert": max(0.0, (0.5 - prevalence) / (1.0 - prevalence)),
+    }
 
 
 def _aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -321,7 +386,7 @@ def _markdown(tag: str, records: list[dict[str, Any]], aggregation: dict[str, An
     lines = [
         f"# E10：E12 最终 stack 的校准、错误互补与电池风险（{tag}，validation-only）",
         "",
-        "温度缩放只在 OOF 概率上拟合，validation 只评一次；没有 test。",
+        "温度缩放只在 outer-cross-fitted stack OOF 上拟合，validation 只评一次；没有 test。",
         "",
         "## 校准（四 seed 均值 ± SD）",
         "",
@@ -363,11 +428,46 @@ def _markdown(tag: str, records: list[dict[str, Any]], aggregation: dict[str, An
             f"| {rates[0]['alert_rate']*100:.0f}% | {100*np.mean([r['recall'] for r in rates]):.2f} | "
             f"{100*np.mean([r['fpr'] for r in rates]):.2f} | {100*np.mean([r['precision'] for r in rates]):.2f} |"
         )
+    prevalence = float(np.mean([record["operating_points"]["prevalence"] for record in battery]))
+    bound = float(np.mean([record["operating_points"]["perfect_ranking_fpr_at_50pct_alert"] for record in battery]))
+    lines += [
+        "",
+        f"- 电池正类占比：{100*prevalence:.2f}%；50% alert rate 下即使排序完美，FPR 下界约 {100*bound:.2f}%。",
+        "",
+        "## 固定 FPR 的电池 recall（四 seed 均值）",
+        "",
+        "| 目标 FPR | 实际 FPR | Recall | Alert rate | Precision |",
+        "|---:|---:|---:|---:|---:|",
+    ]
+    for index, target in enumerate((0.005, 0.01, 0.02)):
+        rows = [record["operating_points"]["fixed_fpr"][index] for record in battery]
+        lines.append(
+            f"| {100*target:.1f}% | {100*np.mean([row['actual_fpr'] for row in rows]):.2f}% | "
+            f"{100*np.mean([row['recall'] for row in rows]):.2f}% | "
+            f"{100*np.mean([row['alert_rate'] for row in rows]):.2f}% | "
+            f"{100*np.mean([row['precision'] for row in rows]):.2f}% |"
+        )
+    lines += [
+        "",
+        "## 固定 recall 的电池 FPR（四 seed 均值）",
+        "",
+        "| 目标 recall | 实际 recall | FPR | Alert rate | Precision |",
+        "|---:|---:|---:|---:|---:|",
+    ]
+    for index, target in enumerate((0.95, 0.98, 0.99)):
+        rows = [record["operating_points"]["fixed_recall"][index] for record in battery]
+        lines.append(
+            f"| {100*target:.0f}% | {100*np.mean([row['actual_recall'] for row in rows]):.2f}% | "
+            f"{100*np.mean([row['fpr'] for row in rows]):.2f}% | "
+            f"{100*np.mean([row['alert_rate'] for row in rows]):.2f}% | "
+            f"{100*np.mean([row['precision'] for row in rows]):.2f}% |"
+        )
     lines += [
         "",
         "## 边界",
         "",
-        "- OOF 来自 5 折交叉拟合，validation 曾用于早前的模型/预算选择；温度参数只拟合 OOF，但 OOF 与 validation 不完全同分布。",
+        "- 温度参数在 **outer-cross-fitted stack OOF** 上拟合；基模型 OOF 仍来自同一 5 折划分，不是完全嵌套的 stacking 估计。",
+        "- validation 曾用于早前的模型/预算选择；OOF 与 validation 不完全同分布。",
         "- ECE/Brier 是描述性校准指标，不构成概率可信保证；风险—覆盖率曲线不是保形预测的覆盖保证。",
         "- 四 seed split 重叠，McNemar 的 p 值按 seed 报告，不合并为独立样本总体推断。",
         "- 没有 test；没有做幅值/噪声/缺失/前缀鲁棒性。",

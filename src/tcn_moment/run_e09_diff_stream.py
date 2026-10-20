@@ -238,9 +238,10 @@ def _stack_three(
     for train_index, valid_index in splitter.split(x_train, y_train):
         hgb = run_e08._hgb_factory(hgb_params, seed).fit(x_train[train_index], y_train[train_index])
         oof[valid_index, :3] = hgb.predict_proba(x_train[valid_index])
-        for offset, (train_matrix, valid_matrix) in enumerate(
-            ((moment_train, moment_val), (diff_train, diff_val)), start=3
+        for stream_index, (train_matrix, valid_matrix) in enumerate(
+            ((moment_train, moment_val), (diff_train, diff_val))
         ):
+            offset = 3 + 3 * stream_index
             model = run_e08._logit_factory({"C": 1.0}, seed).fit(
                 train_matrix[train_index], y_train[train_index]
             )
