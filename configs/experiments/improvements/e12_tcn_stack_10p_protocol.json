@@ -1,0 +1,55 @@
+{
+  "experiment_id": "E12",
+  "title": "Cross-fitted legacy TCN + DYN + frozen MOMENT/diff stacking",
+  "date": "2026-10-20",
+  "suite": "e12_tcn_stack_10p_20261020_v1",
+  "output_dir": "artifacts/improvements/e12_tcn_stack",
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "split_manifests": {
+    "42": "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    "44": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed44/split_manifest.json",
+    "45": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed45/split_manifest.json",
+    "46": "artifacts/improvements/e01/e01_20261017_v2_expansion_seed46/split_manifest.json"
+  },
+  "fractions": [
+    0.1
+  ],
+  "folds": 5,
+  "epochs": 50,
+  "batch_size": 32,
+  "evaluation_batch_size": 128,
+  "classes": [
+    "0",
+    "1",
+    "2"
+  ],
+  "train_count": 24569,
+  "validation_count": 3510,
+  "max_length": 1024,
+  "normalization": "none",
+  "optimizer": "AdamW",
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "scheduler": "cosine_no_validation",
+  "precision": "fp32_tf32_disabled",
+  "gate": {
+    "rule": "stack_tcn - tcn_full @40p >= 0.3pp and >=3/4 positive"
+  },
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Five-fold cross-fitting inside the 40% training subset; OOF probabilities train the meta-learner.",
+    "TCN is trained 50 epochs per fold with a cosine schedule; no validation-based checkpoint selection.",
+    "The full-subset TCN is used only for validation features; fold models also provide a fold-average sensitivity.",
+    "DYN-HGB uses E08 selected parameters; MOMENT+diff logistic uses C=1.0.",
+    "Validation only; no test.",
+    "10% extension of the 40% E12 run; separate suite."
+  ]
+}

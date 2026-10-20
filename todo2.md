@@ -9,7 +9,9 @@
 - **已完成**：E01统计强基线/融合及E01B/C归因；E02P池化/长度诊断；E03P LoRA pilot（失败门控保留）；E03D/E03E增益头及复制；E03T固定test；E03F强头LoRA pilot；E05A/B/C强TCN补审、结构/长度诊断与复制；E06互补；E07强融合头LoRA精简复制；**E08强动力学特征基线与MOMENT堆叠（2026-10-20，四seed/88条件，validation-only）**。
 - **当前状态**：E08已完成并审计。40%标签validation：F15+HGB 90.60±0.20%、DYN+HGB 95.00±0.17%、DYN+MOMENT stack 95.46±0.19%；stack−DYN +0.46pp（4/4），DYN−F15 +4.41pp（4/4）；1%标签stack 87.12%，比DYN高+1.06pp。四条事前门槛全部通过；88条件逐样本预测复算最大误差0.0；无test、无source drift。N2/N2b已完成：legacy TCN 1%仅55.51±14.67%、5% 84.03±4.50%，低于同预算DYN/stack；10% 93.68%与stack 93.28%持平，40% 97.78%才领先2.32pp。bounded LR（3e-4/1e-3/3e-3）未修复1%坍塌，1e-3仍是均值最优；不能把固定结构下的坍塌写成TCN架构上限。
 - **E09已完成**：四seed、1%/10%/40%、72条件；差分ΔP流使MOM+ΔP单支40%达93.57%（+9.66pp/4/4），DYN+(MOM+ΔP) stack达96.01%（+0.55/4/4）、10% 94.26%（+0.99/4/4）、1% 88.69%（+1.57/4/4），三条门槛全部通过；72条件/252720行审计最大误差0.0，无test。与TCN：10% +0.58但仅2/4、40% −1.76、1% +4.66（TCN坍塌背景）。
-- **接下来优先做**：E12（TCN logits + DYN + MOMENT/ΔP OOF堆叠），检验能否把40%的97.78%再抬高、并保留10%的stack优势；随后E10（校准/保形/鲁棒性/同机成本）。不再用旧test追分；任何新test必须等新批次或明确授权。
+- **E12已完成10%/40%**：5折交叉拟合、TCN固定50轮cosine、meta只在OOF上拟合；40% validation stack **98.09±0.23%**（相对同轮TCN full +0.56pp/4/4、相对无TCN stack +2.07pp/4/4），10% **95.02±0.33%**（相对同折无TCN stack +0.76pp/4/4）；两个suite各16条件/56160行审计0误差，无test。10%的TCN端点为固定50轮无选模的89.04%，不能把stack−tcn_full +5.98pp当成对强TCN的领先。
+- **E10已完成**：40% stack ECE 0.56%（已校准）、10% ECE 3.52%→0.96%（温度0.855），精度不变；McNemar 40%四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；电池alert 30%时recall≈81%/FPR 0.14–0.37%，alert 50%时recall≈99.7%/FPR≈21%。
+- **接下来优先做**：转入成稿与表图收口；可选补E12 100%预算、鲁棒性或同机成本。不再用旧test追分；任何新test必须等新批次或明确授权。
 - **仍可用现有数据推进**：E09/E12的train/validation探索、保存预测的错误分析、前缀/噪声/缺失诊断、统一predict和同机成本；E02P池化/长度分层已完成，不重复列作必做。每阶段先冻结方案，不自动运行整张清单。
 - **仅设备/时间外推被材料阻塞**：需要真实设备/时间映射或新增批次；不因此暂停其他可做项目。
 - **结论边界**：E03T test 91.516%是15维统计基线时代的历史结果；E08已把同预算validation强基线抬到95.46%，不能再用旧test证明“融合优于统计基线”是当前最优。E08本身validation-only、split重叠、特征在seed42探针后冻结；不宣称外部泛化或已超过TCN。
@@ -23,11 +25,12 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 | N1 | TCN跨seed复核 + 长度/padding诊断 | legacy优势能否复现，未掩码池化依赖什么信息？ | 已完成，主参照建议legacy masked |
 | N2 | TCN低标签学习曲线（1%/5%） | 强特征stack的低标签优势还剩多少？ | 已完成：1%/5% TCN明显低于DYN/stack；N2b LR未修复1%坍塌 |
 | E09 | MOMENT+ΔP双流 / patch动态特征 | 给MOMENT补局部动力学后，单支和stack能提高多少？ | 已完成：四seed全部门槛通过；40% stack 96.01%，10% 94.26% |
-| E12 | TCN logits + DYN + MOMENT OOF堆叠 | 能否把40%的97.78%再抬高0.3–0.6pp？ | 下一阶段，需TCN交叉拟合 |
+| E12 | TCN logits + DYN + MOMENT OOF堆叠 | 能否把40%的97.78%再抬高0.3–0.6pp？ | 已完成10%/40%：98.09%/95.02%；相对无TCN stack +2.07/+0.76pp |
+| E10 | 校准/错误互补/电池风险 | 概率是否可信、错误是否互补、报警阈值如何取舍？ | 已完成：ECE 0.56%/0.96%，McNemar同向，30% alert≈81% recall/0.14–0.37% FPR |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
-| N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10必做，可与分析并行 |
+| N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10已完成校准/风险；同机端到端成本仍可选 |
 | N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
-| N6 | 解释、错误与鲁棒性 | 模型依赖什么信息，在哪些输入上失效？ | E10先做低成本解释/错误分析，再选一种扰动 |
+| N6 | 解释、错误与鲁棒性 | 模型依赖什么信息，在哪些输入上失效？ | E10已完成错误/长度/风险分析；扰动训练未做 |
 
 ### N1：先复核TCN，再解释padding收益
 
@@ -597,6 +600,26 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - 报告/图：`docs/experiment_records/e07_fusion_lora_replication_results_20261020.md`、`docs/figures/e07_fusion_lora_replication_20261020.svg`；协议：`docs/experiment_records/e07_fusion_lora_replication_protocol_20261019.md`；入口：`scripts/run_e07_remote.sh`；远端根：`artifacts/improvements/e07_fusion_lora_replication/e07_fusion_lora_replication_20261019_v1/`；日志：`artifacts/logs/e07_fusion_lora_replication_20261019_v1.log`。
 - 本地根：`artifacts/imports/e07_fusion_lora_replication_20261019/`，含startup、terminal_artifacts、logs、fixed_references及独立预测/checkpoint/固定参照审计和保全proof。本轮结束，不自动下一实验/旧test/外部观察器/pi-wake/关机。
 
+### E10：E12 最终 stack 的校准、错误互补与电池风险（2026-10-20，已完成）
+
+- [x] 复用E12 OOF与validation预测，不重训；温度缩放只在OOF上拟合，validation只评一次；无test。
+- [x] 40%：ECE 0.56%、平均温度0.993、精度98.08%；10%：ECE 3.52%→0.96%、温度0.855、NLL 0.1717→0.1520、精度95.01%。
+- [x] McNemar（stack vs TCN full）：40%修对23–33/弄错6–9，四seed p<0.05；10%修对267–281/弄错40–69，p<0.001。10%的TCN端点为固定50轮无选模89.04%，该p值不解释为对强TCN的领先。
+- [x] 长度分层：40% stack 0.97–0.99 vs TCN 0.96–0.98；10% stack 0.93–0.96 vs TCN 0.81–0.91；最长区间改善最大。
+- [x] 电池risk-coverage（四seed均值）：40% alert30% recall81.02%/FPR0.14%/precision99.72%，alert50% recall99.69%/FPR20.91%；10% 30%:80.61%/0.37%，50%:99.63%/20.95%。高召回必须接受大量误报；未调阈值、不是部署保证。
+- 报告/图：`docs/experiment_records/e10_calibration_safety_results_20261020.md`、`docs/figures/e10_{reliability,risk_coverage}_{10p,40p}_20261020.svg`；本地保全`artifacts/imports/e10_calibration_safety_20261020/`；远端根`artifacts/improvements/e10_calibration_safety/`。
+- 边界：OOF/validation分布不完全一致；ECE/Brier描述性；四seed split重叠；无test/鲁棒性/端到端成本。
+
+### E12：TCN + DYN + MOMENT/ΔP 交叉拟合堆叠（2026-10-20，10%/40%已完成）
+
+- [x] 40%标签、seed42/44/45/46、5折交叉拟合；每折legacy masked TCN 50轮cosine（无validation选checkpoint），DYN-HGB/MOM+ΔP logistic同折；meta logistic只在9维OOF概率上拟合。
+- [x] 40% validation：TCN full 97.53±0.29%、TCN foldavg 97.50±0.15%、无TCN stack 96.02±0.28%、**DYN+MOM/ΔP+TCN stack 98.09±0.23%**；stack−TCN full +0.56±0.14pp/4/4，stack−无TCN +2.07pp/4/4，stack−E08 stack +2.63pp/4/4；gate通过。
+- [x] 40%电池：stack recall/FPR 97.38/0.85%；TCN full 95.72/0.62%。未调阈值。
+- [x] 16条件/56,160行逐样本预测审计，Macro-F1最大误差0.0；无test。TCN端点97.53%低于E05C validation选模97.78%，差值按本轮端点解释。
+- [x] 10%扩展（独立suite、同代码、fractions=[0.1]）完成：TCN full 89.04±0.38%、无TCN stack 94.26±0.56%、**stack 95.02±0.33%**；stack−无TCN +0.76pp/4/4；16条件/56160行审计0.0、无test。TCN端点为固定50轮无选模，弱于E05C选模93.68%，+5.98pp不作为对强TCN的真实领先。
+- 报告/证据：`docs/experiment_records/e12_tcn_stack_results_20261020.md`、`docs/experiment_records/e12_tcn_stack_10p_results_20261020.md`；本地保全`artifacts/imports/e12_tcn_stack_20261020/`（61MB）；远端根`artifacts/improvements/e12_tcn_stack/e12_tcn_stack_20261020_v1/`、`e12_tcn_stack_10p_20261020_v1/`。
+- 本轮结束；不自动test/下一预算/关机。
+
 ### E09：MOMENT 原序列 vs 一阶差分双流（2026-10-20，已完成）
 
 - [x] 先做seed42、10%/40% pilot：MOM+ΔP相对MOM +10.22/+10.18pp，stack再+1.46/+0.72pp；原gate通过后才扩展，未直接跑满四seed。
@@ -608,7 +631,7 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] `stack_three`（MOM与ΔP分成两支）低于拼接：1/10/40%为71.99/91.43/94.56%；当前样本量下拼接更稳。
 - [x] 72条件/252,720行预测重新核对ID/真值/有限分数/行数并复算Macro-F1，最大误差0.0；无test行、无source drift。
 - 报告/证据：`docs/experiment_records/e09_diff_stream_results_20261020.md`、`docs/experiment_records/e09_diff_stream_pilot_results_20261020.md`；本地保全`artifacts/imports/e09_diff_stream_20261020/`、`artifacts/imports/e09_diff_pilot_20261020/`；远端根`artifacts/improvements/e09_diff_stream/`。
-- 本轮结束；不自动启动E12/E10、test、扩seed或关机。
+- 本轮结束；不自动启动E12 100%、鲁棒性、test、扩seed或关机。
 
 ### N2/N2b：低标签TCN学习曲线与LR敏感性（2026-10-20，已完成）
 

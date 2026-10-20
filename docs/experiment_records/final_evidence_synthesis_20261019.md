@@ -14,6 +14,10 @@ N2/N2b进一步补上低标签点：legacy TCN在1%只有55.51±14.67%、5%为84
 
 E09随后找到MOMENT真正的增量来源：冻结backbone上加一条一阶差分ΔP流，MOM+ΔP单支从83.91%升到93.57%（40%，+9.66pp，4/4）；在E08 stack上再叠加到96.01%（40%，+0.55pp，4/4）、94.26%（10%，+0.99pp，4/4）、88.69%（1%，+1.57pp，4/4）。与TCN同预算：10%高+0.58pp但仅2/4，不能称稳健超过；40%仍低1.76pp；1%的+4.66pp主要来自TCN坍塌。当前主方法应表述为“DYN + 冻结MOMENT(原序列+ΔP)堆叠”，不是原序列MOMENT单支。
 
+E12再把TCN接入交叉拟合堆叠：40%标签下 DYN+MOM/ΔP+TCN 的OOF stack达到**98.09±0.23%**，相对同预算TCN full 97.53% **+0.56pp（4/4）**，相对E08 stack +2.63pp（4/4）；10%标签下为**95.02±0.33%**，相对同折无TCN stack +0.76pp（4/4），相对E05C选模TCN 93.68%高+1.34pp（上下文）。这是目前最佳系统，但仍是validation探索，不是test或外部确认；10%的TCN端点为固定50轮无选模的89.04%，不能把+5.98pp当成对强TCN的真实领先。
+
+E10补上校准与风险：40% stack已接近校准（ECE 0.56%，温度0.993）；10%略过度自信（ECE 3.52%），温度0.855降到0.96%，精度不变。40% McNemar四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；长度分层上stack在最长区间改善最明显。电池risk-coverage：alert 30%时recall≈81%、FPR 0.14–0.37%；alert 50%时recall≈99.7%但FPR≈21%——高召回必须接受大量误报，不能用单一阈值同时满足。
+
 ## E08：强动力学特征基线与MOMENT堆叠（validation-only，2026-10-20）
 
 四seed42/44/45/46、22条件/seed、88条件全部完成；四条事前门槛全部通过；未构造或评价test。
@@ -75,6 +79,38 @@ E05C提供10%/40%/100%，N2新增1%/5%，N2b只改变学习率做有界公平性
 - `stack_three`（两支分开）低于拼接：88.69/94.26/96.01 对 71.99/91.43/94.56；当前样本量下拼接更稳。
 - 审计：72条件/252,720行逐样本复算Macro-F1最大误差0.0；无test。
 - 边界：validation-only、split重叠、validation复用、无校准/鲁棒性/端到端成本；1%仍占用3510 validation标签。详见[E09结果](e09_diff_stream_results_20261020.md)。
+
+## E12：TCN + DYN + MOMENT/ΔP 交叉拟合堆叠（40%，validation-only，2026-10-20）
+
+四seed、40%子集内5折交叉拟合；TCN每折/全量固定50轮cosine、无validation选checkpoint；DYN-HGB与MOM+ΔP logistic同折；meta只在OOF概率上拟合。16条件/56,160行审计最大误差0.0；无test。
+
+| 方法（validation Macro-F1 %，40%） | 均值±SD | 逐seed |
+|---|---:|---|
+| TCN full（本轮端点） | 97.53 ± 0.29 | 97.61/97.90/97.27/97.33 |
+| TCN fold-average | 97.50 ± 0.15 | 97.37/97.71/97.50/97.41 |
+| DYN+MOM/ΔP stack（无TCN） | 96.02 ± 0.28 | 96.10/96.21/96.16/95.61 |
+| **DYN+MOM/ΔP+TCN stack** | **98.09 ± 0.23** | 97.99/98.43/97.89/98.06 |
+
+- stack−TCN full **+0.56±0.14pp（4/4）**；stack−无TCN **+2.07pp（4/4）**；stack−E08 stack **+2.63pp（4/4）**；gate通过。
+- TCN full−foldavg +0.03pp（2/4），说明折平均与全量模型基本等价；stack增益来自三路互补，不是“用了更强的TCN”。
+- 电池40%：stack recall/FPR 97.38/0.85%；TCN 95.72/0.62%。stack提高recall、FPR略升；未调阈值。
+- 10%扩展（独立suite）：TCN full 89.04±0.38%、TCN foldavg 88.80±1.98%、无TCN stack 94.26±0.56%、**stack 95.02±0.33%**；stack−无TCN **+0.76pp（4/4）**；相对E05C选模TCN 93.68%为+1.34pp上下文。本轮TCN端点为固定50轮cosine、无validation选模，弱于E05C的93.68%，因此stack−tcn_full +5.98pp不能解释为对强TCN的领先。
+- 跨预算主表：10% stack **95.02** vs E05C TCN 93.68；40% stack **98.09** vs E05C TCN 97.78（+0.31pp上下文，非同轮配对）。
+- 边界：validation-only、split重叠；40%和10%分别独立suite，1%/100%未执行；TCN端点低于E05C选模值，差值按端点/上下文解释。详见[E12 40%结果](e12_tcn_stack_results_20261020.md)和[E12 10%结果](e12_tcn_stack_10p_results_20261020.md)。
+
+## E10：最终 stack 的校准与安全风险（validation-only，2026-10-20）
+
+复用E12的OOF与validation预测；温度缩放只在OOF上拟合，validation只评一次；无test。
+
+| 预算 | ECE 前 | ECE 后 | NLL 前/后 | 平均温度 | 精度 |
+|---|---:|---:|---:|---:|---:|
+| 40% | 0.56% | 0.54% | 0.0737/0.0736 | 0.993 | 98.08% |
+| 10% | 3.52% | 0.96% | 0.1717/0.1520 | 0.855 | 95.01% |
+
+- McNemar（stack vs TCN full）：40%修对23–33/弄错6–9，四seed p均<0.05；10%修对267–281/弄错40–69，p<0.001。10%的TCN端点为固定50轮无选模89.04%，该p值不能解释为对强TCN的领先；40%的TCN端点97.53%更接近强基线。
+- 长度分层：40% stack 0.97–0.99 vs TCN 0.96–0.98；10% stack 0.93–0.96 vs TCN 0.81–0.91；stack对最长区间改善最大。
+- 电池risk-coverage：40% alert30%时recall81.02%/FPR0.14%/precision99.72%，alert50%时recall99.69%/FPR20.91%；10%接近（30%: 80.61%/0.37%；50%: 99.63%/20.95%）。
+- 边界：OOF/validation分布不完全一致；ECE/Brier描述性；四seed split重叠，McNemar按seed报告；risk-coverage不是保形覆盖保证；无test/鲁棒性/端到端成本。详见[E10结果](e10_calibration_safety_results_20261020.md)。
 
 ## 同40%标签、同四seed的test上下文
 
