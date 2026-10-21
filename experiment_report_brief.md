@@ -12,20 +12,20 @@
 
 ```mermaid
 flowchart LR
-    subgraph 阶段1：早期基线与痛点诊断
-        A1[旧版 Keras TCN<br/>四分类/无独立Test/Unmasked池化] --> B1[新版残差 TCN<br/>低标签欠拟合/高方差]
-        A2[MOMENT v1 默认头<br/>混入Padding/丢失绝对幅值與局部瞬态]
+    subgraph S1["阶段1：早期基线与痛点诊断"]
+        A1["旧版 Keras TCN<br/>四分类 / 无独立Test / Unmasked池化"] --> B1["新版残差 TCN<br/>低标签欠拟合 / 高方差"]
+        A2["MOMENT v1 默认头<br/>混入Padding / 丢失绝对幅值与局部瞬态"]
     end
 
-    subgraph 阶段2：针对性创新与修复
-        C1[创新1：Mask-Aware Patch Pooling<br/>+ 冻结特征缓存]
-        C2[创新2：一阶差分双流输入<br/>Orig + ΔP 捕获瞬态跳变]
-        C3[创新3：60维原始尺度动力学特征 DYN<br/>+ 扇入增益头 Fan-in Gain]
-        C4[创新4：Legacy Masked TCN 移植<br/>消除Padding捷径且恢复强表征]
+    subgraph S2["阶段2：针对性创新与修复"]
+        C1["创新1：Mask-Aware Patch Pooling<br/>+ 冻结特征缓存"]
+        C2["创新2：一阶差分双流输入<br/>Orig + ΔP 捕获瞬态跳变"]
+        C3["创新3：60维原始尺度动力学特征 DYN<br/>+ 扇入增益头 Fan-in Gain"]
+        C4["创新4：Legacy Masked TCN 移植<br/>消除Padding捷径且恢复强表征"]
     end
 
-    subgraph 阶段3：多模态交叉拟合堆叠
-        D[三路 OOF 概率堆叠<br/>TCN + DYN-HGB + MOMENT/ΔP] --> E[98.09% @ 40%标签<br/>95.02% @ 10%标签]
+    subgraph S3["阶段3：多模态交叉拟合堆叠"]
+        D["三路 OOF 概率堆叠<br/>TCN + DYN-HGB + MOMENT/ΔP"] --> E["98.09% @ 40%标签<br/>95.02% @ 10%标签"]
     end
 
     A1 & B1 --> C4
