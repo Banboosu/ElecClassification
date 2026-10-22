@@ -32,7 +32,7 @@
 - **40%：Full 最高**（98.14%），TCN+DYN 98.09% 紧随，MultiRocket 97.25% 开始落后；TCN 97.62%。
 - **TCN 的拐点在 10%–20%**：1% 61.91%（坍塌）、5% 84.67%、10% 89.17%，20% 跳到 95.63%，40% 97.62%。
 - **MOMENT 单支在低标签弱**：原序列 1% 68.97%，ΔP 80.57%，双流 83.76%；但双流与 DYN 融合后 1% 89.12，接近 Full 89.15。
-- **Full 的净收益集中在 20%–40%**：1%/5%/10% 均低于 MultiRocket；20% 与 MultiRocket 持平；40% 才领先约 0.9pp。
+- **Full 的净收益集中在 20%–40%**：1%/5%/10% 均低于 MultiRocket；20% 与 MultiRocket 持平；40% 才领先约 0.9pp。但对照 TCN+DYN，Full 在 20%/40% 只高 0.14/0.06pp，四 seed 95% 区间跨 0，不能写成稳健优势（见补充分析）。
 - 这与 E14/E16 的结论一致：低标签时简单强基线/经典卷积核更划算；融合/预训练价值在高预算和特定指标上更明显。
 
 ## 边界
@@ -70,6 +70,14 @@
 - MOMENT logistic C=1.0；TCN 50 epoch、5折OOF+全量、无validation选模；meta C在OOF内选。
 - MultiRocket 2000 features、MiniRocket 10000 features；interp_z 256；RidgeCV {100,1000} 训练内3折。
 - 所有方法共用同seed训练子集和validation行；validation未用于超参选择（meta C用OOF）。
+## 补充实验
+
+- E18b：TCN+同型 meta、TCN+MOMENT、TCN+MOMENT/ΔP 的全预算控制；同型 meta 只解释 +0–2.1pp，DYN 仍是 TCN 最佳搭档。
+- E18c：validation 选模 TCN；1% 仍仅 64.89%，10% 提升到 91.28%（固定 50 轮端点低估中等预算）。
+- E18d：5/20% 的 F15/DYN RBF-SVM；固定参数下仍低于 HGB。
+- E18 深析：逐类 F1、电池 AP、seed 配对 95% 区间、长度分层；20/40% Full vs TCN+DYN 区间跨 0。
+- 详见 `docs/experiment_records/e18_supplement_20261020.md` 与 `e18_deep_analysis_20261020.md`。
+
 ## 图
 
 - `docs/figures/e18_macro_f1_main.svg`：主要方法（F15/DYN/MOMENT 单支与双流/TCN/TCN+DYN/DYN+MOM+ΔP/Full）的预算曲线，带 seed SD。

@@ -73,8 +73,10 @@ def _validate(p: dict[str, Any]) -> None:
         raise ValueError("Unexpected experiment id")
     if p.get("seeds") != [42, 44, 45, 46]:
         raise ValueError("E16 fixes seeds 42/44/45/46")
-    if p.get("fractions") not in ([0.1, 0.4], [0.4, 0.1], [0.1], [0.4]):
-        raise ValueError("E16 supports 10% and/or 40%")
+    allowed = {0.01, 0.05, 0.1, 0.2, 0.4}
+    fractions = p.get("fractions", [])
+    if not fractions or not set(fractions).issubset(allowed):
+        raise ValueError("E16 supports nonempty subsets of 1/5/10/20/40%")
     if tuple(p.get("streams", [])) != STREAMS or tuple(p.get("initializations", [])) != INITS:
         raise ValueError("E16 fixes streams and initializations")
     if p.get("test_evaluated") or p.get("automatic_expansion"):
@@ -349,9 +351,10 @@ def run(protocol_path: Path) -> None:
         if manifest.get("initialization") != "random" or manifest.get("pretrained_checkpoint_loaded"):
             raise ValueError(f"Bad random cache provenance: {seed_root}")
         raw = load_dataset(replace(with_random_seed(load_config(Path("configs/moment.yaml")), seed).data, normalize="none"))
+        tag_fractions = (("1p", 0.01), ("5p", 0.05), ("10p", 0.1), ("20p", 0.2), ("40p", 0.4))
         indices = {
             tag: stratified_train_subset_indices(raw.y_train, raw.ids_train, fraction, seed)
-            for tag, fraction in (("10p", 0.1), ("40p", 0.4))
+            for tag, fraction in tag_fractions
             if fraction in p["fractions"]
         }
         pretrained = {
@@ -428,7 +431,8 @@ def _load_conditions(root: Path, seeds: list[int]) -> list[dict[str, Any]]:
 def _summarize(p: dict[str, Any], root: Path) -> None:
     conditions = _load_conditions(root, p["seeds"])
     rows = []
-    for tag in [tag for tag in TAGS if tag in {row["tag"] for row in conditions}]:
+    tags = [tag for tag, _ in (("1p", 0.01), ("5p", 0.05), ("10p", 0.1), ("20p", 0.2), ("40p", 0.4)) if tag in {row["tag"] for row in conditions}]
+    for tag in tags:
         for initialization in INITS:
             for stream in STREAMS:
                 selected = [row for row in conditions if row["tag"] == tag and row["initialization"] == initialization and row["stream"] == stream]
@@ -449,7 +453,7 @@ def _summarize(p: dict[str, Any], root: Path) -> None:
                     }
                 )
     paired = []
-    for tag in [tag for tag in TAGS if any(row["tag"] == tag for row in rows)]:
+    for tag in tags:
         for stream in STREAMS:
             pre = next(row for row in rows if row["tag"] == tag and row["initialization"] == "pretrained" and row["stream"] == stream)
             rnd = next(row for row in rows if row["tag"] == tag and row["initialization"] == "random" and row["stream"] == stream)
@@ -488,6 +492,7 @@ def _audit(root: Path, conditions: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _markdown(rows: list[dict[str, Any]], paired: list[dict[str, Any]], audit: dict[str, Any]) -> str:
+    tags = [tag for tag, _ in (("1p", 0.01), ("5p", 0.05), ("10p", 0.1), ("20p", 0.2), ("40p", 0.4)) if tag in {row["tag"] for row in rows}]
     lookup = {(row["tag"], row["initialization"], row["stream"]): row for row in rows}
     lines = [
         "# E16：预训练 vs 随机初始化归因（validation-only）",
@@ -495,14 +500,14 @@ def _markdown(rows: list[dict[str, Any]], paired: list[dict[str, Any]], audit: d
         f"**状态：{audit['conditions']} 条件 / {audit['rows']:,} 行；仅 validation，0 test。**",
         "",
         "同一 MOMENT 架构与 mask-aware pooling；随机初始化每个数据 seed 一次，原序列/差分/双流共用；预训练加载被 guard 禁止。",
-        "Logistic C=1.0；原序列 z-score、差分逐序列 z-score；10%/40% 训练子集。",
+        "Logistic C=1.0；原序列 z-score、差分逐序列 z-score。",
         "",
         "## Macro-F1 %",
         "",
         "| 预算 | 流 | 预训练 | 随机初始化 | 预训练−随机 |",
         "|---|---|---:|---:|---:|",
     ]
-    for tag in TAGS:
+    for tag in tags:
         for stream in STREAMS:
             pre = lookup[(tag, "pretrained", stream)]
             rnd = lookup[(tag, "random", stream)]
@@ -512,20 +517,21 @@ def _markdown(rows: list[dict[str, Any]], paired: list[dict[str, Any]], audit: d
                 f"{rnd['mean']:.2f} ± {rnd['sample_sd']:.2f} | "
                 f"{diff['mean']:+.2f} ± {diff['sample_sd']:.2f} ({diff['positive_seeds']}/4) |"
             )
-    lines += [
-        "",
-        "## 电池异常（40%，默认 argmax）",
-        "",
-        "| 流 | 预训练 Recall/FPR | 随机 Recall/FPR |",
-        "|---|---:|---:|",
-    ]
-    for stream in STREAMS:
-        pre = lookup[("40p", "pretrained", stream)]
-        rnd = lookup[("40p", "random", stream)]
-        lines.append(
-            f"| {stream} | {pre['battery_recall_mean']:.2f}/{pre['battery_fpr_mean']:.2f} | "
-            f"{rnd['battery_recall_mean']:.2f}/{rnd['battery_fpr_mean']:.2f} |"
-        )
+    if "40p" in tags:
+        lines += [
+            "",
+            "## 电池异常（40%，默认 argmax）",
+            "",
+            "| 流 | 预训练 Recall/FPR | 随机 Recall/FPR |",
+            "|---|---:|---:|",
+        ]
+        for stream in STREAMS:
+            pre = lookup[("40p", "pretrained", stream)]
+            rnd = lookup[("40p", "random", stream)]
+            lines.append(
+                f"| {stream} | {pre['battery_recall_mean']:.2f}/{pre['battery_fpr_mean']:.2f} | "
+                f"{rnd['battery_recall_mean']:.2f}/{rnd['battery_fpr_mean']:.2f} |"
+            )
     lines += [
         "",
         "## 审计",
