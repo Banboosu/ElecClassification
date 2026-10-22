@@ -1,0 +1,30 @@
+{
+  "experiment_id": "E18",
+  "title": "Unified low-label benchmark at 1/5/10/20/40 percent",
+  "date": "2026-10-20",
+  "suite": "e18_low_label_20261020_v1",
+  "output_dir": "artifacts/improvements/e18_low_label",
+  "dataset": "data/raw/最新多.csv",
+  "seeds": [42, 44, 45, 46],
+  "fractions": [0.01, 0.05, 0.1, 0.2, 0.4],
+  "e08_suite": "artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1",
+  "e01_cache": "artifacts/improvements/e01_20261017_v2_features",
+  "e09_cache": "artifacts/improvements/e09_diff_features",
+  "methods": ["f15_hgb", "dyn_hgb", "moment_logit", "diff_logit", "moment_diff_logit", "tcn", "tcn_dyn", "dyn_moment", "dyn_moment_diff", "full", "multirocket", "minirocket"],
+  "hgb_params": {"max_iter": 400, "learning_rate": 0.08, "max_leaf_nodes": 31, "min_samples_leaf": 20, "l2_regularization": 1.0},
+  "logistic_c": 1.0,
+  "tcn_epochs": 50,
+  "tcn_folds": 5,
+  "multirocket_features": 2000,
+  "minirocket_features": 10000,
+  "interp_length": 256,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Fixed hyperparameters across budgets; HGB uses the E08 40p-style fixed params for all budgets.",
+    "TCN uses 5-fold OOF plus a full-subset model, fixed 50 epochs, no validation checkpoint selection.",
+    "MOMENT orig/diff caches are frozen; logistic C=1.0 for all MOMENT branches.",
+    "MultiRocket/MiniRocket use interp_z 256, RidgeClassifierCV {100,1000} with training-only 3-fold.",
+    "Validation only; no test."
+  ]
+}

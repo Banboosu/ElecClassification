@@ -12,6 +12,7 @@
 - **E12已完成10%/40%**：5折交叉拟合、TCN固定50轮cosine、meta只在OOF上拟合；40% validation stack **98.09±0.23%**（相对同轮TCN full +0.56pp/4/4、相对无TCN stack +2.07pp/4/4），10% **95.02±0.33%**（相对同折无TCN stack +0.76pp/4/4）；两个suite各16条件/56160行审计0误差，无test。10%的TCN端点为固定50轮无选模的89.04%，不能把stack−tcn_full +5.98pp当成对强TCN的领先。
 - **E10已完成（P0修正）**：40% stack ECE 0.56%、温度1.001（无需缩放）；10%为**欠自信**（平均置信度92.21%<精度95.01%），温度0.853锐化后ECE 3.52%→0.94%、NLL 0.1717→0.1518，精度不变；McNemar 40%四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；电池固定FPR 1%时40%召回97.67%、10%仅89.66%（均为validation内选阈值的描述性工作点，不是部署保证）；99%召回对应FPR 4.86%/13.55%。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界。
 - **E12b已完成（P1.1，修正版）**：4seed×2预算×8方法/64条件/224,640行；补`tcn_meta`，MD validation统一C=1.0。40% `TCN+DYN` 97.93±0.22、完整三路98.09±0.23，MOMENT净增益仅+0.16±0.12pp（3/4）；`tcn_meta` 97.65（+0.12/4/4），完整−`tcn_meta` +0.44。10%完整三路95.02±0.33，相对最好两路+0.76±0.45pp（4/4）。MOMENT价值是条件性的：40%大部分信息已被TCN+DYN覆盖，10%才稳健。
+- **E18已完成（统一低标签基准）**：新主机RTX5090，4seed×5预算×12方法=240条件/842,400行、0 test。1% MultiRocket 92.52 > Full 89.15；5% 95.73 > 93.85；10% 96.16 > 95.13；20% 96.92≈Full96.90；40% Full98.14 > MultiRocket97.25。TCN拐点在10–20%（89.17→95.63）。固定HGB/TCN/MOMENT超参，未逐预算调参。
 - **E17已完成（C 同机成本）**：RTX4080完整在线路径 batch1 46.3ms/sample、batch32 10.9ms/sample（batch≈349ms，≈92/s）、batch128 11.5ms/sample（batch≈1,469ms，≈87/s）；GPU峰值2,493MB；MOMENT341.24M/1,302MB；TCN 0.25M。40% Full−TCN+DYN +0.16pp/3/4但batch32成本约5.3×；Full−TCN +0.56pp/4/4但约285×。
 - **E16已完成（P1.2 随机初始化归因）**：同架构/池化/C=1.0，48条件/168,480行、0 test；预训练在所有流上优于随机（4/4）：10% orig +22.48、diff +9.36、dual +9.97；40% orig +20.57、diff +6.17、dual +6.00；随机 dual 40% 86.77% vs 预训练 92.77%。预训练权重有实质贡献，但不是低标签精度的唯一路线。
 - **E15已完成（P1.2 MiniRocket对照）**：同interp_z/num_features=10000/Ridge协议；10% 92.89±0.34%（与DYN持平+0.08±0.50、高于TCN+3.85、低于Full−2.13），40% 94.42±0.24%（低于DYN−0.58、TCN−3.11、Full−3.67）。MiniRocket单独不构成比MultiRocket更强的挑战。
@@ -39,6 +40,7 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 | E15 | MiniRocket 对照 | 更轻的卷积核基线是否同样强？ | 已完成：10% 92.89%（与DYN持平）；40% 94.42%（低于DYN/TCN/Full） |
 | E16 | 预训练 vs 随机初始化归因 | 预训练权重是否不可替代？ | 已完成：预训练全流优于随机（4/4）；dual +9.97/+6.00；随机40% 86.77% vs 92.77% |
 | E17 | 同机端到端成本 | 40%多0.16pp是否值得？ | 已完成：batch1 46.3ms、batch32 10.9ms/sample、GPU2.5GB；Full−TCN+DYN +0.16pp/3/4但成本5.3× |
+| E18 | 统一低标签全模型基准 | 1/5/10/20/40% 各模型曲线 | 已完成：MultiRocket 1–10%最强；20%与Full持平；40%Full最高98.14 |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
 | N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10已完成校准/风险；同机端到端成本仍可选 |
 | N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
@@ -621,6 +623,16 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 电池固定工作点（四seed均值）：40%下0.5%/1%/2% FPR对应recall95.58/97.67/98.46%，99% recall对应4.86% FPR；10%下1% FPR仅89.66% recall、99% recall对应13.55% FPR。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界，不是模型缺陷；未调阈值、不是部署保证。
 - 报告/图：`docs/experiment_records/e10_calibration_safety_results_20261020.md`、`docs/figures/e10_{reliability,risk_coverage}_{10p,40p}_20261020.svg`；本地保全`artifacts/imports/e10_calibration_safety_20261020/`；远端根`artifacts/improvements/e10_calibration_safety/`。
 - 边界：OOF/validation分布不完全一致；ECE/Brier描述性；四seed split重叠；无test/鲁棒性/端到端成本。
+
+### E18：统一低标签全模型基准（2026-10-20，已完成）
+
+- [x] 新主机RTX5090；4seed×5预算（1/5/10/20/40%）×12方法=240条件/842,400行；仅validation，0 test。
+- [x] 方法：F15/DYN HGB、MOMENT orig/diff/dual logistic、TCN、TCN+DYN、DYN+MOMENT、DYN+MOMENT/ΔP、Full、MultiRocket、MiniRocket。
+- [x] 固定配置：HGB固定参数、MOMENT C=1.0、TCN 50ep/5折OOF+全量、Multi/Mini interp_z 256 + RidgeCV；未逐预算调参。
+- [x] 结果：Full 89.15/93.85/95.13/96.90/98.14；TCN 61.91/84.67/89.17/95.63/97.62；DYN 86.70/91.29/92.81/94.07/95.00；MultiRocket 92.52/95.73/96.16/96.92/97.25；MiniRocket 86.90/91.59/92.72/93.59/94.39。
+- [x] 观察：1–10% MultiRocket最强；20%与Full基本持平；40% Full最高；TCN拐点在10–20%。低标签下“预训练+融合”不是必要路线；与E14/E16一致。
+- 报告：`docs/experiment_records/e18_low_label_results_20261020.md`；本地`artifacts/imports/e18_low_label_20261020/`（65.9MB/842,400行）；远端`ubuntu:~/workspace/banboosu_ws/ElecClassification/artifacts/improvements/e18_low_label/e18_low_label_20261020_v1/`；协议`configs/experiments/improvements/e18_low_label_protocol.json`；代码`src/tcn_moment/run_e18_low_label.py`。
+- 边界：新主机/新torch（2.8.0+cu128）与旧4080数值有0.1–0.5pp差异；固定超参不是各预算上限；split重叠；无test。MultiRocket按既定范围不进入论文主线，此表作内部完整基准。
 
 ### E17：同硬件端到端成本（2026-10-20，已完成）
 
