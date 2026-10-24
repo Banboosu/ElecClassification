@@ -283,7 +283,7 @@ def plot_fig1_overall_framework() -> None:
     draw_arrow(ax, (0.72, 0.47), (0.76, 0.50), color="#B91C1C", lw=1.6)
     draw_arrow(ax, (0.72, 0.16), (0.76, 0.34), color="#B91C1C", lw=1.6)
 
-    save_both(fig, "fig1_overall_framework")
+    save_both(fig, "fig2_overall_framework")
 
 
 def plot_fig2_pooling_and_head_stabilization() -> None:
@@ -366,7 +366,7 @@ def plot_fig2_pooling_and_head_stabilization() -> None:
         ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    save_both(fig, "fig2_pooling_and_head_stabilization")
+    save_both(fig, "fig3_pooling_and_head_stabilization")
 
 
 def plot_fig3_dual_stream_and_pretraining() -> None:
@@ -514,7 +514,7 @@ def plot_fig3_dual_stream_and_pretraining() -> None:
         ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    save_both(fig, "fig3_dual_stream_and_pretraining")
+    save_both(fig, "fig5_dual_stream_and_pretraining")
 
 
 def plot_fig4_dyn_feature_ablation() -> None:
@@ -680,7 +680,7 @@ def plot_fig4_dyn_feature_ablation() -> None:
         ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    save_both(fig, "fig4_dyn_feature_ablation")
+    save_both(fig, "fig6_dyn_feature_ablation")
 
 
 def plot_fig5_stacking_ablation_and_low_label() -> None:
@@ -724,7 +724,7 @@ def plot_fig5_stacking_ablation_and_low_label() -> None:
     ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=8.0)
     ax1.grid(True, axis="x", alpha=0.25)
     ax1.grid(False, axis="y")
-    panel_caption(ax1, "(a) 支路贡献的配对拆解（E12b）", y=-0.16)
+    panel_caption(ax1, "(a) 支路贡献的配对拆解", y=-0.16)
 
     # Panel (b): unified-protocol label-budget curves (E18 rerun; fixed hyper-parameters, no validation selection)
     e18 = load_json("artifacts/imports/e18_low_label_20261020/e18_low_label/e18_low_label_20261020_v1/summary.json")
@@ -765,14 +765,14 @@ def plot_fig5_stacking_ablation_and_low_label() -> None:
     ax2.set_ylabel("验证集 Macro-F1 (%)")
     ax2.legend(loc="lower right", frameon=True, fontsize=7.6, ncol=2)
     ax2.grid(True, which="major", alpha=0.25)
-    panel_caption(ax2, "(b) 统一协议下的标注比例曲线（E18）", y=-0.16)
+    panel_caption(ax2, "(b) 统一协议下的标注比例曲线", y=-0.16)
 
     for ax in (ax1, ax2):
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    save_both(fig, "fig5_stacking_ablation_and_low_label")
+    save_both(fig, "fig7_stacking_ablation_and_low_label")
 
 
 def plot_fig6_robustness_and_latency() -> None:
@@ -860,7 +860,7 @@ def plot_fig6_robustness_and_latency() -> None:
         ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    save_both(fig, "fig6_robustness_and_latency")
+    save_both(fig, "fig8_robustness_and_latency")
 
 
 def plot_fig7_tcn_and_calibration() -> None:
@@ -1020,10 +1020,68 @@ def plot_fig7_tcn_and_calibration() -> None:
         ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    save_both(fig, "fig7_tcn_and_calibration")
+    save_both(fig, "fig4_tcn_and_length_strata")
+
+
+def plot_fig1_dataset_overview() -> None:
+    """Training-split only: class-wise example curves and valid-length distribution."""
+    import csv
+
+    setup_chinese_journal_style()
+    split = load_json("artifacts/splits/unified_split.json")
+    train_ids = set(split["splits"]["train"])
+    by_class: dict[str, list[list[float]]] = {"0": [], "1": [], "2": []}
+    csv.field_size_limit(10**8)
+    with (ROOT / "data/raw/最新多.csv").open(encoding="utf-8") as f:
+        for row in csv.DictReader(f, delimiter=" "):
+            if row["charging_station_id"] not in train_ids:
+                continue
+            values = [float(v) for v in row["charging_powers_str"].replace('"', "").split(",") if v.strip()]
+            by_class[str(row["InsertedColumn"]).strip()].append(values)
+
+    names = {"0": "正常", "1": "充电器故障", "2": "电池异常"}
+    colors = {"0": "#0072B2", "1": "#E69F00", "2": "#D55E00"}
+    fig = plt.figure(figsize=(11.6, 6.4))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.9], hspace=0.55, wspace=0.28)
+
+    # Panels (a)-(c): three random examples per class (fixed RNG, not hand-picked)
+    rng = np.random.default_rng(42)
+    for col, cls in enumerate(("0", "1", "2")):
+        ax = fig.add_subplot(gs[0, col])
+        seqs = by_class[cls]
+        for idx in rng.choice(len(seqs), size=3, replace=False):
+            ax.plot(np.arange(len(seqs[idx])), seqs[idx], linewidth=1.1, alpha=0.9)
+        ax.set_xlabel("有效采样点序号")
+        if col == 0:
+            ax.set_ylabel("充电功率（原始记录单位）")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        panel_caption(ax, f"({'abc'[col]}) {names[cls]}样例", y=-0.3)
+
+    # Panel (d): valid-length distribution per class
+    ax = fig.add_subplot(gs[1, :])
+    bins = np.arange(0, 840, 24)
+    for cls in ("0", "1", "2"):
+        lengths = [len(s) for s in by_class[cls]]
+        ax.hist(
+            lengths,
+            bins=bins,
+            histtype="step",
+            linewidth=1.8,
+            color=colors[cls],
+            label=f"{names[cls]}（n={len(lengths):,}，中位数 {int(np.median(lengths))}）",
+        )
+    ax.set_xlabel("有效序列长度 L（采样点）")
+    ax.set_ylabel("样本数")
+    ax.legend(frameon=False, fontsize=8.6)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    panel_caption(ax, "(d) 训练集各类有效长度分布", y=-0.3)
+    save_both(fig, "fig1_dataset_overview")
 
 
 if __name__ == "__main__":
+    plot_fig1_dataset_overview()
     plot_fig1_overall_framework()
     plot_fig2_pooling_and_head_stabilization()
     plot_fig3_dual_stream_and_pretraining()
