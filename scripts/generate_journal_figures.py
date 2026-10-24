@@ -50,6 +50,11 @@ def setup_chinese_journal_style() -> None:
     )
 
 
+def panel_caption(ax: plt.Axes, text: str, y: float = -0.2) -> None:
+    """Place a journal-style sub-figure caption such as "(a) xxx" below the axes."""
+    ax.text(0.5, y, text, transform=ax.transAxes, ha="center", va="top", fontsize=10.5)
+
+
 def load_json(rel_path: str) -> dict:
     return json.loads((ROOT / rel_path).read_text(encoding="utf-8"))
 
@@ -132,217 +137,151 @@ def plot_fig1_overall_framework() -> None:
     ax.set_ylim(0, 1)
     ax.axis("off")
 
-    # Background group containers
-    draw_box(
-        ax, 0.21, 0.65, 0.51, 0.31, "", fc="#FFF7ED", ec="#D55E00", lw=1.4, radius=0.02
-    )
-    ax.text(
-        0.225,
-        0.935,
-        "分支 I：双流时序大模型表征分支（创新一、创新二、创新四）",
-        fontsize=9.8,
-        fontweight="bold",
-        color="#B45309",
-        va="top",
-    )
+    # Branch containers
+    containers = [
+        (0.66, 0.31, "#FFF7ED", "#D55E00", "#B45309", "分支Ⅰ  预训练时序大模型双流表征（创新 1、创新 2）"),
+        (0.35, 0.27, "#F0FDF4", "#009E73", "#047857", "分支Ⅱ  原尺度动力学特征旁路（创新 3）"),
+        (0.04, 0.27, "#EFF6FF", "#0072B2", "#1D4ED8", "分支Ⅲ  任务专用掩码 TCN"),
+    ]
+    for y0, h, fc, ec, tc, title in containers:
+        draw_box(ax, 0.20, y0, 0.53, h, "", fc=fc, ec=ec, lw=1.4, radius=0.02)
+        ax.text(0.212, y0 + h - 0.018, title, fontsize=9.6, fontweight="bold", color=tc, va="top")
 
-    draw_box(
-        ax, 0.21, 0.34, 0.51, 0.27, "", fc="#F0FDF4", ec="#009E73", lw=1.4, radius=0.02
-    )
-    ax.text(
-        0.225,
-        0.585,
-        "分支 II：原尺度物理动态特征旁路（创新三：补偿 RevIN 幅值擦除）",
-        fontsize=9.8,
-        fontweight="bold",
-        color="#047857",
-        va="top",
-    )
-
-    draw_box(
-        ax, 0.21, 0.04, 0.51, 0.26, "", fc="#EFF6FF", ec="#0072B2", lw=1.4, radius=0.02
-    )
-    ax.text(
-        0.225,
-        0.278,
-        "分支 III：局部高分辨率因果膨胀卷积分支（掩码不变性恢复）",
-        fontsize=9.8,
-        fontweight="bold",
-        color="#1D4ED8",
-        va="top",
-    )
-
-    # Input box
     draw_box(
         ax,
         0.015,
-        0.34,
-        0.155,
-        0.32,
-        "变长充电功率序列\n"
-        "X ∈ R^L (18 ≤ L ≤ 1024)\n"
-        "────────────────\n"
-        "同步生成二值掩码\n"
-        "M ∈ {0, 1}^1024\n"
-        "(有效观测=1, 补零=0)",
+        0.30,
+        0.15,
+        0.40,
+        "变长充电功率序列\nx ∈ R^L\n（18 ≤ L ≤ 816）\n右侧补零至长度 1024\n────────────\n有效观测掩码\nm ∈ {0, 1}^1024",
         fc="#F1F5F9",
         ec="#334155",
         lw=1.5,
-        fontsize=9.0,
+        fontsize=8.8,
         fontweight="bold",
     )
 
-    # Branch I internal boxes
+    # Branch I
+    draw_box(ax, 0.215, 0.795, 0.13, 0.10, "原序列流 P\n逐序列 z-score", fc="#FFFFFF", ec="#D55E00", fontsize=8.5)
+    draw_box(ax, 0.215, 0.675, 0.13, 0.10, "一阶差分流 ΔP\nΔP_t = P_t − P_(t−1)", fc="#FFFFFF", ec="#D55E00", fontsize=8.5)
     draw_box(
         ax,
-        0.225,
-        0.78,
-        0.145,
-        0.11,
-        "原始功率流 P\nZ-score + 掩码对齐",
-        fc="#FFFFFF",
-        ec="#D55E00",
-        fontsize=8.5,
-    )
-    draw_box(
-        ax,
-        0.225,
-        0.665,
-        0.145,
-        0.10,
-        "一阶差分流 ΔP\n瞬态跳变与斜率捕获",
-        fc="#FFFFFF",
-        ec="#D55E00",
-        fontsize=8.5,
-    )
-    draw_box(
-        ax,
-        0.39,
-        0.67,
-        0.155,
+        0.372,
+        0.675,
+        0.17,
         0.22,
-        "冻结 MOMENT-1-large\n(24层 Transformer, Patch=8)\n──────────────\n创新一：掩码感知池化\n仅聚合 M_patch=1 块\n消除右侧补零稀释",
+        "冻结 MOMENT-1-large\n（24 层编码器，patch = 8）\n────────────\n创新 1：掩码感知 patch 池化\n仅聚合完整有效 patch",
         fc="#FFEDD5",
         ec="#C2410C",
-        fontsize=8.2,
+        fontsize=8.3,
         fontweight="bold",
     )
     draw_box(
         ax,
-        0.565,
-        0.67,
-        0.14,
+        0.567,
+        0.675,
+        0.148,
         0.22,
-        "双流拼接表征\n[e_orig || e_diff] (2048维)\n───────────\nOOF 逻辑回归 / SVM\n或 创新四：扇入增益\nγ=√(1039/B) 融合头",
+        "创新 2：双流表征拼接\n[h_P ‖ h_ΔP]（2048 维）\n───────────\n多项逻辑回归\n输出概率 p^MD",
         fc="#FFFFFF",
         ec="#C2410C",
-        fontsize=8.0,
+        fontsize=8.2,
     )
 
-    # Branch II internal boxes
+    # Branch II
     draw_box(
         ax,
-        0.225,
-        0.365,
-        0.295,
+        0.215,
+        0.38,
+        0.31,
         0.18,
-        "60 维原尺度功率动态特征提取 (DYN)\n"
-        "仅在 M_t=1 真实观测区间计算，保留绝对幅值：\n"
-        "• 局部粗糙度 (12)  • 分段趋势斜率 (18)  • 幅值分位数 (17)\n"
-        "• FFT频谱与自相关 (7)  • 形态极值 (4)  • 序列长度 (2)",
+        "60 维原尺度动力学特征（仅在 m_t = 1 区间计算）\n"
+        "幅值与分位 17 · 粗糙度与转折 12 · 分段趋势 18\n"
+        "频谱与自相关 7 · 形状 4 · 长度 2",
         fc="#DCFCE7",
         ec="#059669",
-        fontsize=8.1,
+        fontsize=8.3,
     )
     draw_box(
         ax,
-        0.545,
-        0.365,
-        0.16,
+        0.55,
+        0.38,
+        0.165,
         0.18,
-        "直方图梯度提升树\n(DYN-HGB)\n──────────\n非线性特征交互建模\n输出折外概率 p^DYN",
+        "直方图梯度提升树\n（HGB）\n──────────\n输出概率 p^DYN",
         fc="#FFFFFF",
         ec="#059669",
-        fontsize=8.4,
+        fontsize=8.5,
         fontweight="bold",
     )
 
-    # Branch III internal boxes
+    # Branch III
     draw_box(
         ax,
-        0.225,
-        0.065,
-        0.295,
-        0.175,
-        "恢复版 6 层因果膨胀卷积网络 (Masked TCN)\n"
-        "膨胀率 d ∈ {1,2,4,8,16,32}, 128 通道, 卷积核 k=3\n"
-        "SpatialDropout1D + 掩码均值池化 (补零不变性)",
+        0.215,
+        0.07,
+        0.31,
+        0.18,
+        "掩码因果膨胀卷积网络（Masked TCN）\n"
+        "6 层，k = 3，d = 1, 2, 4, …, 32，128 通道\n"
+        "感受野 127；掩码均值池化（与补零长度无关）",
         fc="#DBEAFE",
         ec="#1D4ED8",
-        fontsize=8.0,
+        fontsize=8.3,
     )
     draw_box(
         ax,
-        0.545,
-        0.065,
-        0.16,
-        0.175,
-        "时域局部形态分类器\n(5 折训练验证早停)\n──────────\n捕获高频微秒/秒级扰动\n输出折外概率 p^TCN",
+        0.55,
+        0.07,
+        0.165,
+        0.18,
+        "Softmax 分类层\n固定 50 轮余弦退火\n──────────\n输出概率 p^TCN",
         fc="#FFFFFF",
         ec="#1D4ED8",
-        fontsize=8.4,
+        fontsize=8.5,
         fontweight="bold",
     )
 
-    # Stacking & Calibration box (Innovation 5)
+    # Meta learner
     draw_box(
         ax,
-        0.755,
-        0.18,
-        0.23,
+        0.758,
+        0.17,
+        0.232,
         0.66,
-        "创新五：三路异构 5 折 OOF\n概率堆叠与温度缩放校准\n"
-        "══════════════════\n"
-        "折外对数几率拼接特征：\n"
-        "z_i = [log p^TCN, log p^DYN,\n"
-        "       log p^(MOMENT/ΔP)] ∈ R^9\n"
-        "──────────────────\n"
-        "正则化多项式逻辑回归元学习器\n"
-        "+ 温度缩放校准 (T > 0)\n"
-        "──────────────────\n"
-        "三分类安全诊断输出：\n"
-        "① 正常充电曲线 (Class 0)\n"
-        "② 充电设备故障 (Class 1)\n"
-        "③ 动力电池异常 (Class 2)\n"
-        "(40%标注 Macro-F1: 98.09%\n"
-        " 电池异常召回率: 97.38%)",
+        "创新 4：交叉拟合概率堆叠\n"
+        "══════════════\n"
+        "训练子集内 5 折 OOF 概率\n"
+        "z = [p^TCN, p^DYN, p^MD]\nz ∈ R^9\n"
+        "──────────────\n"
+        "多项逻辑回归元学习器\n"
+        "（可选温度缩放 T）\n"
+        "──────────────\n"
+        "三分类输出\n"
+        "正常 / 充电器故障 / 电池异常",
         fc="#FEF2F2",
         ec="#B91C1C",
         lw=1.6,
-        fontsize=8.4,
+        fontsize=8.6,
         fontweight="bold",
         text_color="#7F1D1D",
     )
 
-    # Arrows from Input to 3 branches
-    draw_arrow(ax, (0.17, 0.56), (0.225, 0.835), color="#D55E00", lw=1.5)
-    draw_arrow(ax, (0.17, 0.53), (0.225, 0.715), color="#D55E00", lw=1.5)
-    draw_arrow(ax, (0.17, 0.48), (0.225, 0.455), color="#009E73", lw=1.5)
-    draw_arrow(ax, (0.17, 0.42), (0.225, 0.155), color="#0072B2", lw=1.5)
-
-    # Arrows inside Branch I
-    draw_arrow(ax, (0.37, 0.835), (0.39, 0.81), color="#C2410C")
-    draw_arrow(ax, (0.37, 0.715), (0.39, 0.74), color="#C2410C")
-    draw_arrow(ax, (0.545, 0.78), (0.565, 0.78), color="#C2410C")
-
-    # Arrows inside Branch II & III
-    draw_arrow(ax, (0.52, 0.455), (0.545, 0.455), color="#059669")
-    draw_arrow(ax, (0.52, 0.155), (0.545, 0.155), color="#1D4ED8")
-
-    # Arrows to Stacking
-    draw_arrow(ax, (0.705, 0.78), (0.755, 0.64), color="#B91C1C", lw=1.6)
-    draw_arrow(ax, (0.705, 0.455), (0.755, 0.50), color="#B91C1C", lw=1.6)
-    draw_arrow(ax, (0.705, 0.155), (0.755, 0.36), color="#B91C1C", lw=1.6)
+    # Input -> branches
+    draw_arrow(ax, (0.172, 0.62), (0.21, 0.845), color="#D55E00", lw=1.5)
+    draw_arrow(ax, (0.172, 0.58), (0.21, 0.725), color="#D55E00", lw=1.5)
+    draw_arrow(ax, (0.172, 0.50), (0.21, 0.47), color="#009E73", lw=1.5)
+    draw_arrow(ax, (0.172, 0.38), (0.21, 0.16), color="#0072B2", lw=1.5)
+    # Inside branches (left -> right)
+    draw_arrow(ax, (0.349, 0.845), (0.368, 0.82), color="#C2410C")
+    draw_arrow(ax, (0.349, 0.725), (0.368, 0.75), color="#C2410C")
+    draw_arrow(ax, (0.546, 0.785), (0.563, 0.785), color="#C2410C")
+    draw_arrow(ax, (0.529, 0.47), (0.546, 0.47), color="#059669")
+    draw_arrow(ax, (0.529, 0.16), (0.546, 0.16), color="#1D4ED8")
+    # Branch outputs -> meta learner
+    draw_arrow(ax, (0.72, 0.785), (0.76, 0.66), color="#B91C1C", lw=1.6)
+    draw_arrow(ax, (0.72, 0.47), (0.76, 0.50), color="#B91C1C", lw=1.6)
+    draw_arrow(ax, (0.72, 0.16), (0.76, 0.34), color="#B91C1C", lw=1.6)
 
     save_both(fig, "fig1_overall_framework")
 
@@ -351,59 +290,51 @@ def plot_fig2_pooling_and_head_stabilization() -> None:
     setup_chinese_journal_style()
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.4, 4.5))
 
-    # Panel (a): Pooling strategy comparison across classifiers (from audited E01/E02/M04)
+    # Panel (a): five-seed test Macro-F1 (docs/experiment_records/v100_results_20260720.md, sections 3 and 10;
+    # v1 has 4 completed seeds). Same frozen MOMENT-1-large backbone, only pooling / downstream classifier differ.
     categories = [
-        "补零全局均值\n+ Linear 探针",
-        "末端块 (Last)\n+ Linear 探针",
-        "掩码感知均值\n+ Linear 探针",
-        "补零全局均值\n+ RBF-SVM",
-        "掩码分位数池化\n+ RBF-SVM",
-        "掩码感知均值\n+ RBF-SVM",
+        "默认池化（含补零 patch）\n+ 线性头",
+        "掩码感知池化\n+ 线性头",
+        "掩码感知池化\n+ RBF-SVM",
     ]
-    values = [69.46, 51.31, 77.41, 83.21, 83.39, 85.17]
-    colors = ["#94A3B8", "#CBD5E1", "#0072B2", "#94A3B8", "#56B4E9", "#D55E00"]
+    values = [69.46, 77.41, 85.17]
+    sds = [0.76, 0.89, 1.03]
+    colors = ["#94A3B8", "#0072B2", "#D55E00"]
 
     x = np.arange(len(categories))
-    bars = ax1.bar(x, values, width=0.58, color=colors, edgecolor="white", linewidth=0.8)
-    for bar, val in zip(bars, values):
-        is_best = val in (77.41, 85.17)
+    bars = ax1.bar(x, values, width=0.52, yerr=sds, capsize=4, color=colors, edgecolor="white", linewidth=0.8)
+    for bar, val, sd_val in zip(bars, values, sds):
         ax1.text(
             bar.get_x() + bar.get_width() / 2,
-            val + 0.8,
-            f"{val:.2f}%",
+            val + sd_val + 0.8,
+            f"{val:.2f}",
             ha="center",
             va="bottom",
-            fontsize=8.5,
-            fontweight="bold" if is_best else "normal",
-            color="#D55E00" if val == 85.17 else ("#0072B2" if val == 77.41 else "#333333"),
+            fontsize=9,
         )
-
     ax1.annotate(
-        "消除补零稀释\n+7.95 pp",
-        xy=(2, 77.41),
-        xytext=(0.75, 81.5),
-        arrowprops={"arrowstyle": "->", "color": "#0072B2", "lw": 1.2},
-        fontsize=8.3,
-        fontweight="bold",
-        color="#0072B2",
-        ha="center",
+        "",
+        xy=(0.74, 78.2),
+        xytext=(0.12, 71.6),
+        arrowprops={"arrowstyle": "->", "color": "#0072B2", "lw": 1.2, "connectionstyle": "arc3,rad=-0.25"},
     )
-    ax1.set_xticks(x, categories, fontsize=8.2)
-    ax1.set_ylim(45, 92)
-    ax1.set_ylabel("Macro-F1 (%)")
-    ax1.set_title("(a) 变长序列不同池化策略对冻结大模型表征的影响", pad=10)
+    ax1.text(0.3, 79.2, "+7.95 pp", fontsize=9, color="#0072B2", ha="center")
+    ax1.set_xticks(x, categories, fontsize=9)
+    ax1.set_ylim(50, 92)
+    ax1.set_ylabel("测试集 Macro-F1 (%)")
+    panel_caption(ax1, "(a) 池化方式与下游分类器", y=-0.2)
     ax1.grid(True, axis="y", alpha=0.25)
     ax1.grid(False, axis="x")
 
     # Panel (b): E03D convergence trajectories (Original scale vs Fan-in gain compensation)
     root_e03d = ROOT / "artifacts/imports/e03d_head_validation_20261018"
     curve_specs = [
-        ("fusion", "fanin_gain", "融合分支（扇入增益补偿 γ=1.00）", "#D55E00", "-"),
-        ("fusion", "legacy_fresh", "融合分支（未缩放原始输入）", "#D55E00", "--"),
-        ("statistics", "fanin_gain", "统计分支（扇入增益补偿 γ=8.32）", "#009E73", "-"),
-        ("statistics", "legacy_fresh", "统计分支（未缩放原始输入）", "#009E73", "--"),
-        ("moment", "fanin_gain", "MOMENT分支（扇入增益补偿 γ=1.01）", "#0072B2", "-"),
-        ("moment", "legacy_fresh", "MOMENT分支（未缩放原始输入）", "#0072B2", "--"),
+        ("fusion", "fanin_gain", "MOMENT+统计，尺度补偿（γ=1.00）", "#D55E00", "-"),
+        ("fusion", "legacy_fresh", "MOMENT+统计，原尺度", "#D55E00", "--"),
+        ("statistics", "fanin_gain", "统计特征，尺度补偿（γ=8.32）", "#009E73", "-"),
+        ("statistics", "legacy_fresh", "统计特征，原尺度", "#009E73", "--"),
+        ("moment", "fanin_gain", "MOMENT，尺度补偿（γ=1.01）", "#0072B2", "-"),
+        ("moment", "legacy_fresh", "MOMENT，原尺度", "#0072B2", "--"),
     ]
     for branch, mode, label, color, ls in curve_specs:
         hist_path = root_e03d / f"e03d_head_diagnostic_20261018_v2_{branch}_{mode}/history.json"
@@ -421,12 +352,12 @@ def plot_fig2_pooling_and_head_stabilization() -> None:
         )
 
     ax2.axvline(30, color="#64748B", linestyle=":", linewidth=1.1)
-    ax2.text(33, 72.8, "早期预算边界 (30轮)\n融合头 +6.58 pp", fontsize=8.0, color="#475569")
+    ax2.text(33, 72.8, "第 30 轮：尺度补偿使\n融合头 +6.58 pp", fontsize=8.0, color="#475569")
     ax2.set_xlim(1, 200)
     ax2.set_ylim(71, 93.5)
     ax2.set_xlabel("训练轮次 (Epoch)")
     ax2.set_ylabel("验证集 Macro-F1 (%)")
-    ax2.set_title("(b) 有效扇入增益补偿与固定 AMP 缩放的收敛轨迹对比", pad=10)
+    panel_caption(ax2, "(b) 冻结分类头收敛轨迹", y=-0.2)
     ax2.legend(loc="lower right", frameon=True, fontsize=7.8, ncol=1)
     ax2.grid(True, alpha=0.25)
 
@@ -494,8 +425,8 @@ def plot_fig3_dual_stream_and_pretraining() -> None:
     ax1.set_ylim(60, 102)
     ax1.set_xlabel("训练标注预算（样本数）")
     ax1.set_ylabel("验证集 Macro-F1 (%)")
-    ax1.set_title("(a) 一阶差分双流表征与动态特征堆叠在不同预算下的增益", pad=10)
-    ax1.legend(loc="lower right", frameon=True, fontsize=8.2)
+    panel_caption(ax1, "(a) 输入流与 DYN 堆叠", y=-0.24)
+    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=4, frameon=False, fontsize=8.0, columnspacing=0.8, handletextpad=0.4)
     ax1.grid(True, axis="y", alpha=0.25)
     ax1.grid(False, axis="x")
 
@@ -573,8 +504,8 @@ def plot_fig3_dual_stream_and_pretraining() -> None:
     ax2.set_ylim(50, 102)
     ax2.set_xlabel("标注预算与输入流分支（固定 C = 1.0 对照协议）")
     ax2.set_ylabel("验证集 Macro-F1 (%)")
-    ax2.set_title("(b) 预训练时序大模型权重与随机初始化编码器的归因对比", pad=10)
-    ax2.legend(loc="lower right", frameon=True, fontsize=8.2)
+    panel_caption(ax2, "(b) 预训练权重与随机初始化", y=-0.24)
+    ax2.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=8.0, columnspacing=1.0)
     ax2.grid(True, axis="y", alpha=0.25)
     ax2.grid(False, axis="x")
 
@@ -638,8 +569,8 @@ def plot_fig4_dyn_feature_ablation() -> None:
     ax1.set_ylim(68, 100)
     ax1.set_xlabel("训练标注预算（样本数）")
     ax1.set_ylabel("验证集 Macro-F1 (%)")
-    ax1.set_title("(a) 60维原尺度动态特征 (DYN) 与 15维统计特征性能对比", pad=10)
-    ax1.legend(loc="lower right", frameon=True, fontsize=8.0)
+    panel_caption(ax1, "(a) F15 与 DYN 特征对比", y=-0.24)
+    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=8.0, columnspacing=1.0)
     ax1.grid(True, axis="y", alpha=0.25)
     ax1.grid(False, axis="x")
 
@@ -716,7 +647,7 @@ def plot_fig4_dyn_feature_ablation() -> None:
             )
         else:
             ax2.text(
-                val + 0.6,
+                max(val, 95.0) + 0.75,
                 bar.get_y() + bar.get_height() / 2,
                 f"{val:.2f}%{delta_txt}",
                 va="center",
@@ -724,13 +655,14 @@ def plot_fig4_dyn_feature_ablation() -> None:
                 fontsize=7.5,
                 color="#D55E00",
                 fontweight="bold" if d_pp < -0.3 else "normal",
+                bbox={"boxstyle": "round,pad=0.12", "facecolor": "white", "edgecolor": "none", "alpha": 0.85},
             )
 
     ax2.set_yticks(y, [label for _, label in group_order], fontsize=8.4)
     ax2.invert_yaxis()
     ax2.set_xlim(35, 108)
     ax2.set_xlabel("40% 标注预算验证集 Macro-F1 (%)")
-    ax2.set_title("(b) 60维动态特征六大物理子集单组保留与单组剔除消融", pad=24)
+    panel_caption(ax2, "(b) DYN 特征分组消融（40% 标注）", y=-0.24)
     ax2.legend(
         loc="lower center",
         bbox_to_anchor=(0.48, 1.01),
@@ -756,190 +688,84 @@ def plot_fig5_stacking_ablation_and_low_label() -> None:
     e12b = load_json(
         "artifacts/imports/e12b_fusion_ablation_corrected_20261020/e12b_fusion_ablation_corrected/summary.json"
     )
-    agg12b = {(r["tag"], r["method"]): r for r in e12b["aggregate"]}
+    per_seed = {(r["tag"], r["method"]): np.asarray(r["per_seed"]) for r in e12b["aggregate"]}
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.7))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.6, 4.9), gridspec_kw={"width_ratios": [1.05, 1.0]})
 
-    # Panel (a): 8-way fusion ablation at 10% and 40% budgets
-    methods = [
-        ("tcn", "TCN 单分支 (固定50轮)"),
-        ("tcn_meta", "TCN + 元分类器控制"),
-        ("md", "MOMENT/ΔP 双流 (C=1.0)"),
-        ("dyn", "DYN-60 + HGB 单分支"),
-        ("tcn+md", "TCN + MOMENT/ΔP"),
-        ("dyn+md", "DYN + MOMENT/ΔP"),
-        ("tcn+dyn", "TCN + DYN"),
-        ("full", "三路异构堆叠 (Full Stack)"),
+    # Panel (a): seed-paired net gains (E12b corrected; seeds 42/44/45/46 in identical order)
+    pairs = [
+        ("tcn_meta", "tcn", "同型元学习器自身：TCN+meta − TCN"),
+        ("full", "tcn_meta", "完整融合 − TCN+meta"),
+        ("tcn+dyn", "tcn", "加入 DYN：TCN+DYN − TCN"),
+        ("tcn+md", "tcn", "加入 MOMENT/ΔP：TCN+MD − TCN"),
+        ("dyn+md", "dyn", "加入 MOMENT/ΔP：DYN+MD − DYN"),
+        ("full", "dyn+md", "TCN 边际：Full − (DYN+MD)"),
+        ("full", "tcn+md", "DYN 边际：Full − (TCN+MD)"),
+        ("full", "tcn+dyn", "MOMENT/ΔP 边际：Full − (TCN+DYN)"),
     ]
-    y = np.arange(len(methods))
+    y = np.arange(len(pairs))
     h = 0.36
-    m10 = [agg12b[("10p", m)]["mean"] for m, _ in methods]
-    s10 = [agg12b[("10p", m)]["sample_sd"] for m, _ in methods]
-    m40 = [agg12b[("40p", m)]["mean"] for m, _ in methods]
-    s40 = [agg12b[("40p", m)]["sample_sd"] for m, _ in methods]
-
-    b10 = ax1.barh(
-        y + h / 2,
-        m10,
-        xerr=s10,
-        height=h,
-        capsize=2.5,
-        label="10% 标注预算 (2,456 样本)",
-        color="#56B4E9",
-        edgecolor="white",
-        alpha=0.92,
-    )
-    b40 = ax1.barh(
-        y - h / 2,
-        m40,
-        xerr=s40,
-        height=h,
-        capsize=2.5,
-        label="40% 标注预算 (9,827 样本)",
-        color="#D55E00",
-        edgecolor="white",
-        alpha=0.92,
-    )
-
-    for bar, val, sd_val in zip(b10, m10, s10):
-        ax1.text(
-            val + sd_val + 0.18,
-            bar.get_y() + bar.get_height() / 2,
-            f"{val:.2f}%",
-            va="center",
-            ha="left",
-            fontsize=7.5,
-            color="#0369A1",
-            fontweight="bold" if val == max(m10) else "normal",
-        )
-    for bar, val, sd_val in zip(b40, m40, s40):
-        ax1.text(
-            val + sd_val + 0.18,
-            bar.get_y() + bar.get_height() / 2,
-            f"{val:.2f}%",
-            va="center",
-            ha="left",
-            fontsize=7.5,
-            color="#B45309",
-            fontweight="bold" if val == max(m40) else "normal",
-        )
-
-    ax1.set_yticks(y, [label for _, label in methods], fontsize=8.4)
+    for k, (tag, color, label) in enumerate(
+        [("10p", "#56B4E9", "10% 标注 (2,456)"), ("40p", "#D55E00", "40% 标注 (9,827)")]
+    ):
+        diffs = [per_seed[(tag, l)] - per_seed[(tag, r)] for l, r, _ in pairs]
+        means = [float(d.mean()) for d in diffs]
+        sds = [float(d.std(ddof=1)) for d in diffs]
+        pos = [int((d > 0).sum()) for d in diffs]
+        offs = y - h / 2 if k == 0 else y + h / 2
+        ax1.barh(offs, means, xerr=sds, height=h, capsize=2.5, color=color, edgecolor="white", label=label)
+        for yy, m, sd_val, n_pos in zip(offs, means, sds, pos):
+            ax1.text(m + sd_val + 0.12, yy, f"{m:+.2f}（{n_pos}/4）", va="center", fontsize=7.4, color="#333333")
+    ax1.axvline(0, color="#475569", linewidth=0.9)
+    ax1.set_yticks(y, [p[2] for p in pairs], fontsize=8.2)
     ax1.invert_yaxis()
-    ax1.set_xlim(86.0, 100.8)
-    ax1.set_xlabel("验证集 Macro-F1 (%)")
-    ax1.set_title("(a) 三路异构概率堆叠 8 路正交消融对比", pad=24)
-    ax1.legend(
-        loc="lower center",
-        bbox_to_anchor=(0.5, 1.01),
-        ncol=2,
-        frameon=False,
-        fontsize=8.0,
-        columnspacing=1.2,
-    )
+    ax1.set_xlim(-0.3, 7.6)
+    ax1.set_xlabel("配对 Macro-F1 差值 (pp，均值 ± 种子间 SD)")
+    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=8.0)
     ax1.grid(True, axis="x", alpha=0.25)
     ax1.grid(False, axis="y")
+    panel_caption(ax1, "(a) 支路贡献的配对拆解（E12b）", y=-0.16)
 
-    # Panel (b): Multi-budget sample efficiency curve (1%, 5%, 10%, 20%, 40%)
-    curve_data = load_json("artifacts/analysis/legacy_tcn_moment_curve_20261021/summary.json")
-    e08 = load_json(
-        "artifacts/imports/e08_strong_features_20261020/e08_strong_features_20261020_v1/analysis/summary.json"
-    )
-    e09 = load_json(
-        "artifacts/imports/e09_analysis_corrected_20261020/analysis_four_seed_corrected/summary.json"
-    )
-
-    c_map = {(r["model"], r["fraction"]): r for r in curve_data["aggregate"]}
-    e08_map = {(r["method"], r["fraction"]): r for r in e08["aggregate"]}
-    e09_map = {(r["method"], r["tag"]): r for r in e09["aggregate"]}
-
-    fractions = [0.01, 0.05, 0.10, 0.20, 0.40]
+    # Panel (b): unified-protocol label-budget curves (E18 rerun; fixed hyper-parameters, no validation selection)
+    e18 = load_json("artifacts/imports/e18_low_label_20261020/e18_low_label/e18_low_label_20261020_v1/summary.json")
+    agg18 = {(r["tag"], r["method"]): r for r in e18["aggregate"]}
+    tags = ["1p", "5p", "10p", "20p", "40p"]
     x_pct = [1, 5, 10, 20, 40]
-
-    # 1. Frozen MOMENT + RBF-SVM (1, 5, 10, 20, 40)
-    mom_m = [c_map[("moment", f)]["mean_percent"] for f in fractions]
-    mom_s = [c_map[("moment", f)]["sample_sd_percent"] for f in fractions]
-    ax2.errorbar(
-        x_pct, mom_m, yerr=mom_s, label="冻结单流 MOMENT + RBF-SVM", color="#7F7F7F", marker="s", capsize=3
-    )
-
-    # 2. Restored Legacy Masked TCN (1, 5, 10, NaN at 20, 40)
-    tcn_m = [c_map[("tcn", f)]["mean_percent"] if ("tcn", f) in c_map else np.nan for f in fractions]
-    tcn_s = [c_map[("tcn", f)]["sample_sd_percent"] if ("tcn", f) in c_map else np.nan for f in fractions]
-    ax2.errorbar(
-        x_pct, tcn_m, yerr=tcn_s, label="恢复版掩码 TCN (50轮验证优选)", color="#0072B2", marker="o", capsize=3
-    )
-
-    # 3. DYN + HGB (1, 5, 10, 40)
-    dyn_x = [1, 5, 10, 40]
-    dyn_m = [e08_map[("dyn_hgb", f)]["macro_f1_mean"] for f in (0.01, 0.05, 0.10, 0.40)]
-    dyn_s = [e08_map[("dyn_hgb", f)]["macro_f1_sd"] for f in (0.01, 0.05, 0.10, 0.40)]
-    ax2.errorbar(
-        dyn_x, dyn_m, yerr=dyn_s, label="60维动态特征 (DYN + HGB)", color="#009E73", marker="^", capsize=3
-    )
-
-    # 4. Dual-stream MOMENT/ΔP + DYN stack (1, 10, 40)
-    md_x = [1, 10, 40]
-    md_m = [e09_map[("stack_moment_diff", t)]["mean"] for t in ("1p", "10p", "40p")]
-    md_s = [e09_map[("stack_moment_diff", t)]["sample_sd"] for t in ("1p", "10p", "40p")]
-    ax2.errorbar(
-        md_x,
-        md_m,
-        yerr=md_s,
-        label="双流 MOMENT/ΔP + DYN 堆叠",
-        color="#CC79A7",
-        marker="D",
-        linestyle="--",
-        capsize=3,
-    )
-
-    # 5. Full 3-Way Stack (10, 40)
-    full_x = [10, 40]
-    full_m = [agg12b[("10p", "full")]["mean"], agg12b[("40p", "full")]["mean"]]
-    full_s = [agg12b[("10p", "full")]["sample_sd"], agg12b[("40p", "full")]["sample_sd"]]
-    ax2.errorbar(
-        full_x,
-        full_m,
-        yerr=full_s,
-        label="三路异构堆叠系统 (Full Stack)",
-        color="#D55E00",
-        marker="*",
-        markersize=8.5,
-        linewidth=2.3,
-        capsize=3.5,
-    )
-
-    # Key annotations on Panel (b)
-    ax2.annotate(
-        "1% 极低预算:\n双流+DYN 堆叠 88.72%\n(较 TCN +33.21 pp)",
-        xy=(1, 88.72),
-        xytext=(2.3, 60.5),
-        arrowprops={"arrowstyle": "->", "color": "#CC79A7", "lw": 1.2, "connectionstyle": "arc3,rad=-0.15"},
-        fontsize=7.6,
-        color="#831843",
-        fontweight="bold",
-        bbox={"boxstyle": "round,pad=0.25", "facecolor": "#FDF2F8", "edgecolor": "#FBCFE8", "alpha": 0.94},
-    )
-    ax2.annotate(
-        "Full Stack: 98.09%",
-        xy=(40, 98.09),
-        xytext=(15.5, 99.2),
-        arrowprops={"arrowstyle": "->", "color": "#D55E00", "lw": 1.2},
-        fontsize=8.2,
-        color="#D55E00",
-        fontweight="bold",
-    )
-
+    series = [
+        ("moment_logit", "MOMENT 原序列", "#CC79A7", "s", ":"),
+        ("moment_diff_logit", "MOMENT 双流（P+ΔP）", "#E69F00", "D", "--"),
+        ("f15_hgb", "F15 + HGB", "#999999", "v", ":"),
+        ("dyn_hgb", "DYN + HGB", "#009E73", "^", "--"),
+        ("tcn", "Masked TCN", "#0072B2", "o", "-"),
+        ("tcn_dyn", "TCN + DYN", "#56B4E9", "P", "-"),
+        ("dyn_moment_diff", "DYN + MOMENT/ΔP", "#A6761D", "X", "-"),
+        ("full", "三路融合（本文）", "#B91C1C", "*", "-"),
+    ]
+    for key, label, color, marker, ls in series:
+        m = [agg18[(t, key)]["mean"] for t in tags]
+        sd = [agg18[(t, key)]["sample_sd"] for t in tags]
+        ax2.errorbar(
+            x_pct,
+            m,
+            yerr=sd,
+            label=label,
+            color=color,
+            marker=marker,
+            linestyle=ls,
+            capsize=2.5,
+            linewidth=2.3 if key == "full" else 1.5,
+            markersize=8 if key == "full" else 5,
+        )
     ax2.set_xscale("log")
     ax2.set_xticks(x_pct, [f"{v}%" for v in x_pct])
-    ax2.set_xlim(0.8, 52)
-    ax2.set_ylim(40, 103)
-    ax2.set_xlabel("训练标注预算比例（对数坐标）")
+    ax2.minorticks_off()
+    ax2.set_xlim(0.8, 50)
+    ax2.set_ylim(50, 100)
+    ax2.set_xlabel("训练标注比例（对数坐标）")
     ax2.set_ylabel("验证集 Macro-F1 (%)")
-    ax2.set_title("(b) 1%～40% 标注预算跨度下各模型样本效率演进曲线", pad=10)
-    ax2.legend(loc="lower right", frameon=True, fontsize=7.8)
+    ax2.legend(loc="lower right", frameon=True, fontsize=7.6, ncol=2)
     ax2.grid(True, which="major", alpha=0.25)
-    ax2.grid(False, which="minor")
+    panel_caption(ax2, "(b) 统一协议下的标注比例曲线（E18）", y=-0.16)
 
     for ax in (ax1, ax2):
         ax.spines["top"].set_visible(False)
@@ -995,7 +821,7 @@ def plot_fig6_robustness_and_latency() -> None:
     ax1.set_ylim(15, 103)
     ax1.set_xlabel("有效观测区间加性高斯噪声强度（全局 RMS 百分比 / 原尺度单位）")
     ax1.set_ylabel("验证集 Macro-F1 (%)")
-    ax1.set_title("(a) 40% 标注预算下加性高斯测量噪声敏感度分析", pad=10)
+    panel_caption(ax1, "(a) 加性高斯噪声敏感性（40% 标注）", y=-0.27)
     ax1.legend(loc="lower left", frameon=True, fontsize=8.0)
     ax1.grid(True, alpha=0.25)
 
@@ -1026,7 +852,7 @@ def plot_fig6_robustness_and_latency() -> None:
     ax2.set_ylim(94.4, 98.6)
     ax2.set_xlabel("单样本在线推理时延 (ms，对数坐标；实心=批大小32，空心=批大小1)")
     ax2.set_ylabel("40% 标注预算验证集 Macro-F1 (%)")
-    ax2.set_title("(b) RTX 4080 平台分类精度与在线推理时延帕累托权衡", pad=10)
+    panel_caption(ax2, "(b) 精度—推理时延权衡（RTX 4080）", y=-0.2)
     ax2.grid(True, which="both", alpha=0.25)
 
     for ax in (ax1, ax2):
@@ -1037,6 +863,166 @@ def plot_fig6_robustness_and_latency() -> None:
     save_both(fig, "fig6_robustness_and_latency")
 
 
+def plot_fig7_tcn_and_calibration() -> None:
+    setup_chinese_journal_style()
+    e05c = load_json(
+        "artifacts/imports/e05c_tcn_replication_20261019/terminal_artifacts/summary.json"
+    )
+    e10 = load_json(
+        "artifacts/imports/e10_calibration_safety_20261020/e10_calibration_safety/summary.json"
+    )
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.5))
+
+    # Panel (a): E05C TCN architecture & masking replication across 10%, 40%, 100%
+    agg05 = {(r["condition"], r["fraction"]): r for r in e05c["aggregate"]}
+    fracs = [0.1, 0.4, 1.0]
+    frac_labels = ["10% 标注 (2,456)", "40% 标注 (9,827)", "100% 标注 (24,569)"]
+    conds = [
+        ("current_fixed50", "残差 TCN（RF=61，掩码池化）", "#94A3B8"),
+        ("legacy_unmasked50", "6 层因果 TCN（RF=127，无掩码池化）", "#56B4E9"),
+        ("legacy_masked50", "6 层因果 TCN（RF=127，掩码池化）", "#0072B2"),
+    ]
+    x = np.arange(len(fracs))
+    w = 0.25
+    for i, (c_key, c_label, color) in enumerate(conds):
+        means = [agg05[(c_key, f)]["macro_f1_mean_percent"] for f in fracs]
+        sds = [agg05[(c_key, f)]["macro_f1_sample_sd_percent"] for f in fracs]
+        bars = ax1.bar(
+            x + (i - 1) * w,
+            means,
+            w,
+            yerr=sds,
+            capsize=3,
+            label=c_label,
+            color=color,
+            edgecolor="white",
+            linewidth=0.6,
+            alpha=0.92,
+        )
+        for bar, val, sd_val in zip(bars, means, sds):
+            ax1.text(
+                bar.get_x() + bar.get_width() / 2,
+                val + sd_val + 0.5,
+                f"{val:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=7.5,
+                fontweight="bold" if c_key == "legacy_masked50" else "normal",
+                color="#0072B2" if c_key == "legacy_masked50" else "#333333",
+            )
+
+    ax1.text(
+        0.02,
+        0.96,
+        "补零长度 1024 → 1536 时：\n"
+        "无掩码池化：最大 logit 漂移 418～531，预测改变 100/33 条\n"
+        "掩码池化：logit 漂移为 0",
+        transform=ax1.transAxes,
+        va="top",
+        ha="left",
+        fontsize=7.5,
+        color="#1E3A8A",
+        bbox={"boxstyle": "round,pad=0.28", "facecolor": "#EFF6FF", "edgecolor": "#93C5FD", "alpha": 0.94},
+    )
+    ax1.set_xticks(x, frac_labels)
+    ax1.set_ylim(62, 113)
+    ax1.set_xlabel("训练标注预算（样本数）")
+    ax1.set_ylabel("验证集 Macro-F1 (%)")
+    panel_caption(ax1, "(a) TCN 结构与池化方式", y=-0.24)
+    ax1.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=7.8)
+    ax1.grid(True, axis="y", alpha=0.25)
+    ax1.grid(False, axis="x")
+
+    # Panel (b): E10 Length-stratified comparison & calibration summary
+    strata_labels = ["短序列组", "中等序列组", "长序列组"]
+    x2 = np.arange(3)
+    w2 = 0.19
+    seeds = ["42", "44", "45", "46"]
+
+    def get_strata_stats(tag: str, method: str) -> tuple[list[float], list[float]]:
+        means, sds = [], []
+        for g in range(3):
+            vals = [e10["tags"][tag]["length_strata"][s]["by_method"][method][g]["macro_f1"] * 100 for s in seeds]
+            means.append(float(np.mean(vals)))
+            sds.append(float(np.std(vals, ddof=1)))
+        return means, sds
+
+    s_specs = [
+        ("10p", "tcn_full", "10% TCN（固定 50 轮）", "#94A3B8"),
+        ("10p", "stack_tcn", "10% 三路异构堆叠", "#56B4E9"),
+        ("40p", "tcn_full", "40% TCN（固定 50 轮）", "#0072B2"),
+        ("40p", "stack_tcn", "40% 三路异构堆叠", "#D55E00"),
+    ]
+    for i, (t_key, m_key, s_label, color) in enumerate(s_specs):
+        means, sds = get_strata_stats(t_key, m_key)
+        bars = ax2.bar(
+            x2 + (i - 1.5) * w2,
+            means,
+            w2,
+            yerr=sds,
+            capsize=2.5,
+            label=s_label,
+            color=color,
+            edgecolor="white",
+            linewidth=0.6,
+            alpha=0.92,
+        )
+        for bar, val, sd_val in zip(bars, means, sds):
+            ax2.text(
+                bar.get_x() + bar.get_width() / 2,
+                val + sd_val + 0.4,
+                f"{val:.1f}",
+                ha="center",
+                va="bottom",
+                fontsize=7.3,
+                fontweight="bold" if "stack" in m_key else "normal",
+                color=color if "stack" in m_key else "#333333",
+            )
+
+    long10 = get_strata_stats("10p", "stack_tcn")[0][2] - get_strata_stats("10p", "tcn_full")[0][2]
+    long40 = get_strata_stats("40p", "stack_tcn")[0][2] - get_strata_stats("40p", "tcn_full")[0][2]
+    ax2.annotate(
+        f"长序列组相对 TCN：\n10% 标注 {long10:+.2f} pp\n40% 标注 {long40:+.2f} pp",
+        xy=(2 - 0.5 * w2, 95.0),
+        xytext=(1.42, 99.8),
+        arrowprops=None,
+        fontsize=7.5,
+        fontweight="bold",
+        color="#0369A1",
+        bbox={"boxstyle": "round,pad=0.25", "facecolor": "#F0F9FF", "edgecolor": "#BAE6FD", "alpha": 0.94},
+    )
+    ax2.text(
+        0.02,
+        0.96,
+        "温度缩放（元学习器 OOF 拟合）：\n"
+        "10% 堆叠 T=0.853，ECE 3.52% → 0.94%\n"
+        "40% 堆叠 T=1.001，ECE 0.56%",
+        transform=ax2.transAxes,
+        va="top",
+        ha="left",
+        fontsize=7.4,
+        color="#7F1D1D",
+        bbox={"boxstyle": "round,pad=0.26", "facecolor": "#FEF2F2", "edgecolor": "#FECACA", "alpha": 0.94},
+    )
+
+    ax2.set_xticks(x2, strata_labels)
+    ax2.set_ylim(76, 105.5)
+    ax2.set_xlabel("有效序列长度分组（各 seed 训练集三分位点，约 266 / 399）")
+    ax2.set_ylabel("验证集分组 Macro-F1 (%)")
+    panel_caption(ax2, "(b) 按序列长度分层的性能", y=-0.27)
+    ax2.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=7.8)
+    ax2.grid(True, axis="y", alpha=0.25)
+    ax2.grid(False, axis="x")
+
+    for ax in (ax1, ax2):
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    save_both(fig, "fig7_tcn_and_calibration")
+
+
 if __name__ == "__main__":
     plot_fig1_overall_framework()
     plot_fig2_pooling_and_head_stabilization()
@@ -1044,3 +1030,4 @@ if __name__ == "__main__":
     plot_fig4_dyn_feature_ablation()
     plot_fig5_stacking_ablation_and_low_label()
     plot_fig6_robustness_and_latency()
+    plot_fig7_tcn_and_calibration()
