@@ -1,5 +1,7 @@
 # E18 100%：全标签统一基准（validation-only）
 
+> **2026-10-29 语义复评**：0=正常、1=电池异常、2=充电器故障；本表Macro-F1不变。100% Full真正电池Recall/FPR/AP为98.68/0.57/99.70%，TCN+DYN为98.80/0.58/99.70%，均为四seed均值和默认argmax；不构成安全部署保证。见[纠错记录](label_semantics_correction_20261029.md)。
+
 **状态：4 seed × 12 方法 = 48 条件 / 168,480 行；仅 validation，0 test。**
 
 在 RTX 5090 新环境、与 E18 相同的固定配置下补跑 100% 训练标签（24,569 条）；validation 仍 3,510 条。HGB 固定参数、MOMENT logistic C=1.0、TCN 50 epoch/5折OOF+全量、Multi/Mini interp_z 256 + RidgeCV。

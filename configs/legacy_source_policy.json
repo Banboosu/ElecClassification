@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "confirmed_by": "user",
+  "date": "2026-10-29",
+  "rejected_sources": ["legacy/ceshi.py", "legacy/画曲线测试.py"],
+  "forbidden_uses": ["runtime import/execution", "training/preprocessing implementation source", "label codebook", "physical units or sensor specifications", "fault-mechanism evidence", "official figure/metric source"],
+  "preserve_original_bytes": true,
+  "read_only_inspection_tools": ["scripts/audit_rejected_legacy_sources.py", "tests/test_rejected_legacy_sources.py"],
+  "notes": [
+    "These are user-rejected erroneous scripts, not authoritative legacy implementations. Do not execute them even to inspect their behavior.",
+    "Other legacy files are not automatically trusted. Formal TCN architecture references explicitly name 改进TCN.py and are separate from these two rejected scripts.",
+    "An audit may read or parse rejected source as text, but must never import, eval, exec, or run it.",
+    "Matching a generic plot idiom or the integer 18 is not proof of copying; unresolved provenance must be stated explicitly."
+  ]
+}

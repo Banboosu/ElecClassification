@@ -31,6 +31,7 @@ from tcn_moment import run_e08
 from tcn_moment import tcn_legacy_pilot as pilot
 from tcn_moment.data import stratified_train_subset_indices
 from tcn_moment.io_utils import atomic_write_json, sha256_file
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index
 from tcn_moment.train_tcn import make_loader
 from tcn_moment.training_utils import seed_everything
 
@@ -73,6 +74,7 @@ def _sources(protocol_path: Path) -> list[Path]:
     return [
         Path(__file__).resolve(),
         directory / "run_e08.py",
+        directory / "label_semantics.py",
         directory / "run_e09_diff_stream.py",
         directory / "dynamics_features.py",
         directory / "statistical_features.py",
@@ -274,7 +276,7 @@ def run_seed(protocol_path: Path, seed: int) -> None:
         if record["method"] == "dyn_hgb"
     }
     class_names = ["0", "1", "2"]
-    battery_index = 2
+    battery_index = class_index(class_names, BATTERY_LABEL)
     if not torch.cuda.is_available():
         raise RuntimeError("E12 requires CUDA")
     device = torch.device("cuda")

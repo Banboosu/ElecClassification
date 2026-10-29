@@ -25,6 +25,7 @@ from sklearn.metrics import f1_score
 
 from tcn_moment.data import load_dataset
 from tcn_moment.io_utils import atomic_write_json, sha256_file
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index
 from tcn_moment.train_feature_fusion import frozen_features
 
 DEFAULT_PROTOCOL = Path("configs/experiments/improvements/e09_diff_stream_pilot_protocol.json")
@@ -68,6 +69,7 @@ def freeze(protocol_path: Path) -> None:
     sources = [
         Path(__file__).resolve(),
         Path("src/tcn_moment/run_e08.py"),
+        Path("src/tcn_moment/label_semantics.py"),
         Path("src/tcn_moment/dynamics_features.py"),
         Path("src/tcn_moment/statistical_features.py"),
         Path("src/tcn_moment/train_feature_fusion.py"),
@@ -281,7 +283,7 @@ def run(protocol_path: Path) -> None:
     inputs = _load_inputs(protocol_path)
     raw = inputs["raw"]
     class_names = [str(value) for value in raw.label_encoder.classes_]
-    battery_index = class_names.index("2")
+    battery_index = class_index(class_names, BATTERY_LABEL)
     hgb_params_by_tag = _hgb_params(protocol_path)
     seed = int(p["seed"])
     conditions = []

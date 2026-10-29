@@ -10,6 +10,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION
 from tcn_moment.paper_style import apply_paper_style
 
 ROOT = Path("artifacts/improvements/e18_low_label/e18_low_label_20261020_v1")
@@ -48,6 +49,11 @@ COLORS = {
 
 def load():
     data = json.loads((ROOT / "summary.json").read_text())
+    if data.get("label_semantics_version") != SEMANTICS_VERSION or data.get("battery_label") != BATTERY_LABEL:
+        raise ValueError(
+            "Legacy E18 battery fields describe raw class 2 (charger). "
+            "Use scripts/plot_label_semantics_correction.py for the audited class-1 battery curves."
+        )
     rows = {(row["tag"], row["method"]): row for row in data["aggregate"]}
     return rows
 

@@ -81,20 +81,18 @@ validation Macro-F1 从 **90.60%** 提高到 **95.00%**（+4.41pp，4/4 seed）�
 seed44–46（未参与特征设计的确认 seed）上 DYN−F15 为 +4.30/+4.53/+4.35pp，
 stack−DYN 为 +0.43/+0.48/+0.34pp；方向与 seed42 一致。
 
-## 4. 电池异常（40% 标签，默认 argmax）
+## 4. 电池异常（类别1；40%标签，默认argmax；2026-10-29复评）
 
 | 方法 | Recall % | FPR % | Average Precision % |
 |---|---:|---:|---:|
-| F15 + HGB | 89.56 | 4.92 | 96.85 |
-| DYN + HGB | **95.10** | **2.71** | **98.98** |
-| F15 + RBF-SVM | 86.86 | 4.27 | 94.42 |
-| DYN + RBF-SVM | 93.09 | 3.17 | 97.10 |
-| MOMENT + logistic | 77.84 | 9.58 | 88.12 |
-| DYN + MOMENT stack | 95.52 | 2.44 | 98.61 |
+| F15 + HGB | 90.84 | 4.16 | 96.14 |
+| DYN + HGB | **95.06** | **2.10** | **98.77** |
+| F15 + RBF-SVM | 90.44 | 4.44 | 90.87 |
+| DYN + RBF-SVM | 94.16 | 2.44 | 96.84 |
+| MOMENT + logistic | 89.40 | 3.81 | 95.34 |
+| DYN + MOMENT stack | 95.68 | 1.77 | 98.68 |
 
-动力学特征同时改善电池 recall 和 FPR，不是“用更多误报换召回”。这比 E03T 的
-87.96%/3.90% 在量级上好得多，但两者数据角色不同（validation vs test），不能直接配对排名。
-没有为电池类重新选阈值；以上是默认 argmax。
+DYN相对F15改善类别1的Recall/FPR；以上按四seed分别复算后汇总，SVM的AP使用原始decision_function分数而非概率。旧表按类别2计算，实际对应充电器；E03T旧87.96/3.90%也属于充电器，且是历史test，不能拿来比较当前电池结果。本次只读validation预测，不选新阈值。全表见[扩展复评](label_semantics_reassessment_expanded_20261029.md)。
 
 ## 5. 特征组消融与重要性（40% 标签）
 
@@ -108,7 +106,7 @@ stack−DYN 为 +0.43/+0.48/+0.34pp；方向与 seed42 一致。
 | trend | 18 | 94.61 | −0.40 | 82.55 |
 
 - 去掉 roughness 组损失 4.13pp，是唯一大幅掉分的组；只用 roughness 就有 90.48%，超过
-  完整 15 维特征。电池异常曲线的“粗糙度/转折/平台”信息是主要增益来源。
+  完整15维特征。这证明粗糙度组对总体分类有贡献，不能据总体消融把它专归于电池机理或某一故障原因。
 - 置换重要性前 8：`increasing_fraction`、`diff_abs_mean`、`max_abs_diff`、
   `diff_abs_over_mean`、`direction_turn_rate`、`plateau_fraction`、
   `diff_autocorrelation`、`length`。重要性是描述性的，且特征相关，不能作因果解释。

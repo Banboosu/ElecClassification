@@ -35,6 +35,7 @@ from tcn_moment import tcn_legacy_pilot as pilot
 from tcn_moment.config import load_config, replace, with_random_seed
 from tcn_moment.data import load_dataset, stratified_train_subset_indices
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION, class_index
 from tcn_moment.run_e12_tcn_stack import _tcn_predict, _train_tcn
 
 SEEDS = (42, 44, 45, 46)
@@ -138,7 +139,8 @@ def _meta(oof: np.ndarray, y: np.ndarray, val: np.ndarray, seed: int) -> np.ndar
 
 def _evaluate(y: np.ndarray, prob: np.ndarray) -> dict[str, Any]:
     pred = prob.argmax(1)
-    metrics = run_e08._evaluate(y, pred, prob, ["0", "1", "2"], 2)
+    names = ["0", "1", "2"]
+    metrics = run_e08._evaluate(y, pred, prob, names, class_index(names, BATTERY_LABEL))
     return {"macro_f1": float(metrics["macro_f1"]), "battery_recall": float(metrics["battery"]["recall"]),
             "battery_fpr": float(metrics["battery"]["false_positive_rate"]), "pred": pred, "prob": prob}
 
@@ -158,11 +160,15 @@ def run(protocol_path: Path) -> None:
     if p.get("test_evaluated") or p.get("automatic_expansion"):
         raise ValueError("E18 is validation-only")
     root = Path(p["output_dir"]) / p["suite"]
+    if root.exists() and any(root.iterdir()):
+        raise FileExistsError(f"Use a new suite; refusing to overwrite historical semantics: {root}")
     root.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda")
     if not torch.cuda.is_available():
         raise RuntimeError("E18 requires CUDA")
-    summary = {"test_evaluated": False, "protocol_sha256": _sha(protocol_path), "conditions": []}
+    summary = {"test_evaluated": False, "protocol_sha256": _sha(protocol_path),
+               "label_semantics_version": SEMANTICS_VERSION, "battery_label": BATTERY_LABEL,
+               "conditions": []}
     fractions = tuple(float(value) for value in p.get("fractions", FRACTIONS))
     seeds = tuple(int(value) for value in p.get("seeds", SEEDS))
     for seed in seeds:
@@ -235,6 +241,8 @@ def run(protocol_path: Path) -> None:
                     "macro_f1": result["macro_f1"],
                     "battery_recall": result["battery_recall"],
                     "battery_fpr": result["battery_fpr"],
+                    "battery_label": BATTERY_LABEL,
+                    "label_semantics_version": SEMANTICS_VERSION,
                     "test_evaluated": False,
                 }
                 summary["conditions"].append(record)

@@ -156,12 +156,12 @@ def main():
             f"相对最强参照平均 **+{primary['mean_difference_pp']:.3f}pp**，**4/4正向**；描述性95%配对t区间 **[{primary['ci95_lower_pp']:+.3f}, {primary['ci95_upper_pp']:+.3f}]pp**。均值≥0.5pp且≥3/4正向，主规则通过。",
             f"相对仅MOMENT平均 **+{side['mean_difference_pp']:.3f}pp**，4/4正向，描述性区间 **[{side['ci95_lower_pp']:+.3f}, {side['ci95_upper_pp']:+.3f}]pp**，0.25pp消融规则通过；因此整体复制规则通过。",
             f"200轮固定端点相对最强参照平均 **{st.mean(endpoints):+.3f}pp**、{sum(v>0 for v in endpoints)}/4正向；这是描述性结果，不能代替预算内最好模型的主规则。",'',
-            '## 类别与电池异常边界','',
+            '## 类别与历史类别2（充电器）边界','',
             '| 类别 | 融合F1均值 % | 父融合SVM F1均值 % | 配对均值差pp |','|---|---:|---:|---:|']
-    for k,label in enumerate(('0：正常','1：充电器故障','2：电池异常')):
+    for k,label in enumerate(('0：正常','1：电池异常','2：充电器故障')):
         nn=f[f'class_{k}_f1_percent']['mean'];parent=st.mean(parent_classes[str(k)])
         lines.append(f'| {label} | {nn:.2f} | {parent:.2f} | {nn-parent:+.2f} |')
-    lines+=['',f"电池异常（类别2）融合头的AP均值 **{f['battery_ap_percent']['mean']:.2f}%**，默认argmax Recall **{f['battery_recall_percent']['mean']:.2f}%**，one-vs-rest FPR **{f['battery_fpr_percent']['mean']:.2f}%**。AP由保存的validation概率重算，未选新阈值；不是固定高召回安全运行点，不等于部署保证。逐运行与各支路结果见CSV/JSON。",'',
+    lines+=['',f"充电器故障（类别2，旧产物battery_*键）融合头的AP均值 **{f['battery_ap_percent']['mean']:.2f}%**，默认argmax Recall **{f['battery_recall_percent']['mean']:.2f}%**，one-vs-rest FPR **{f['battery_fpr_percent']['mean']:.2f}%**。AP由保存的validation概率重算，未选新阈值；不是固定高召回安全运行点，不等于部署保证。逐运行与各支路结果见CSV/JSON。",'',
             '## 成本、曲线与限制','',
             f"12个缓存头训练epoch计时合计 **{sum(r['training_seconds'] for r in rows)/60:.2f}分钟**；不包含骨干提取、SVM补控制、准备与审计，不可当作线上延迟。融合头135,555个参数，公共341M量级骨干依然是完整推理依赖，不可只报头大小。",
             '![E03E validation曲线](../figures/e03e_gain_replication_20261018.svg)','',

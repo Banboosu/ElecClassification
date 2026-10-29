@@ -7,6 +7,7 @@ from tcn_moment import run_e08
 from tcn_moment.config import load_config, replace, with_random_seed
 from tcn_moment.data import load_dataset, stratified_train_subset_indices
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION, class_index
 
 E08 = Path("artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1")
 OUT = Path("artifacts/improvements/e18d_svm/e18d_svm_20261020_v1")
@@ -22,6 +23,8 @@ def softmax(x):
 
 
 def main():
+    if OUT.exists() and any(OUT.iterdir()):
+        raise FileExistsError("Preserve historical E18d; use a new suite for semantic v2")
     OUT.mkdir(parents=True, exist_ok=True)
     summary = {"test_evaluated": False, "conditions": []}
     for seed in SEEDS:
@@ -39,7 +42,7 @@ def main():
                 model = run_e08._svm_factory({"C": c, "gamma": "scale"}).fit(x, raw.y_train[idx])
                 scores = softmax(model.decision_function(v))
                 pred = scores.argmax(1)
-                metrics = run_e08._evaluate(raw.y_val, pred, scores, ["0", "1", "2"], 2)
+                metrics = run_e08._evaluate(raw.y_val, pred, scores, ["0", "1", "2"], class_index(["0", "1", "2"], BATTERY_LABEL))
                 path = OUT / f"seed{seed}" / "conditions" / tag / method
                 path.mkdir(parents=True, exist_ok=True)
                 with (path / "predictions.csv").open("w", newline="") as f:
@@ -51,6 +54,7 @@ def main():
                        "macro_f1": float(metrics["macro_f1"]),
                        "battery_recall": float(metrics["battery"]["recall"]),
                        "battery_fpr": float(metrics["battery"]["false_positive_rate"]),
+                       "battery_label": BATTERY_LABEL, "label_semantics_version": SEMANTICS_VERSION,
                        "test_evaluated": False}
                 summary["conditions"].append(rec)
                 atomic_write_json(path / "metrics.json", rec)

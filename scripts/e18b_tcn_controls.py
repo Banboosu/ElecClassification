@@ -19,6 +19,7 @@ from tcn_moment import run_e08
 from tcn_moment.config import load_config, replace, with_random_seed
 from tcn_moment.data import load_dataset, stratified_train_subset_indices
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION
 from tcn_moment.run_e12_tcn_stack import _tcn_predict, _train_tcn
 from tcn_moment.run_e18_low_label import (
     E01,
@@ -58,6 +59,8 @@ def main():
     if not torch.cuda.is_available():
         raise RuntimeError("E18b requires CUDA")
     device = torch.device("cuda")
+    if OUT.exists() and any(OUT.iterdir()):
+        raise FileExistsError("Preserve historical E18b; use a new suite for semantic v2")
     OUT.mkdir(parents=True, exist_ok=True)
     summary = {"test_evaluated": False, "conditions": []}
     for seed in SEEDS:
@@ -103,6 +106,7 @@ def main():
                 res = _evaluate(y, prob)
                 _write(OUT, tag, seed, method, np.asarray(ids_ref), y, res["prob"])
                 rec = {"seed": seed, "fraction": fraction, "tag": tag, "method": method, "n_train": len(indices), "macro_f1": res["macro_f1"], "battery_recall": res["battery_recall"], "battery_fpr": res["battery_fpr"], "test_evaluated": False}
+                rec.update(battery_label=BATTERY_LABEL, label_semantics_version=SEMANTICS_VERSION)
                 summary["conditions"].append(rec)
                 atomic_write_json(OUT / f"seed{seed}" / "conditions" / tag / method / "metrics.json", rec)
                 print(f"E18b {seed} {tag} {method}: {100*res['macro_f1']:.2f}", flush=True)

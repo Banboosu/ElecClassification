@@ -21,6 +21,7 @@ from tcn_moment.config import load_config, replace, with_random_seed
 from tcn_moment.data import load_dataset, stratified_train_subset_indices
 from tcn_moment.e08_analysis import paired_summary
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION, class_index
 
 SEEDS = (42, 44, 45, 46)
 TAGS = ("10p", "40p")
@@ -147,7 +148,7 @@ def _run_seed(tag: str, seed: int, root: Path) -> list[dict[str, Any]]:
             pred,
             probs,
             ["0", "1", "2"],
-            2,
+            class_index(["0", "1", "2"], BATTERY_LABEL),
         )
         condition_dir = root / tag / f"seed{seed}" / method
         condition_dir.mkdir(parents=True, exist_ok=True)
@@ -167,6 +168,8 @@ def _run_seed(tag: str, seed: int, root: Path) -> list[dict[str, Any]]:
             "macro_f1": float(metrics["macro_f1"]),
             "battery_recall": float(metrics["battery"]["recall"]),
             "battery_fpr": float(metrics["battery"]["false_positive_rate"]),
+            "battery_label": BATTERY_LABEL,
+            "label_semantics_version": SEMANTICS_VERSION,
             "selected_params": selected,
             "cv_results": cv_results,
             "predictions": str(condition_dir / "predictions.csv"),
@@ -296,9 +299,11 @@ def _audit(root: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", default="artifacts/improvements/e12b_fusion_ablation_corrected")
+    parser.add_argument("--output-dir", default="artifacts/improvements/e12b_fusion_ablation_semantics_v2")
     args = parser.parse_args()
     root = Path(args.output_dir)
+    if root.exists() and any(root.iterdir()):
+        raise FileExistsError(f"Use a new output directory; preserve historical semantics: {root}")
     conditions = []
     for tag in TAGS:
         for seed in SEEDS:

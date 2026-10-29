@@ -1,5 +1,7 @@
 # E12b（修正版）：完整融合消融（validation-only）
 
+> **2026-10-29 语义纠错**：正确电池为类别1，充电器为类别2；下方电池表已从64条件保存预测重算，Macro-F1不变。40% Full电池Recall/FPR=98.23/0.67%，TCN+DYN=98.18/0.67%。原JSON/CSV和冻结协议不覆盖；详见[后续纠错](label_semantics_correction_followup_20261029.md)与[当前全表](label_semantics_reassessment_expanded_20261029.md)。
+
 **状态：4 seed × 2 预算 × 8 方法 = 64 条件 / 224,640 行；仅 validation，0 test。**
 
 > **修正两处问题：**
@@ -71,14 +73,16 @@
 
 | 方法 | Recall % | FPR % |
 |---|---:|---:|
-| tcn | 95.72 | 0.62 |
-| tcn_meta | 96.05 | 0.67 |
-| dyn | 95.10 | 2.71 |
-| md | 93.33 | 3.81 |
-| tcn+dyn | 96.88 | 0.79 |
-| tcn+md | 96.57 | 0.69 |
-| dyn+md | 96.35 | 2.16 |
-| full | 97.38 | 0.85 |
+| tcn | 97.83 | 0.77 |
+| tcn_meta | 97.88 | 0.74 |
+| dyn | 95.06 | 2.10 |
+| md | 92.61 | 2.88 |
+| tcn+dyn | 98.18 | 0.67 |
+| tcn+md | 97.95 | 0.69 |
+| dyn+md | 96.01 | 1.65 |
+| full | 98.23 | 0.67 |
+
+上述为类别1、四seed均值、默认argmax；旧97.38/0.85属于充电器。10%时Full电池Recall95.28%略低于TCN+DYN95.33%，并非各分项均最优。
 
 ## 审计
 
@@ -95,6 +99,6 @@
 
 - 本地：`artifacts/imports/e12b_fusion_ablation_corrected_20261020/`（130 文件 / 17.6MB / 224,640 行，全部 validation，0 test）。
 - 远端：`artifacts/improvements/e12b_fusion_ablation_corrected/`。
-- 脚本：`scripts/analyze_e12b_fusion_ablation.py`（默认输出 corrected 目录）。
+- 脚本：`scripts/analyze_e12b_fusion_ablation.py`（当前默认输出 semantics_v2 目录，拒绝覆盖旧目录）。
 - 旧版：`artifacts/imports/e12b_fusion_ablation_20261020/`、旧文档，仅作历史记录。
 - 测试：`tests/test_e12b_analysis.py`（`tcn_meta` 存在、`_meta` 使用选中 C，OOF/validation 同参数）。

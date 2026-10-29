@@ -1,8 +1,9 @@
 """E10: calibration, error complementarity, length strata, and battery risk-coverage.
 
-Uses the saved E12 validation predictions and OOF probabilities.  Temperature scaling
-is fitted on OOF probabilities (cross-fitted training folds) and evaluated on
-validation; no test split is read.
+Uses saved E12 validation predictions and OOF features. Only the meta learner is
+cross-fitted again: this is NOT strictly independent outer OOF for the whole stack.
+Class-1 working points use validation labels for both threshold selection and
+assessment; they are descriptive only. No test predictions are read.
 """
 
 from __future__ import annotations
@@ -19,6 +20,8 @@ from scipy.stats import binomtest
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION
+
 E12_ROOT = Path("artifacts/improvements/e12_tcn_stack")
 SUITES = {
     "40p": E12_ROOT / "e12_tcn_stack_20261020_v1",
@@ -26,7 +29,7 @@ SUITES = {
 }
 E08_SUITE = Path("artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1")
 SEEDS = (42, 44, 45, 46)
-BATTERY = 2
+BATTERY = int(BATTERY_LABEL)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -36,6 +39,8 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _read_predictions(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     with path.open("r", encoding="utf-8", newline="") as file:
         rows = list(csv.DictReader(file))
+    if any(row["split"] != "validation" for row in rows):
+        raise ValueError("Only validation predictions are allowed")
     ids = np.asarray([row["sample_id"] for row in rows], dtype=str)
     y_true = np.asarray([int(row["y_true"]) for row in rows], dtype=np.int64)
     y_pred = np.asarray([int(row["y_pred"]) for row in rows], dtype=np.int64)
@@ -386,7 +391,8 @@ def _markdown(tag: str, records: list[dict[str, Any]], aggregation: dict[str, An
     lines = [
         f"# E10：E12 最终 stack 的校准、错误互补与电池风险（{tag}，validation-only）",
         "",
-        "温度缩放只在 outer-cross-fitted stack OOF 上拟合，validation 只评一次；没有 test。",
+        "仅对meta再次交叉拟合，不是完整stack严格独立外层OOF。电池为原始类别1；无test。",
+        "固定FPR/Recall的阈值在validation上构造并原地评价，仅描述性，不是部署保证。",
         "",
         "## 校准（四 seed 均值 ± SD）",
         "",
@@ -478,11 +484,15 @@ def _markdown(tag: str, records: list[dict[str, Any]], aggregation: dict[str, An
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tags", nargs="+", default=["40p", "10p"])
-    parser.add_argument("--output-dir", default="artifacts/improvements/e10_calibration_safety")
+    parser.add_argument("--output-dir", default="artifacts/improvements/e10_calibration_safety_semantics_v2")
     args = parser.parse_args()
     output_root = Path(args.output_dir)
+    if output_root.exists() and any(output_root.iterdir()):
+        raise FileExistsError("Use a new output directory; preserve historical E10 calibration and thresholds")
     output_root.mkdir(parents=True, exist_ok=True)
-    summary: dict[str, Any] = {"test_evaluated": False, "tags": {}}
+    summary: dict[str, Any] = {"test_evaluated": False, "tags": {},
+                               "battery_label": BATTERY_LABEL, "label_semantics_version": SEMANTICS_VERSION,
+                               "working_points_descriptive_only": True}
     for tag in args.tags:
         records = [_calibration_for_seed(tag, seed) for seed in SEEDS]
         aggregation = _aggregate(records)

@@ -5,6 +5,10 @@
 
 # E10：E12 最终 stack 的校准、错误互补与电池风险（validation-only）
 
+> **2026-10-29 电池类别1已复评**：[当前工作点表](e10_battery_semantics_v2_20261029.md)覆盖8份E12 Full预测，不重拟合温度、不重训、不重开test。目标1% FPR处10%/40% Recall为88.80%/98.75%（实际FPR约1.04%）；目标99% Recall时实际98.90%，FPR为7.31%/1.43%。仍是validation内构造阈值、原地评价，不能当部署保证。
+>
+> **以下保留历史原记录**：类别2旧“电池”阈值/PR实际针对充电器，不再代表电池结果；总体ECE/NLL和三分类错误互补数字不因更名改变。详见[续报](label_semantics_correction_followup_20261029.md)。
+
 > **独立验收限定（2026-10-20）**：当前只对既有OOF特征重新交叉拟合meta，不是完整stack严格独立的外层OOF。固定FPR/Recall工作点由validation标签选阈值后在同一数据上计算，只能作描述性ROC/工作点，不能解释为独立校准后锁定阈值的部署效果。下文原数字保留；“部署读法”“已校准”等措辞均受此限定。详见[验收报告](todo3_acceptance_20261020.md)。
 
 **状态：40%/10% 两个预算各四 seed；温度缩放只在 outer-cross-fitted stack OOF 上拟合，validation 只评一次；无 test。**

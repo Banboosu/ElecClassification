@@ -1,0 +1,40 @@
+{
+  "suite": "label_semantics_correction_20261029_v1",
+  "semantics_version": "v2_20261029_user_correction",
+  "source": "User confirmed that charger-fault and battery-anomaly class meanings had been reversed; no provider codebook has been attached.",
+  "class_names_zh": {"0": "正常", "1": "电池异常", "2": "充电器故障"},
+  "battery_label": "1",
+  "charger_label": "2",
+  "change_numeric_labels": false,
+  "retrain": false,
+  "test_evaluated": false,
+  "select_new_thresholds": false,
+  "seeds": [42, 44, 45, 46],
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "split_manifest_dir": "artifacts/imports/e01_validation_20261017/runs",
+  "output_dir": "artifacts/analysis/label_semantics_correction_20261029_v1",
+  "inputs": [
+    {
+      "name": "e18",
+      "root": "artifacts/imports/e18_low_label_20261020",
+      "expected_conditions": 240
+    },
+    {
+      "name": "e18_100p",
+      "root": "artifacts/imports/e18_low_label_100p_20261020",
+      "expected_conditions": 48
+    },
+    {
+      "name": "e12b_corrected",
+      "root": "artifacts/imports/e12b_fusion_ablation_corrected_20261020",
+      "expected_conditions": 64
+    }
+  ],
+  "notes": [
+    "Read only the saved validation predictions. Do not train, select models, open saved test predictions, or change raw data, splits, scores, and checkpoints.",
+    "Ignore historical score_battery and battery_* fields; recompute battery one-vs-rest metrics using raw label 1 and score_1.",
+    "Retain historical artifacts unchanged. Old class-2 binary models and thresholds remain class-2 (charger) objects, not corrected battery models.",
+    "Rocket score columns are softmax-transformed decision scores, not calibrated class probabilities."
+  ]
+}

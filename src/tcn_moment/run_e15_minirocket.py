@@ -38,6 +38,7 @@ from tcn_moment.config import load_config, replace, with_random_seed  # noqa: E4
 from tcn_moment.data import load_dataset, stratified_train_subset_indices  # noqa: E402
 from tcn_moment.e08_analysis import paired_summary  # noqa: E402
 from tcn_moment.io_utils import atomic_write_json  # noqa: E402
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index  # noqa: E402
 
 PACKAGES = ("numpy", "scikit-learn", "numba", "llvmlite")
 VARIANTS = ("interp_z",)
@@ -83,6 +84,8 @@ def _load(path: Path) -> dict[str, Any]:
 def _sources(protocol_path: Path) -> list[Path]:
     return [
         Path(__file__).resolve(),
+        Path("src/tcn_moment/label_semantics.py"),
+        Path("src/tcn_moment/run_e08.py"),
         Path("vendor/minirocket/minirocket.py"),
         Path("vendor/minirocket/__init__.py"),
         Path("vendor/minirocket/README.md"),
@@ -255,7 +258,7 @@ def run_seed(protocol_path: Path, seed: int) -> dict[str, Any]:
     config = with_random_seed(load_config(Path("configs/moment.yaml")), seed)
     raw = load_dataset(replace(config.data, normalize="none"))
     class_names = [str(value) for value in raw.label_encoder.classes_]
-    battery_index = class_names.index("2")
+    battery_index = class_index(class_names, BATTERY_LABEL)
     subset_indices = {
         tag: stratified_train_subset_indices(raw.y_train, raw.ids_train, fraction, seed)
         for tag, fraction in (("10p", 0.1), ("40p", 0.4))

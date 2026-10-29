@@ -32,6 +32,7 @@ from tcn_moment.config import load_config, replace, with_random_seed  # noqa: E4
 from tcn_moment.data import load_dataset, stratified_train_subset_indices  # noqa: E402
 from tcn_moment.e08_analysis import paired_summary  # noqa: E402
 from tcn_moment.io_utils import atomic_write_json  # noqa: E402
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index  # noqa: E402
 from tcn_moment.run_e09_diff_stream import _diff_arrays  # noqa: E402
 from tcn_moment.train_e01c import forbid_pretrained_loading  # noqa: E402
 from tcn_moment.train_moment import (  # noqa: E402
@@ -96,6 +97,7 @@ def _sources(protocol_path: Path) -> list[Path]:
         Path("src/tcn_moment/train_moment.py"),
         Path("src/tcn_moment/run_e09_diff_stream.py"),
         Path("src/tcn_moment/run_e08.py"),
+        Path("src/tcn_moment/label_semantics.py"),
         Path("src/tcn_moment/data.py"),
         Path("src/tcn_moment/config.py"),
         Path("src/tcn_moment/io_utils.py"),
@@ -344,7 +346,7 @@ def run(protocol_path: Path) -> None:
         print(f"Already complete: {root}", flush=True)
         return
     class_names = ["0", "1", "2"]
-    battery_index = 2
+    battery_index = class_index(class_names, BATTERY_LABEL)
     for seed in p["seeds"]:
         seed_root = Path(p["random_cache"]) / f"seed{seed}"
         manifest = _read(seed_root / "manifest.json")

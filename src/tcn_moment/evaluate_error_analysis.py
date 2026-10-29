@@ -26,11 +26,12 @@ from tcn_moment.evaluate_battery_safety import (
     _load_run,
 )
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL
 
 plt.switch_backend("Agg")
 
 
-ERROR_ANALYSIS_PROTOCOL_VERSION = 1
+ERROR_ANALYSIS_PROTOCOL_VERSION = 2
 DEFAULT_LOW_LABEL_FRACTIONS = (0.01, 0.05, 0.10)
 MODEL_ORDER = (
     "TCN_full",
@@ -1248,14 +1249,21 @@ def main() -> None:
         type=float,
         default=DEFAULT_LOW_LABEL_FRACTIONS,
     )
-    parser.add_argument("--output-dir", type=Path, default=Path("artifacts/m02_error_analysis"))
-    parser.add_argument("--critical-label", default="2")
+    parser.add_argument("--output-dir", type=Path, default=Path("artifacts/m02_error_analysis_semantics_v2"))
+    parser.add_argument("--critical-label", default=BATTERY_LABEL, choices=(BATTERY_LABEL,),
+                        help="Battery anomaly is raw label 1; class 2 is charger fault.")
+    parser.add_argument("--allow-test-evaluation", action="store_true",
+                        help="Explicit authorization required: this historical analysis reads test predictions.")
     parser.add_argument("--canonical-seed", type=int, default=42)
     parser.add_argument("--length-bins", type=int, default=4)
     parser.add_argument("--high-confidence-quantile", type=float, default=0.90)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
+    if not args.allow_test_evaluation:
+        parser.error("Test analysis is blocked by default; use the saved-validation semantic correction outputs.")
+    if args.output_dir.exists() and any(args.output_dir.iterdir()):
+        raise FileExistsError("Use a new output directory; do not mix legacy class-2 error flags with class-1 battery analysis")
     if not 3 <= args.length_bins <= 5:
         parser.error("--length-bins must be between 3 and 5.")
     if not 0 < args.high_confidence_quantile < 1:

@@ -32,6 +32,7 @@ from tcn_moment.evaluate_battery_safety import (
 )
 from tcn_moment.experiment import RunContext, prepare_run
 from tcn_moment.io_utils import atomic_torch_save, atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION
 from tcn_moment.train_baselines import (
     FEATURE_NAMES,
     _atomic_joblib_dump,
@@ -45,7 +46,7 @@ from tcn_moment.train_tcn import TCNClassifier, make_loader, select_device
 from tcn_moment.training_utils import seed_everything
 
 
-BATTERY_BINARY_PROTOCOL_VERSION = 1
+BATTERY_BINARY_PROTOCOL_VERSION = 2
 DEFAULT_POSITIVE_WEIGHTS = (1.0, 2.0, 4.0)
 DEFAULT_TARGET_RECALLS = (0.95, 0.98, 0.99)
 
@@ -142,6 +143,7 @@ def _protocol_record(
 ) -> dict[str, Any]:
     return {
         "battery_binary_protocol_version": BATTERY_BINARY_PROTOCOL_VERSION,
+        "label_semantics_version": SEMANTICS_VERSION,
         "task": f"label_{critical_label}_vs_rest",
         "critical_label": critical_label,
         "positive_weights": list(positive_weights),
@@ -779,9 +781,9 @@ def train(
     target_recalls: tuple[float, ...],
 ) -> None:
     output_dirs = {
-        "tcn": Path("artifacts/battery_binary_tcn"),
-        "stats": Path("artifacts/battery_binary_stats"),
-        "moment-svm": Path("artifacts/battery_binary_moment_svm"),
+        "tcn": Path("artifacts/battery_binary_tcn_semantics_v2"),
+        "stats": Path("artifacts/battery_binary_stats_semantics_v2"),
+        "moment-svm": Path("artifacts/battery_binary_moment_svm_semantics_v2"),
     }
     effective_config = (
         replace(config, data=replace(config.data, normalize="none"))
@@ -836,7 +838,10 @@ def main() -> None:
     parser.add_argument("--config", default="configs/moment.yaml")
     parser.add_argument("--seed", type=int)
     parser.add_argument("--run-name")
-    parser.add_argument("--critical-label", default="2")
+    parser.add_argument("--critical-label", default=BATTERY_LABEL, choices=(BATTERY_LABEL,),
+                        help="Battery anomaly is raw label 1, not historical class 2.")
+    parser.add_argument("--allow-test-evaluation", action="store_true",
+                        help="Explicit authorization required: this historical training pipeline also scores test.")
     parser.add_argument(
         "--positive-weights",
         nargs="+",
@@ -850,6 +855,8 @@ def main() -> None:
         default=DEFAULT_TARGET_RECALLS,
     )
     args = parser.parse_args()
+    if not args.allow_test_evaluation:
+        parser.error("This historical pipeline evaluates test; semantic correction does not authorize retraining or test scoring.")
     positive_weights = tuple(float(value) for value in args.positive_weights)
     target_recalls = tuple(float(value) for value in args.target_recalls)
     if any(value <= 0 for value in positive_weights):

@@ -44,16 +44,18 @@
 | stack_moment_diff - e08_stack | 40p | +0.55 ± 0.16 | 4/4 |
 | stack_moment_diff - tcn | 40p | -1.76 ± 0.32 | 0/4 |
 
-## 电池异常（40%，默认 argmax）
+## 电池异常（类别1，40%，默认argmax；2026-10-29复评）
 
 | 方法 | Recall % | FPR % |
 |---|---:|---:|
-| moment_logit | 77.87 | 9.60 |
-| diff_logit | 92.50 | 4.55 |
-| moment_diff_logit | 94.31 | 3.43 |
-| stack_moment | 95.51 | 2.44 |
-| stack_moment_diff | 96.35 | 2.18 |
-| stack_three | 96.30 | 2.38 |
+| moment_logit | 89.42 | 3.81 |
+| diff_logit | 91.14 | 4.01 |
+| moment_diff_logit | 93.36 | 2.56 |
+| stack_moment | 95.68 | 1.77 |
+| stack_moment_diff | 96.01 | 1.64 |
+| stack_three | 95.68 | 1.63 |
+
+旧表的77.87/9.60等实际是充电器类别2指标。上述类别1指标已从保存预测重算；stack_three只用OOF列修正版。全表见[扩展复评](label_semantics_reassessment_expanded_20261029.md)，不覆盖原产物。
 
 ## 事前门槛
 
@@ -70,7 +72,7 @@
 - `stack_three` 把 MOM 与 DIFF 分成两个 logistic 分支；修正历史 OOF 列重叠后，它仍略低于拼接的 `stack_moment_diff`（约 0.1–0.3pp），
   说明当前数据量下提前分开两支的代价很小，不能据此说差分信息无用。历史损坏版本（约 72%/91%/95%）已替换。
 - 与 TCN 的差值是同训练标签/同 validation 行的管线比较；TCN 的训练/选择预算不同。
-- 1% 的 MOMENT 单支仍弱；差分流的主要收益在 10%/40% 和电池类。
+- 差分流对两类均有帮助；40%电池Recall改善约3.94pp，充电器约16.44pp。不能把后者当作电池提升或由此认定某类故障机理。
 - 所有逐样本预测在聚合时重新核对 ID/真值/有限分数/行数，并复算 Macro-F1。
 
 ## 保全与审计

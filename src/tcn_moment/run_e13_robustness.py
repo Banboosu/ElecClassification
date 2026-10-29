@@ -30,6 +30,7 @@ from tcn_moment.config import load_config, replace, with_random_seed
 from tcn_moment.data import load_dataset, normalize_sequence
 from tcn_moment.dynamics_features import extract_dynamics_features
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index
 from tcn_moment.train_moment import (
     build_model,
     forward_features,
@@ -92,6 +93,7 @@ def _sources(protocol_path: Path) -> list[Path]:
     return [
         Path(__file__).resolve(),
         directory / "run_e08.py",
+        directory / "label_semantics.py",
         directory / "run_e09_diff_stream.py",
         directory / "run_e12_tcn_stack.py",
         directory / "tcn_legacy_pilot.py",
@@ -437,7 +439,7 @@ def run_seed(protocol_path: Path, seed: int, moments: Any) -> dict[str, Any]:
             metas[tag][name] = {"model": model, "selected": selected, "cv_results": cv_results}
 
     class_names = [str(value) for value in raw.label_encoder.classes_]
-    battery_index = class_names.index("2")
+    battery_index = class_index(class_names, BATTERY_LABEL)
     tcn_models = {
         tag: _load_tcn(Path(p["e12_suites"][tag]) / f"seed{seed}" / "models" / tag / "full.pt", device)
         for tag in indices_by_tag

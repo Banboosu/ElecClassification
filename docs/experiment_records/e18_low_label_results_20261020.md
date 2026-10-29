@@ -1,5 +1,7 @@
 # E18：统一下采样低标签基准（validation-only）
 
+> **2026-10-29 业务语义纠错**：正确映射为0=正常、1=电池异常、2=充电器故障。Macro-F1主表不变；旧电池图与旧 `battery_*` 实际按类别2计算，不能作为电池证据。全预算已按类别1另存复评，见[纠错记录](label_semantics_correction_20261029.md)和[全表](label_semantics_reassessment_20261029.md)。纠正版图位于 `../figures/label_semantics_v2/e18_battery_recall_fpr_v2.{svg,png}`，覆盖1%–100%，四seed均值；下方旧图仅保留历史用途。
+
 **状态：4 seed × 5 预算（1/5/10/20/40%）× 12 方法 = 240 条件 / 842,400 行；仅 validation，0 test。**
 
 在 RTX 5090 新环境上重跑统一基准；同一 split、同一训练子集、同一 validation 行。固定超参，避免每个预算单独调参：

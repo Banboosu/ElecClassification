@@ -125,19 +125,19 @@ def render(base, report, figure=None):
         value = d["endpoint_macro_f1_percent"][c]
         lines.append(f"- {label}端点均值±SD：{value['mean']:.4f} ± {value['sample_sd']:.4f}%。")
     lines += [f"- 端点平均差{e['mean']:+.4f}pp，只有{e['positive_seeds']}/4正向；因此主表4/4正向指validation所选模型，不能说所有训练终点均有收益。", "",
-              "## 类别与电池异常指标", "", "均为所选模型、默认argmax；不调阈值。单位%，下表为四seed均值。", "",
+              "## 类别与历史类别2（充电器）指标", "", "本格式器读取旧冻结E07产物：旧battery_*键实际是类别2充电器；不重算或重训。默认argmax，四seed均值，单位%。",  "",
               "| 指标 | 继续冻结 | LoRA8 | 差pp |", "|---|---:|---:|---:|"]
-    for name, key, index in (("正常F1", "class_f1", 0), ("充电器故障F1", "class_f1", 1), ("电池异常F1", "class_f1", 2),
-                              ("Accuracy", "accuracy", None), ("电池AP", "battery_AP", None),
-                              ("电池Recall", "battery_recall", None), ("电池FPR", "battery_FPR", None)):
+    for name, key, index in (("正常F1", "class_f1", 0), ("电池异常F1", "class_f1", 1), ("充电器故障F1", "class_f1", 2),
+                              ("Accuracy", "accuracy", None), ("充电器AP", "battery_AP", None),
+                              ("充电器Recall", "battery_recall", None), ("充电器FPR", "battery_FPR", None)):
         values = []
         for c in LABELS:
             metric = d["selected_class_battery_percent"][c][key]
             values.append((metric[index] if index is not None else metric)["mean"])
         lines.append(f"| {name} | {values[0]:.4f} | {values[1]:.4f} | {values[1]-values[0]:+.4f} |")
-    lines += ["", "电池平均AP略升、FPR降低，但Recall下降；各seed并非一致改善，不构成电池安全或部署优势。", "",
-              "### 逐seed电池指标与类别F1", "",
-              "| seed | 条件 | 正常F1 % | 充电器F1 % | 电池F1 % | 电池AP % | 电池Recall % | 电池FPR % |",
+    lines += ["", "类别2充电器AP略升、FPR降低，但Recall下降；各seed并非一致改善，不能据此推断电池安全或部署优势。", "",
+              "### 逐seed充电器指标与类别F1", "",
+              "| seed | 条件 | 正常F1 % | 电池F1 % | 充电器F1 % | 充电器AP % | 充电器Recall % | 充电器FPR % |",
               "|---:|---|---:|---:|---:|---:|---:|---:|"]
     for row in s["per_condition"]:
         m = row["selected"]

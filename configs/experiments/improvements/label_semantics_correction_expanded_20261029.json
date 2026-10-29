@@ -1,0 +1,41 @@
+{
+  "suite": "label_semantics_correction_20261029_v2",
+  "semantics_version": "v2_20261029_user_correction",
+  "source": "User-confirmed correction: raw label 1=battery anomaly, 2=charger fault. No numeric label permutation.",
+  "class_names_zh": {"0": "正常", "1": "电池异常", "2": "充电器故障"},
+  "battery_label": "1",
+  "charger_label": "2",
+  "change_numeric_labels": false,
+  "retrain": false,
+  "test_evaluated": false,
+  "select_new_thresholds": false,
+  "seeds": [42, 44, 45, 46],
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "split_manifest_dir": "artifacts/imports/e01_validation_20261017/runs",
+  "output_dir": "artifacts/analysis/label_semantics_correction_20261029_v2",
+  "inputs": [
+    {"name": "e18", "root": "artifacts/imports/e18_low_label_20261020", "expected_conditions": 240},
+    {"name": "e18_100p", "root": "artifacts/imports/e18_low_label_100p_20261020", "expected_conditions": 48},
+    {"name": "e12b_corrected", "root": "artifacts/imports/e12b_fusion_ablation_corrected_20261020", "expected_conditions": 64},
+    {"name": "e08", "root": "artifacts/imports/e08_strong_features_20261020", "data_root": "artifacts/imports/e08_strong_features_20261020/e08_strong_features_20261020_v1", "expected_conditions": 88, "allow_decision_scores": true},
+    {"name": "e09", "root": "artifacts/imports/e09_diff_stream_20261020", "expected_conditions": 60, "exclude_regex": "/stack_three/", "selection_reason": "Original stack_three had overlapping OOF columns; preserved but excluded from current evidence. Corrected 12 conditions are evaluated separately."},
+    {"name": "e09_stackfix", "root": "artifacts/imports/e09_stack_three_fix_20261020", "expected_conditions": 12},
+    {"name": "e12", "root": "artifacts/imports/e12_tcn_stack_20261020", "expected_conditions": 32},
+    {"name": "e13_stress", "root": "artifacts/imports/e13_robustness_20261020", "expected_conditions": 336, "include_regex": "e13_robustness/e13_robustness_20261020_v1/", "method_fields": ["perturbation", "method"], "selection_reason": "Keep stress and fine-noise suites separate; overlapping clean/quantization conditions are not pooled."},
+    {"name": "e13_fine", "root": "artifacts/imports/e13_robustness_20261020", "expected_conditions": 384, "include_regex": "e13_robustness/e13b_robustness_20261020_v1/", "method_fields": ["perturbation", "method"], "selection_reason": "Keep fine-noise and stress suites separate; fine grid was chosen after observing stress results."},
+    {"name": "e14", "root": "artifacts/imports/e14_multirocket_20261020", "expected_conditions": 8, "include_regex": "e14_multirocket/e14_multirocket_fast_20261020_v1/", "method_fields": ["method"], "selection_reason": "Only the canonical four-seed fast suite is summarized; aborted v1 partial condition remains preserved."},
+    {"name": "e15", "root": "artifacts/imports/e15_minirocket_20261020", "expected_conditions": 8, "method_fields": ["method"]},
+    {"name": "e16", "root": "artifacts/imports/e16_random_attribution_20261020", "expected_conditions": 48, "method_fields": ["initialization", "stream"]},
+    {"name": "e16b", "root": "artifacts/imports/e16b_random_low_label_20261020", "expected_conditions": 72, "method_fields": ["initialization", "stream"]},
+    {"name": "e18b", "root": "artifacts/imports/e18b_tcn_controls_20261020", "expected_conditions": 60},
+    {"name": "e18c", "root": "artifacts/imports/e18c_tcn_selected_20261020", "expected_conditions": 20},
+    {"name": "e18d", "root": "artifacts/imports/e18d_svm_20261020", "expected_conditions": 16}
+  ],
+  "notes": [
+    "1496 conditions expected, all saved validation predictions. No new training, model inference, checkpoint/model selection, threshold selection or test scoring.",
+    "Source predictions and metric hashes must match preservation manifests; group all four formal seeds without pooling distinct initialization/stream/perturbation suites.",
+    "E08 SVC scores are raw OVR decision_function values; preserve SVC.predict results and rank each raw score column for AP, never treat decision scores as probabilities.",
+    "Frozen historical artifacts, protocols, source snapshots and v1 correction outputs remain unchanged."
+  ]
+}

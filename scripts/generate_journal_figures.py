@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 import numpy as np
 
+from tcn_moment.label_semantics import LABEL_NAMES_ZH
+
 ROOT = Path(__file__).resolve().parents[1]
 FIG_DIR = ROOT / "docs" / "figures"
 
@@ -32,7 +34,7 @@ def setup_chinese_journal_style() -> None:
     plt.rcParams.update(
         {
             "font.family": "sans-serif",
-            "font.sans-serif": ["Microsoft YaHei", "SimHei", "DejaVu Sans"],
+            "font.sans-serif": ["Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Noto Serif CJK SC", "DejaVu Sans"],
             "axes.unicode_minus": False,
             "font.size": 10,
             "axes.titlesize": 11.5,
@@ -257,8 +259,8 @@ def plot_fig1_overall_framework() -> None:
         "多项逻辑回归元学习器\n"
         "（可选温度缩放 T）\n"
         "──────────────\n"
-        "三分类输出\n"
-        "正常 / 充电器故障 / 电池异常",
+        "三分类输出（原始标签顺序）\n"
+        "0：正常\n1：电池异常\n2：充电器故障",
         fc="#FEF2F2",
         ec="#B91C1C",
         lw=1.6,
@@ -1028,8 +1030,19 @@ def plot_fig1_dataset_overview() -> None:
     import csv
 
     setup_chinese_journal_style()
-    split = load_json("artifacts/splits/unified_split.json")
+    split_candidates = [
+        ROOT / "artifacts/improvements/e01/e01_20261017_v2_pilot_seed42/split_manifest.json",
+        ROOT / "artifacts/imports/e01_validation_20261017/runs/e01_20261017_v2_pilot_seed42/split_manifest.json",
+    ]
+    split_path = next((path for path in split_candidates if path.exists()), None)
+    if split_path is None:
+        raise FileNotFoundError("Formal seed42 split manifest required for class examples")
+    split = json.loads(split_path.read_text(encoding="utf-8"))
+    if split["protocol"]["random_state"] != 42:
+        raise ValueError("Dataset example figures require formal seed42")
     train_ids = set(split["splits"]["train"])
+    if len(train_ids) != 24569:
+        raise ValueError("Unexpected training split size")
     by_class: dict[str, list[list[float]]] = {"0": [], "1": [], "2": []}
     csv.field_size_limit(10**8)
     with (ROOT / "data/raw/最新多.csv").open(encoding="utf-8") as f:
@@ -1039,7 +1052,7 @@ def plot_fig1_dataset_overview() -> None:
             values = [float(v) for v in row["charging_powers_str"].replace('"', "").split(",") if v.strip()]
             by_class[str(row["InsertedColumn"]).strip()].append(values)
 
-    names = {"0": "正常", "1": "充电器故障", "2": "电池异常"}
+    names = LABEL_NAMES_ZH
     colors = {"0": "#0072B2", "1": "#E69F00", "2": "#D55E00"}
     fig = plt.figure(figsize=(11.6, 6.4))
     gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.9], hspace=0.55, wspace=0.28)

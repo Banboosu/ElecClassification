@@ -18,6 +18,7 @@ from tcn_moment import run_e08
 from tcn_moment import run_e09_diff_stream as e09
 from tcn_moment.data import stratified_train_subset_indices
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index
 
 
 def _read(path: Path) -> dict[str, Any]:
@@ -34,7 +35,7 @@ def run(protocol_path: Path) -> None:
     inputs = e09._load_inputs(protocol_path)
     raw = inputs["raw"]
     class_names = [str(value) for value in raw.label_encoder.classes_]
-    battery_index = class_names.index("2")
+    battery_index = class_index(class_names, BATTERY_LABEL)
     hgb_params_by_tag = e09._hgb_params(protocol_path)
     seed = int(p["seed"])
     conditions: list[dict[str, Any]] = []

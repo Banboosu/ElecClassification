@@ -97,9 +97,9 @@ def main():
         lines.append(f"| {labels[method]} | {item['mean']:+.4f} | [{ci[0]:+.4f}, {ci[1]:+.4f}] |")
     lines += [
         "",
-        "## 类别与电池异常",
+        "## 类别与历史类别2（充电器）指标",
         "",
-        "| 方法 | 正常F1 % | 充电器故障F1 % | 电池异常F1 % | 电池Recall % | 电池FPR % | 电池AP % |",
+        "| 方法 | 正常F1 % | 电池异常F1 % | 充电器故障F1 % | 充电器Recall % | 充电器FPR % | 充电器AP % |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for method in p["methods"]:
@@ -118,7 +118,7 @@ def main():
         )
     lines += [
         "",
-        "使用默认argmax/predict，没有为电池异常搜索阈值或校准SVM概率。AP仅对有原生概率输出的NN/RF报告；SVM未临时开启probability或用decision值冒充概率。Recall/FPR不是固定高召回安全运行点，不构成部署保证。",
+        "本格式器仅读取旧E03T汇总，旧battery_*键实际指类别2充电器，不是电池。使用默认argmax/predict，没有为充电器故障搜索阈值或校准SVM概率。AP仅对有原生概率输出的NN/RF报告；SVM未临时开启probability或用decision值冒充概率。Recall/FPR不是固定高召回安全运行点，不构成部署保证。",
         "",
         "## 成本与结论边界",
         "",

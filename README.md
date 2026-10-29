@@ -4,19 +4,21 @@
 MOMENT 时序基础模型。项目支持固定数据划分、消融实验、多随机种子运行、断点续训及论文指标
 汇总。
 
-当前标签约定：
+当前标签约定（2026-10-29 用户纠正，数值标签不变）：
 
 | 标签 | 含义 | 是否参与训练 |
 |---|---|---|
 | `0` | 正常 | 是 |
-| `1` | 充电器故障 | 是 |
-| `2` | 电池异常 | 是 |
+| `1` | 电池异常 | 是 |
+| `2` | 充电器故障 | 是 |
 | `5` | 无效或不完整记录 | 否 |
 
-标签定义、真实内部数据来源及既有 TCN 部署依据见 `docs/data_dictionary.md`。
+**纠错提示：旧报告与冻结脚本把 1/2 的业务含义写反。旧 `battery_*` 通常是类别 2 的充电器指标，不能继续当电池指标使用。** 三分类 Macro-F1/Accuracy 不变；电池指标需用类别 1/`score_1` 重算。E08–E18系列已扩展复评1,496条件/5,250,960行；两份Markdown期刊稿与核心新图已更新，E10类别1工作点仍仅作描述性分析。见[纠错续报](docs/experiment_records/label_semantics_correction_followup_20261029.md)。旧PDF/DOCX未重导出，历史档案仍保留原字段与明确的类别2语义。不修改原始 CSV、split、旧预测和冻结协议，不为此重开 test。
 
-完整的五随机种子分类主表、MOMENT 微调消融、少样本、电池异常漏检—误报权衡、零样本插补、
-无监督检索、算力成本和论文结论边界见 [综合实验报告](docs/experiment_report_20260804.md)。
+标签定义与数据来源见 `docs/data_dictionary.md`。**`legacy/ceshi.py`、`legacy/画曲线测试.py`已被用户明确否定，禁止执行、移植或作为标签/物理参数/论文依据。** 来源审计见 `docs/experiment_records/rejected_legacy_sources_audit_20261029.md`；其他legacy文件也不自动视为可信。
+
+当前主线、纠错后的核心指标及证据边界见[简要报告](docs/experiment_report_brief.md)；
+历史测试、微调、插补与检索记录保留在 `docs/experiment_records/`，其业务类别解释受本次纠正约束。
 同架构预训练—随机初始化的 M01 归因结果见
 [M01 实验记录](docs/experiment_records/m01_pretraining_ablation_20260805.md)。
 
@@ -40,7 +42,7 @@ MOMENT 时序基础模型。项目支持固定数据划分、消融实验、多�
 │   ├── train_tcn.py                 # TCN
 │   └── train_moment.py              # MOMENT
 ├── artifacts/                       # 模型、指标、日志和图表，不由 Git 管理
-└── legacy/                          # 旧版脚本，仅供历史参考
+└── legacy/                          # 历史存档；含用户否定脚本，见 legacy/README.md
 ```
 
 ## 二、运行环境
@@ -358,64 +360,32 @@ uv run experiment-suite \
 如需运行 MOMENT 长度消融，将 `--model tcn` 改为 `--model moment`，并使用新的
 `--suite-name`。
 
-### 7. 电池异常安全关键复评（复用已训练权重）
+### 7. 类别语义纠正复评（只读已有 validation 预测）
 
-标签 `2` 是项目约定的电池异常。总体 Accuracy 不能反映漏检和误报，因此正式结果完成后应对
-最佳 checkpoint 追加 one-vs-rest 安全评估。阈值只在验证集选择，测试集不参与选择：
-
-```bash
-bash scripts/run_battery_safety_remote.sh
-```
-
-也可以复评指定运行：
+电池异常对应原始标签 `1`，充电器故障对应 `2`。不交换数字标签或概率列；按正确的
+one-vs-rest 正类重算 Recall/FPR/AP。现有输出保留，复评必须另建目录：
 
 ```bash
-uv run battery-safety-evaluate \
-  --run-dirs artifacts/tcn/<运行名> artifacts/moment/<运行名> \
-  --output-dir artifacts/battery_safety_thesis_v1 \
-  --critical-label 2 \
-  --target-recalls 0.95 0.98 0.99 \
-  --device cuda
+PYTHONPATH=src python3 scripts/correct_label_semantics.py \
+  --protocol configs/experiments/improvements/label_semantics_correction_expanded_20261029.json
 ```
 
-输出包括逐样本电池异常分数、PR-AUC/ROC-AUC、Recall/FNR、Precision/FPR、F2，以及验证集
-目标 Recall 为 95%、98%、99% 时在测试集上的实际漏检与误报。完整协议和结论边界见
-[`battery_safety_experiment_20260804.md`](docs/experiment_records/battery_safety_experiment_20260804.md)。
+当前覆盖E08–E18系列，1,496条件/5,250,960行；不重训、不推理、不评价test。逐行核对
+ID、split、原始数字真值与分数；概率检查argmax，SVC保留投票预测和原始decision分数。
+输出见 `artifacts/analysis/label_semantics_correction_20261029_v2/`，已有目录拒绝覆盖。
+类别1的E10描述性工作点另存，不拟合温度，不将validation原地阈值评价当部署效果。
 
-### 8. 电池异常专用二分类器
+**历史 `run_battery_safety_remote.sh` 等脚本不作为纠错入口。当前 safety/binary/error-analysis CLI已改正类1、版本2，并要求显式 `--allow-test-evaluation` 才能执行其历史test路径；本轮没有授权或执行该路径。**
+历史安全复评见 `docs/experiment_records/battery_safety_experiment_20260804.md`，其类别 2 指标应解释为充电器故障。
 
-专用 one-vs-rest 实验比较二分类 TCN、统计特征模型和冻结 MOMENT + RBF-SVM。先运行
-seed 42 pilot，并只依据验证集门控是否扩展到五个随机种子：
+### 8. 历史专用二分类器（语义已更正，暂停作为电池证据）
 
-```bash
-bash scripts/run_battery_binary_pilot_remote.sh
-```
+旧 `battery_binary` 系列以类别 `2` 为正类，实际训练的是**充电器故障 vs. 其余类别**。
+二分类负类把正常和类别 1 混在一起，不能靠交换输出、改名或取 `1-p` 得到电池检测器。
+旧结果与模型保留，但不继续支持电池安全结论。
 
-也可以单独运行一个模型：
-
-```bash
-uv run battery-binary \
-  --model tcn \
-  --config configs/experiments/few_shot/tcn_05_percent.yaml \
-  --seed 42 \
-  --run-name battery_binary_tcn_05_pilot_v1_seed42
-```
-
-`--model` 可取 `tcn`、`stats` 或 `moment-svm`。正类权重候选默认为 `1 2 4`，报警阈值只在
-验证集按 max-F2 或 95%/98%/99% 目标 Recall 选择。预注册门控与论文使用边界见
-[`battery_binary_experiment_20260804.md`](docs/experiment_records/battery_binary_experiment_20260804.md)。
-
-seed 42 门控完成后，正式实验只扩展通过条件的统计模型和 MOMENT-SVM：
-
-```bash
-bash scripts/run_battery_binary_expansion_remote.sh
-bash scripts/analyze_battery_binary_formal_remote.sh
-bash scripts/analyze_battery_binary_derived_remote.sh
-```
-
-正式五种子结果表明：专用二分类 MOMENT 比三分类 MOMENT 改善 PR-AUC 和相同 Recall 下的
-FPR，但少样本电池检测的 Random Forest 更强；完整标签仍由 TCN 明显领先。结果保存在
-`artifacts/battery_binary_analysis/formal_five_seed/`。
+若以后补电池专用检测，应另立类别 `1` 的训练协议与全新输出目录，并审查 test 边界；
+本次未启动二分类重训。旧脚本保留历史口径；当前CLI拒绝以类别2冒充电池并使用新输出目录，不能靠旧脚本重新评分test。
 
 ### 9. E08 强动力学特征基线与冻结 MOMENT 堆叠（validation-only）
 

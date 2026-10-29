@@ -35,7 +35,8 @@ class E10CalibrationTests(unittest.TestCase):
 
     def test_operating_points_report_prevalence_and_direction(self):
         module = _load_module()
-        y = np.asarray([2] * 20 + [0] * 80)
+        self.assertEqual(module.BATTERY, 1)
+        y = np.asarray([1] * 20 + [0] * 80)
         scores = np.concatenate([np.linspace(0.9, 0.5, 20), np.linspace(0.8, 0.0, 80)])
         result = module._operating_points(y, scores)
         self.assertAlmostEqual(result["prevalence"], 0.2)

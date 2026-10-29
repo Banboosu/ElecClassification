@@ -17,9 +17,10 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from tcn_moment.config import ExperimentConfig, load_config
 from tcn_moment.data import DatasetBundle, load_dataset
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION
 
 
-BATTERY_SAFETY_PROTOCOL_VERSION = 1
+BATTERY_SAFETY_PROTOCOL_VERSION = 2
 
 
 def _safe_divide(numerator: int | float, denominator: int | float) -> float:
@@ -749,9 +750,12 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("artifacts/battery_safety"),
+        default=Path("artifacts/battery_safety_semantics_v2"),
     )
-    parser.add_argument("--critical-label", default="2")
+    parser.add_argument("--critical-label", default=BATTERY_LABEL, choices=(BATTERY_LABEL,),
+                        help="Current battery is raw label 1; historical label 2 is charger fault.")
+    parser.add_argument("--allow-test-evaluation", action="store_true",
+                        help="Explicit authorization required: this historical pipeline scores test.")
     parser.add_argument(
         "--target-recalls",
         nargs="+",
@@ -761,8 +765,17 @@ def main() -> None:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
+    if not args.allow_test_evaluation:
+        parser.error("Test evaluation is blocked by default. Use the validation-only semantic correction scripts instead.")
 
     output_dir: Path = args.output_dir
+    metadata_path = output_dir / "metrics.json"
+    if metadata_path.exists():
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        if metadata.get("protocol_version") != BATTERY_SAFETY_PROTOCOL_VERSION or str(metadata.get("critical_label")) != BATTERY_LABEL:
+            raise ValueError("Use a new output directory; --overwrite must not erase legacy class-2 results")
+    elif output_dir.exists() and any(output_dir.iterdir()):
+        raise ValueError("Nonempty unversioned safety output is not reusable; choose a new directory")
     output_dir.mkdir(parents=True, exist_ok=True)
     target_recalls = tuple(float(value) for value in args.target_recalls)
     for value in target_recalls:
@@ -778,6 +791,10 @@ def main() -> None:
             print(f"Reusing completed safety evaluation: {result_path}")
             with result_path.open("r", encoding="utf-8") as file:
                 stored = json.load(file)
+            if stored.get("protocol_version") != BATTERY_SAFETY_PROTOCOL_VERSION or any(
+                str(row.get("critical_label")) != BATTERY_LABEL for row in stored["results"]
+            ):
+                raise ValueError("Refusing to reuse legacy class-2 safety metrics as class-1 battery results")
             all_results.extend(stored["results"])
             continue
 
@@ -809,6 +826,7 @@ def main() -> None:
         {
             "protocol_version": BATTERY_SAFETY_PROTOCOL_VERSION,
             "critical_label": str(args.critical_label),
+            "label_semantics_version": SEMANTICS_VERSION,
             "target_recalls": list(target_recalls),
             "threshold_selection_split": "validation",
             "final_evaluation_split": "test",

@@ -13,6 +13,7 @@ from tcn_moment import tcn_legacy_pilot as pilot
 from tcn_moment.config import load_config, replace, with_random_seed
 from tcn_moment.data import load_dataset, stratified_train_subset_indices
 from tcn_moment.io_utils import atomic_write_json
+from tcn_moment.label_semantics import BATTERY_LABEL, class_index
 from tcn_moment.run_e12_tcn_stack import _tcn_predict
 from tcn_moment.training_utils import seed_everything
 from tcn_moment.train_tcn import make_loader
@@ -57,6 +58,8 @@ def main():
     if not torch.cuda.is_available():
         raise RuntimeError("E18c requires CUDA")
     device = torch.device("cuda")
+    if OUT.exists() and any(OUT.iterdir()):
+        raise FileExistsError("Preserve historical E18c; use a new suite for semantic v2")
     OUT.mkdir(parents=True, exist_ok=True)
     summary = {"test_evaluated": False, "protocol": "validation-selected TCN, 50 epochs", "conditions": []}
     for seed in SEEDS:
@@ -71,7 +74,7 @@ def main():
             )
             prob = _tcn_predict(model, raw.x_val, raw.mask_val, device)
             pred = prob.argmax(1)
-            metrics = run_e08._evaluate(raw.y_val, pred, prob, ["0", "1", "2"], 2)
+            metrics = run_e08._evaluate(raw.y_val, pred, prob, ["0", "1", "2"], class_index(["0", "1", "2"], BATTERY_LABEL))
             path = OUT / f"seed{seed}" / "conditions" / t / "tcn_selected"
             path.mkdir(parents=True, exist_ok=True)
             with (path / "predictions.csv").open("w", newline="") as f:

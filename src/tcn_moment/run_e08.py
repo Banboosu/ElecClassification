@@ -54,6 +54,7 @@ from tcn_moment.dynamics_features import (
 from tcn_moment.experiment import prepare_run
 from tcn_moment.io_utils import atomic_write_json, sha256_file
 from tcn_moment.metrics import classification_metrics
+from tcn_moment.label_semantics import BATTERY_LABEL, SEMANTICS_VERSION, class_index
 
 DEFAULT_PROTOCOL = "configs/experiments/improvements/e08_strong_features_protocol.json"
 DEFAULT_CONFIG = "configs/moment.yaml"
@@ -61,6 +62,7 @@ DEFAULT_SUITE = "e08_strong_features_20261020_v1"
 DEFAULT_OUTPUT_ROOT = "artifacts/improvements/e08_strong_features"
 
 SOURCE_FILES = (
+    "src/tcn_moment/label_semantics.py",
     "src/tcn_moment/dynamics_features.py",
     "src/tcn_moment/statistical_features.py",
     "src/tcn_moment/train_baselines.py",
@@ -372,7 +374,11 @@ def _evaluate(
     class_names: list[str],
     battery_index: int,
 ) -> dict[str, Any]:
+    if battery_index != class_index(class_names, BATTERY_LABEL):
+        raise ValueError("Battery metrics require raw label 1; legacy class-2 outputs describe charger faults.")
     metrics = classification_metrics(y_true, y_pred, class_names, include_details=True)
+    metrics["label_semantics_version"] = SEMANTICS_VERSION
+    metrics["battery_label"] = BATTERY_LABEL
     metrics["battery"] = _battery_metrics(y_true, y_pred, scores, battery_index)
     return metrics
 
@@ -668,7 +674,7 @@ def run(args: argparse.Namespace) -> None:
             raise RuntimeError("Split overlap detected; refusing to continue.")
 
         class_names = [str(value) for value in raw.label_encoder.classes_]
-        battery_index = class_names.index("2")
+        battery_index = class_index(class_names, BATTERY_LABEL)
         save_label_encoder(raw.label_encoder, context.run_dir)
         split_manifest_path = context.run_dir / "split_manifest.json"
         split_manifest_path.write_bytes(raw.split_path.read_bytes())
