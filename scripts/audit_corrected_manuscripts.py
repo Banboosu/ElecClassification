@@ -48,7 +48,10 @@ def run(source: Path, output: Path) -> None:
         raise ValueError("Corrected class-1 battery / class-2 charger summary required")
     lookup = {(r["suite"], r["tag"], r["method"]): r for r in data["aggregate"]}
     result = {"test_evaluated": False, "source_summary_sha256": sha256_file(source), "papers": []}
-    for path in PAPERS:
+    papers = [p for p in PAPERS if p.exists()]
+    if not papers:
+        raise FileNotFoundError(f"No manuscript files found in {PAPERS}")
+    for path in papers:
         text = path.read_text(encoding="utf-8")
         checked = 0
         categories = set()

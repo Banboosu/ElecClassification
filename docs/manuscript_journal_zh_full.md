@@ -1,26 +1,26 @@
-# 基于时序大模型的锂电池充电功率曲线分类方法研究与实现
+# 基于时序大模型的小样本锂电池充电功率曲线分类方法研究与实现
 
 （作者姓名）$^{1}$，（作者姓名）$^{1}$，（通信作者姓名）$^{1*}$
 
 （1. 单位全称 学院，城市 邮编）
 
-**摘　要**：电动自行车锂电池充电功率曲线中隐含充电器故障与电池异常信息，基于功率曲线的自动分类是实现非侵入式充电安全监测的有效途径。然而，充电曲线长度差异大（18～816 个采样点）、可用标注有限，直接迁移通用时序大模型的效果不佳。为此，提出一种以时序大模型为核心、融合原尺度动力学特征与掩码时间卷积网络的三分类方法。首先，针对 MOMENT 默认分类头将补零 patch 计入池化的缺陷，设计掩码感知 patch 池化，使冻结表征线性探测的测试集 Macro-F1 由 69.46% 提高到 77.41%；其次，在不更新骨干参数的前提下引入一阶差分双流输入，补偿 patch 化编码对局部功率跳变的平滑，40% 标注下单支路 Macro-F1 由 83.91% 提高到 93.57%；再次，构建 60 维原尺度动力学特征旁路，恢复被逐序列归一化抹除的绝对功率幅值信息；最后，通过训练子集内 5 折交叉拟合概率堆叠融合三路异构判别信息。在 35,099 条真实充电记录上的 4 随机种子实验表明：完整方法在 40% 和 10% 标注下的验证集 Macro-F1 分别为 98.09%±0.23% 和 95.02%±0.33%，40% 标注下电池异常召回率为 98.23%、误报率为 0.67%；仅有 1% 标注时 Macro-F1 仍达 89.15%，比时间卷积网络高 27.24 个百分点。同架构对照实验表明，预训练权重相对随机初始化使双流支路提高 6.00～9.97 个百分点。此外，给出了精度—推理时延权衡和采集噪声敏感性分析，可为充电安全监测场景下的模型选型与部署提供参考。
+**摘　要**：电动自行车锂电池充电功率曲线中隐含充电器故障与电池异常信息，基于功率曲线的自动分类是实现非侵入式充电安全监测的有效途径。然而，实际运维中故障标注获取成本高，典型小样本条件下可用标注有限，且充电曲线长度差异大（18～816 个采样点），直接迁移通用时序大模型的效果不佳，任务专用深度网络在极小样本下也易发生跨种子坍塌。为此，面向小样本充电异常识别场景，提出一种以时序大模型为核心、融合原尺度动力学特征与掩码时间卷积网络的三分类方法。首先，针对 MOMENT 默认分类头将补零 patch 计入池化的缺陷，设计掩码感知 patch 池化，使冻结表征线性探测的测试集 Macro-F1 由 69.46% 提高到 77.41%；其次，在不更新骨干参数的前提下引入一阶差分双流输入，补偿 patch 化编码对局部功率跳变的平滑，40% 标注下单支路 Macro-F1 由 83.91% 提高到 93.57%；再次，构建 60 维原尺度动力学特征旁路，恢复被逐序列归一化抹除的绝对功率幅值信息；最后，通过训练子集内 5 折交叉拟合概率堆叠融合三路异构判别信息。在 35,099 条真实充电记录上的 4 随机种子小样本与多预算实验表明：仅用 1%（244 条）、5% 和 10% 训练标注时，所提方法的验证集 Macro-F1 分别达 89.15%±0.98%、93.85%±0.43% 和 95.02%±0.33%，其中 1% 小样本下比掩码时间卷积网络高 27.24 个百分点；40% 标注下验证集 Macro-F1 达 98.09%±0.23%，电池异常召回率为 98.23%、误报率为 0.67%。同架构对照实验表明，预训练权重相对随机初始化使双流支路提高 6.00～18.81 个百分点。此外，给出了精度—推理时延权衡和采集噪声敏感性分析，可为小样本充电安全监测场景下的模型选型与部署提供参考。
 
-**关键词**：时序大模型；MOMENT；锂电池；充电功率曲线；时间序列分类；特征融合；掩码池化；小样本学习
+**关键词**：小样本学习；时序大模型；MOMENT；锂电池；充电功率曲线；时间序列分类；特征融合；掩码池化
 
 **中图分类号**：TP391.4；TM912　　**文献标志码**：A
 
 ---
 
-**Research and Implementation of a Charging Power Curve Classification Method for Lithium Batteries Based on a Time-Series Foundation Model**
+**Few-Shot Charging Power Curve Classification for Lithium Batteries Based on a Time-Series Foundation Model**
 
 (Author Name)$^{1}$, (Author Name)$^{1}$, (Corresponding Author)$^{1*}$
 
 (1. School, University, City Postcode, China)
 
-**Abstract**: Charging power curves of lithium batteries for electric bicycles carry information about charger faults and battery anomalies, and automatic classification of these curves is an effective means of non-intrusive charging safety monitoring. However, the curves vary greatly in length (18–816 samples) and labels are limited, so directly transferring a general time-series foundation model performs poorly. A three-class method centred on a time-series foundation model and fusing raw-scale dynamics features with a masked temporal convolutional network is proposed. First, to fix the default MOMENT classification head, which averages padded patches, a mask-aware patch pooling is designed, raising the test Macro-F1 of a frozen linear probe from 69.46% to 77.41%. Second, a first-order difference stream is introduced without updating the backbone to compensate for the smoothing of local power jumps by patch encoding, improving the single-branch Macro-F1 from 83.91% to 93.57% with 40% labels. Third, a 60-dimensional raw-scale dynamics feature branch restores the absolute power amplitude removed by per-series normalization. Finally, the three heterogeneous branches are combined by five-fold cross-fitted probability stacking inside the training subset. Experiments with four random seeds on 35,099 real charging records show that the proposed method achieves validation Macro-F1 of 98.09%±0.23% and 95.02%±0.33% with 40% and 10% labels, respectively; with 40% labels the battery-anomaly recall is 98.23% at a false positive rate of 0.67%. With only 1% labels, the Macro-F1 still reaches 89.15%, 27.24 percentage points higher than the temporal convolutional network. A same-architecture control shows that pretrained weights improve the dual-stream branch by 6.00–9.97 percentage points over random initialization. The accuracy–latency trade-off and the sensitivity to acquisition noise are also analysed to support model selection and deployment for charging safety monitoring.
+**Abstract**: Charging power curves of lithium batteries for electric bicycles carry information about charger faults and battery anomalies, and automatic classification of these curves provides an effective route to non-intrusive charging safety monitoring. In practical operations, however, verified fault labels are costly to obtain; under typical few-shot conditions with limited labeled samples and large sequence-length variation (18–816 sampling points), directly transferring a general time-series foundation model performs poorly, whereas task-specific deep networks tend to collapse across random seeds in extreme few-shot regimes. Focusing on few-shot charging anomaly classification, this paper proposes a three-class method centered on a frozen time-series foundation model and fused with raw-scale dynamics features and a masked temporal convolutional network. First, to fix the default MOMENT classification head that averages padded patches, mask-aware patch pooling is designed, raising the test Macro-F1 of a frozen linear probe from 69.46% to 77.41%. Second, a first-order difference stream is introduced without updating backbone parameters to compensate for the smoothing of local power jumps by patch encoding, improving the single-branch Macro-F1 from 83.91% to 93.57% with 40% labels. Third, a 60-dimensional raw-scale dynamics feature branch restores the absolute power amplitude removed by per-series normalization. Finally, five-fold cross-fitted probability stacking within the labeled training subset combines the three heterogeneous branches. Four-seed experiments across few-shot and multi-budget settings on 35,099 real charging records show that with only 1% (244 records), 5% and 10% training labels, the proposed method achieves validation Macro-F1 of 89.15%±0.98%, 93.85%±0.43% and 95.02%±0.33%, outperforming the masked temporal convolutional network by 27.24 percentage points at 1% labels; with 40% labels, it reaches 98.09%±0.23% Macro-F1 with 98.23% battery-anomaly recall at a 0.67% false positive rate. Same-architecture controls confirm that pretrained weights improve the dual-stream branch by 6.00–18.81 percentage points over random initialization. Accuracy–latency trade-offs and acquisition-noise sensitivity boundaries are also analyzed for practical model selection.
 
-**Key words**: time-series foundation model; MOMENT; lithium battery; charging power curve; time series classification; feature fusion; masked pooling; few-shot learning
+**Key words**: few-shot learning; time-series foundation model; MOMENT; lithium battery; charging power curve; time series classification; feature fusion; masked pooling
 
 ---
 
@@ -30,7 +30,7 @@
 
 现有锂电池故障诊断方法多依赖电池管理系统（BMS）采集的电芯电压、温度、电流等多维信号<sup>[1]</sup>，诊断精度较高，但需要电池端具备完整的传感与通信能力。电动自行车电池型号繁杂，大量电池不具备对外通信接口，充电设施能够稳定获取的通常只有单通道的充电功率序列。若能仅凭功率曲线识别“正常 / 充电器故障 / 电池异常”三类状态，即可在不加装传感器、不改造电池的条件下实现低成本的非侵入式安全监测。已有研究在电动汽车充电桩上验证了这一思路：PARK 等<sup>[2]</sup>基于功率变换模块的运行信号设计了快充桩故障诊断系统；DUAN 等<sup>[3]</sup>利用时空融合的机器学习方法实现了充电桩故障的非侵入式辨识。但面向电动自行车充电功率曲线的分类研究仍较少。
 
-与通用时间序列分类相比，充电功率曲线分类具有三方面难点。其一，**序列长度差异大**。充电时长从数分钟到数小时不等，有效序列长度为 18～816 个采样点，批处理时需大量补零；同时序列长度本身与类别相关，模型容易借助补零长度形成“捷径”，而非学习真正的功率形态。其二，**判别信息分布在多个尺度上**。区分故障既需要绝对功率水平（例如长期停留在低功率平台），也需要局部跳变（如毛刺、阶跃、平台抖动）和整体形态（如恒功率段与衰减段的转折位置），单一模型难以同时兼顾。其三，**标注成本高**。故障标签需要结合运维记录人工核验，实际可用的标注往往只占全部数据的一小部分，模型需要在少量标注下保持稳定。
+与通用时间序列分类相比，充电功率曲线分类具有三方面难点。其一，**序列长度差异大**。单次充电记录的有效序列长度为 18～816 个采样点，批处理时需大量补零；同时序列长度本身与类别相关，模型容易借助补零长度形成“捷径”，而非学习真正的功率形态。其二，**判别信息分布在多个尺度上**。区分故障既需要绝对功率水平（例如长期停留在低功率平台），也需要局部跳变（如毛刺、阶跃、平台抖动）和整体形态（如恒功率段与衰减段的转折位置），单一模型难以同时兼顾。其三，**小样本标注约束突出**。故障标签需要结合运维记录人工核验，实际可用的标注往往只占全部数据的一小部分，模型需要在小样本乃至极小样本标注下保持稳定。
 
 时间序列分类方法大致可分为三类<sup>[4-5]</sup>。第一类是基于手工特征的方法，提取统计量、频谱等特征后接随机森林<sup>[6]</sup>、梯度提升树<sup>[7]</sup>或支持向量机<sup>[8]</sup>，可解释性好、训练快，但特征设计依赖经验。第二类是专用深度网络，如时间卷积网络（TCN）<sup>[9]</sup>、融合多尺度 Transformer 与形态卷积的模型<sup>[10]</sup>以及各类改进 Transformer<sup>[11-12]</sup>，在标注充足时精度高，但标注稀缺时容易过拟合或训练不稳定。第三类是基于随机卷积核的变换方法，如 ROCKET<sup>[13]</sup>、MiniRocket<sup>[14]</sup>与 MultiRocket<sup>[15]</sup>，速度快且在公开数据集上精度高。此外，迁移学习<sup>[16]</sup>与自监督表征学习<sup>[17]</sup>也被用于缓解小样本问题。
 
@@ -64,22 +64,22 @@ $$
 f:(\boldsymbol{x}_i,\boldsymbol{m}_i)\mapsto \hat y_i\in\{0,1,2\}, \tag{1}
 $$
 
-三类分别对应正常充电、充电器故障与电池异常。理想的 $f$ 应满足**补零不变性**：对任意补零长度和补零区间内的任意取值，输出保持不变。
+原始标签 0、1、2 分别对应正常充电、电池异常与充电器故障。理想的 $f$ 应满足**补零不变性**：对任意补零长度和补零区间内的任意取值，输出保持不变。
 
 ### 1.2　数据集
 
-数据来自某电动自行车充电运营平台的真实运行记录，每条记录包含匿名样本编号、业务标签和按固定间隔采样的充电功率序列，原始共 46,535 条。业务标签由运维人员结合现场处理记录给出，已用于平台原有 TCN 模型的训练与实际部署。其中，标签 5 表示无效或不完整记录（共 11,435 条，长度中位数仅为 1 个采样点），按平台既定口径不参与故障三分类；再剔除长度小于 18 的序列后，得到 35,099 条有效记录。经检查，有效记录中不存在重复序列与标签冲突，最长序列为 816 点，在 $T=1024$ 下无截断。按 7∶1∶2 分层随机划分为训练集、验证集和测试集，各类样本数见表 1。所有方法共享同一份划分清单，并通过数据哈希校验保证一致。
+数据来自某电动自行车充电运营平台的真实运行记录，每条记录包含匿名样本编号、业务标签和充电功率序列，原始共 46,535 条。业务标签由运维人员结合现场处理记录给出，已用于平台原有 TCN 模型的训练与实际部署。其中，标签 5 表示无效或不完整记录（共 11,435 条，长度中位数仅为 1 个采样点），按平台既定口径不参与故障三分类；再剔除长度小于 18 的序列后，得到 35,099 条有效记录。最短 18 个采样点是既有冻结实验协议沿用的筛选阈值，其独立业务来源仍待数据提供方进一步确认；由于原始记录未附采样时间间隔说明，本文统一以采样点数描述序列长度，不作分钟或小时换算，也不将该阈值解释为硬件或专利规范。经检查，有效记录中不存在重复序列与标签冲突，最长序列为 816 点，在 $T=1024$ 下无截断。按 7∶1∶2 分层随机划分为训练集、验证集和测试集，各类样本数见表 1。所有方法共享同一份划分清单，并通过数据哈希校验保证一致。
 
 <p align="center"><b>表 1　数据集划分与类别分布</b></p>
 
-|  子集  |   正常 | 电池异常 | 充电器故障 |   合计 |
-| :----: | -----: | -------: | ---------: | -----: |
-| 训练集 |  8,480 |    7,014 |      9,075 | 24,569 |
-| 验证集 |  1,212 |    1,002 |      1,296 |  3,510 |
-| 测试集 |  2,423 |    2,004 |      2,593 |  7,020 |
-|  合计  | 12,115 |   10,020 |     12,964 | 35,099 |
+|  子集  | 正常（0） | 电池异常（1） | 充电器故障（2） |   合计 |
+| :----: | --------: | ------------: | --------------: | -----: |
+| 训练集 |     8,480 |         7,014 |           9,075 | 24,569 |
+| 验证集 |     1,212 |         1,002 |           1,296 |  3,510 |
+| 测试集 |     2,423 |         2,004 |           2,593 |  7,020 |
+|  合计  |    12,115 |        10,020 |          12,964 | 35,099 |
 
-图 1 给出了训练集中各类别的样例曲线与有效长度分布（样例按固定随机种子抽取，未经人工挑选）。正常充电曲线通常表现为“恒功率段—转折—平滑衰减”的形态；充电器故障曲线常见功率骤降、阶跃或衰减段异常回升；电池异常曲线则多在衰减段出现明显的毛刺与反复跳变。从长度分布看，三类曲线的有效长度中位数分别为 252、382 和 360，差异明显；约 480 点处的集中峰对应平台单次充电时长上限。仅用“序列长度”一个特征训练深度为 3 的决策树，即可在测试集上取得 35.76% 的 Macro-F1（多数类基线为 17.98%），说明长度与类别存在关联。因此，本文所有模型均使用掩码排除补零，并按长度分层报告结果，避免把补零长度误当作功率形态信息。
+图 1 给出了训练集中各类别的样例曲线与有效长度经验累积分布曲线（样例按固定随机种子 42 抽取，未经人工挑选）。图 1(a) 中正常样例多呈现平稳功率段后平滑衰减的形态；图 1(b) 的电池异常（类别 1）样例中可见功率平台差异、骤降或尾段回升；图 1(c) 的充电器故障（类别 2）样例中可见阶跃下降或衰减段高频反复跳变。需要说明，这些仅是随机抽样曲线的表观形态描述，不能反向充当故障物理机理的证明。由图 1(d) 的有效长度经验累积分布曲线可见，正常、电池异常与充电器故障三类曲线的有效长度中位数分别为 252、382 和 360 个采样点，差异明显；约 480 点处的集中陡升对应平台单次充电记录的常见截断上限。仅用“序列长度”一个特征训练深度为 3 的决策树，即可在测试集上取得 35.76% 的 Macro-F1（多数类基线为 17.98%），说明长度与类别存在统计关联。因此，本文所有模型均使用掩码排除补零，并按长度分层报告结果，避免把补零长度误当作功率形态信息。
 
 <p align="center"><img src="figures/label_semantics_v2/paper/fig1_dataset_overview.svg" width="90%"></p>
 <p align="center"><b>图 1　训练集各类别样例充电功率曲线及有效长度分布</b></p>
@@ -174,9 +174,9 @@ z-score 与 RevIN 将每条曲线变换为零均值、单位方差。这对跨�
 | 分段趋势     |  18  | 整体及首/尾段斜率、三等分段均值与标准差、尾段与首段之差                 | 恒功率段与衰减段走势    |
 | 频谱与自相关 |  7   | 4 段频带能量占比、主频、水平自相关、直方图熵                            | 周期性与复杂度          |
 | 形状         |  4   | 最大回撤、最大上冲、偏度、峰度                                          | 骤降/回升幅度与分布形状 |
-| 长度         |  2   | 有效长度及其与最大长度之比                                              | 充电时长                |
+| 长度         |  2   | 有效长度及其与最大长度之比                                              | 有效采样点数占比        |
 
-以粗糙度组为例：“方向转折率”定义为去除零差分后相邻差分符号发生翻转的比例，用于刻画图 1(c) 中电池异常曲线衰减段的反复跳变；“平台占比”定义为相邻采样点功率相等（差分绝对值小于 $10^{-3}$）的比例，用于刻画恒功率段的稳定程度。
+以粗糙度组为例：“方向转折率”定义为去除零差分后相邻差分符号发生翻转的比例，用于刻画功率曲线（如图 1(c) 衰减段）中的高频反复跳变；“平台占比”定义为相邻采样点功率相等（差分绝对值小于 $10^{-3}$）的比例，用于刻画平稳功率段的持续比例。
 
 DYN 特征由直方图梯度提升树（HGB）<sup>[7]</sup>分类，得到 $\boldsymbol{p}_i^{\mathrm{DYN}}$。HGB 在所有标注比例下均固定同一组超参数（最大迭代 400 次、学习率 0.08、最大叶子数 31、叶子最小样本数 20、L2 正则 1.0），不按标注比例单独调参。DYN 提取与 HGB 训练均在 CPU 上完成，40% 标注下仅需数秒。
 
@@ -279,7 +279,7 @@ $$
 
 注：$^{\ast}$ 该配置仅 4 个种子完成训练；RBF-SVM 按 MOMENT 原论文协议在最多 10,000 条训练样本上 5 折选参。
 
-由表 3 可得三点观察。第一，掩码感知池化本身带来 7.95 个百分点的提升，说明默认池化的补零稀释是冻结 MOMENT 表现差的首要原因。第二，归一化方式显著影响 TCN：原始尺度优于逐序列 z-score，后者又明显优于 min-max，说明绝对幅值是本任务的重要判别信息，这为 2.4 节的 DYN 旁路提供了依据。第三，完全微调虽可接近 TCN，但需更新全部 3.41 亿参数、单次训练约 3.0 h；而冻结方案只需约 106 s 的一次性特征提取，下游训练在 CPU 上即可完成。冻结 MOMENT 单独使用时与 TCN 仍有约 10 个百分点的差距，这是本文后续通过差分双流、DYN 旁路和融合来弥补的部分。
+由表 3 与图 3(a) 的适配演进曲线可得三点观察。第一，掩码感知池化本身带来 7.95 个百分点的提升，说明默认池化的补零稀释是冻结 MOMENT 表现差的首要原因。第二，归一化方式显著影响 TCN：原始尺度优于逐序列 z-score，后者又明显优于 min-max，说明绝对幅值是本任务的重要判别信息，这为 2.4 节的 DYN 旁路提供了依据。第三，完全微调虽可接近 TCN，但需更新全部 3.41 亿参数、单次训练约 3.0 h；而冻结方案只需约 106 s 的一次性特征提取，下游训练在 CPU 上即可完成。冻结 MOMENT 单独使用时与 TCN 仍有约 10 个百分点的差距，这是本文后续通过差分双流、DYN 旁路和融合来弥补的部分。
 
 <p align="center"><img src="figures/fig3_pooling_and_head_stabilization.svg" width="92%"></p>
 <p align="center"><b>图 3　池化方式与冻结分类头训练的影响</b></p>
@@ -290,7 +290,7 @@ $$
 
 同样的补零问题也存在于平台原有的 TCN 中。图 4(a) 的上方文本框给出了固定权重下的诊断结果：保持有效序列完全不变，仅将补零总长度由 1024 扩展到 1536，使用全局平均池化的 TCN 最大 logit 漂移达 418～531，分别改变了 100 条（10% 标注模型）和 33 条（100% 标注模型）验证样本的预测类别；替换为式（9）的掩码均值池化后，logit 漂移严格为 0。由于部署时的补零长度通常由批内最长样本决定，前者意味着同一条曲线的预测结果可能随批次组成而改变。
 
-图 4(a) 还比较了不同 TCN 结构。项目早期重构的 4 块双卷积残差 TCN（通道 64/64/128/128，膨胀率 1～8，感受野 61）在 10% 标注下仅 69.23%±1.61%；复原平台原有的 6 层结构（感受野 127）并保留掩码池化后达 93.68%±1.93%，提高 24.45 个百分点；在 100% 标注下达 98.40%±0.17%。这说明感受野与层数配置对本任务至关重要，早期观察到的“冻结 MOMENT 在低标注下大幅领先 TCN”很大程度上源于 TCN 配置不当。为保证比较的公平性，本文后续均以复原后的掩码 6 层 TCN 作为强基线和融合支路。
+图 4(a) 还给出了不同 TCN 结构在 1%～100% 标注预算下的样本效率曲线。项目早期重构的 4 块双卷积残差 TCN（通道 64/64/128/128，膨胀率 1～8，感受野 61）在 10% 标注下仅 69.23%±1.61%；复原平台原有的 6 层结构（感受野 127）并保留掩码池化后，在 10%、40% 与 100% 标注下分别达 93.68%±1.93%、97.78%±0.16% 和 98.40%±0.17%（10% 标注下提高 24.45 个百分点）。不过在 1% 与 5% 极小样本标注（固定第 50 轮端点）下，6 层掩码 TCN 分别回落至 55.51%±14.66% 与 84.03%±4.57%，跨种子波动明显增大。这既说明感受野与层数配置对本任务至关重要（早期“冻结 MOMENT 在 10% 标注下大幅领先 TCN”很大程度上源于 TCN 配置不当），也表明纯端到端卷积网络在 1%～5% 小样本区间的稳定性不足。为保证比较的公平性，本文后续均以复原后的掩码 6 层 TCN 作为强基线和融合支路。
 
 <p align="center"><img src="figures/fig4_tcn_and_length_strata.svg" width="92%"></p>
 <p align="center"><b>图 4　TCN 结构、池化方式及按序列长度分层的性能</b></p>
@@ -319,6 +319,9 @@ $$
 | 测试集（5 种子） |  RBF-SVM   |  1%  | 原序列 | 68.05±1.59 | 39.44±5.00 |  +28.60 |
 | 测试集（5 种子） |  RBF-SVM   |  5%  | 原序列 | 77.40±0.93 | 54.81±0.95 |  +22.58 |
 | 测试集（5 种子） |  RBF-SVM   | 10%  | 原序列 | 80.77±0.59 | 58.76±1.26 |  +22.01 |
+| 验证集（4 种子） |  逻辑回归  |  1%  | 原序列 | 68.97±1.55 | 46.20±0.68 |  +22.77 |
+| 验证集（4 种子） |  逻辑回归  |  1%  |  差分  | 80.57±0.63 | 64.99±1.82 |  +15.57 |
+| 验证集（4 种子） |  逻辑回归  |  1%  |  双流  | 83.76±1.99 | 64.95±1.60 |  +18.81 |
 | 验证集（4 种子） |  逻辑回归  | 10%  | 原序列 | 81.27±0.35 | 58.79±1.13 |  +22.48 |
 | 验证集（4 种子） |  逻辑回归  | 10%  |  差分  | 88.31±0.84 | 78.94±1.07 |   +9.37 |
 | 验证集（4 种子） |  逻辑回归  | 10%  |  双流  | 91.24±0.57 | 81.27±0.91 |   +9.97 |
@@ -326,9 +329,9 @@ $$
 | 验证集（4 种子） |  逻辑回归  | 40%  |  差分  | 89.20±0.51 | 83.03±1.02 |   +6.17 |
 | 验证集（4 种子） |  逻辑回归  | 40%  |  双流  | 92.77±0.58 | 86.77±0.69 |   +6.00 |
 
-注：Macro-F1 单位为 %；验证集部分逻辑回归固定 $C=1.0$，故双流数值与表 4 略有不同。
+注：Macro-F1 单位为 %；验证集部分逻辑回归固定 $C=1.0$，故双流数值与表 4 略有不同。图 5(b) 同时绘出了 5% 与 20% 标注预算下的同架构曲线。
 
-预训练权重在全部 9 组条件、所有种子上都优于随机初始化。测试集上 3 组差值的 95% 配对区间分别为 [22.24, 34.97]、[20.89, 24.28] 和 [20.48, 23.53] 个百分点，均大于 0。这说明冻结 MOMENT 的表征能力来自预训练学到的跨领域时序先验，编码器容量解释不了这部分差异；标注越少（1%），预训练增益越大。差分流对随机编码器也有明显帮助（原序列 58.79% → 差分 78.94%），可见差分输入与预训练先验是两个相对独立、可以叠加的增益来源。
+预训练权重在表 5 的 12 组条件以及图 5(b) 涵盖的 1%～40% 全部 15 组验证条件、所有随机种子上都优于随机初始化。测试集上 3 组差值的 95% 配对区间分别为 [22.24, 34.97]、[20.89, 24.28] 和 [20.48, 23.53] 个百分点；验证集双流支路在 1%、5%、10%、20% 和 40% 标注下的预训练增益分别为 +18.81（95% 区间 [14.64, 22.97]）、+12.51、+9.97、+7.57 和 +6.00 个百分点，随可用标注减少而单调增大。这说明冻结 MOMENT 的表征能力来自预训练学到的跨领域时序先验，编码器容量本身解释不了这部分差异；越是小样本场景，预训练先验的价值越突出。同时，差分流对随机编码器也有明显帮助（如 10% 标注下原序列 58.79% → 差分 78.94%），可见差分输入与预训练先验是两个相对独立、可以叠加的增益来源。
 
 <p align="center"><img src="figures/fig5_dual_stream_and_pretraining.svg" width="92%"></p>
 <p align="center"><b>图 5　差分双流表征与预训练归因</b></p>
@@ -384,13 +387,13 @@ $$
 
 进一步在样本层面检验融合的有效性。以 40% 标注为例，相对单支 TCN，完整融合在 4 个种子上分别修正了 23、26、28、33 条 TCN 判错的样本，同时新引入 9、7、6、7 条错误，净修正 14～26 条，精确二项检验 $p$ 值分别为 0.020、0.0013、0.0002 和 $4.2\times10^{-5}$，均小于 0.05。
 
-图 4(b) 按序列长度分层比较了 TCN 与完整融合（分组边界为各种子训练集长度的三分位点，约 266 与 399）。在长序列组（$L>399$），10% 标注下 TCN 仅 82.8%，融合提高到 93.1%，提升 10.32 个百分点，是三组中改善最大的；40% 标注下长序列组提升 0.78 个百分点，同样大于短、中序列组。长序列远超 TCN 的感受野（127），TCN 只能通过池化间接聚合长程信息，而 MOMENT 的全局注意力可直接建模长程依赖，二者在长序列上的互补最为明显。
+图 4(b) 按各随机种子自身训练集长度的三分位点（约 266 与 399 个采样点）分层比较了 Masked TCN 与完整融合。在长序列组（$L>399$），10% 标注下 TCN 为 82.90%，融合提高到 93.07%，提升 10.17 个百分点，是三组中改善最大的；40% 标注下长序列组提升 0.86 个百分点（97.30% 对 96.45%），同样大于短、中序列组。长序列远超 TCN 的感受野（127），TCN 只能通过池化间接聚合长程信息，而 MOMENT 的全局注意力可直接建模长程依赖，二者在长序列上的互补最为明显。
 
-在概率质量方面，40% 标注的融合模型 ECE 仅为 0.56%，OOF 上拟合的最优温度 $\tau\approx1.001$，本身已校准良好；10% 标注时模型偏保守（平均置信度 92.21% 低于实际准确率 95.01%，ECE 为 3.52%），经温度缩放（$\tau=0.853$）后 ECE 降至 0.94%，负对数似然由 0.1717 降至 0.1518。可靠的概率输出便于在实际系统中按置信度设置分级告警。
+在概率质量方面，40% 标注的融合模型 ECE 仅为 0.56%，OOF 上拟合的最优温度 $\tau\approx1.001$，本身已校准良好；10% 标注时模型偏保守（平均置信度 92.21% 低于实际准确率 95.01%，ECE 为 3.52%），经温度缩放（$\tau=0.853$）后 ECE 降至 0.94%，负对数似然由 0.1717 降至 0.1518。若进一步围绕电池异常类（原始标签 1，验证集占比 28.55%）在验证集预测概率上做描述性阈值扫描：40% 标注下将目标误报率约束在 0.50% 或 1.00% 时，实际电池召回率分别为 97.38%（实际 FPR 0.52%）与 98.75%（实际 FPR 1.04%）；若按固定 30.00% 告警预算截取高风险样本，10% 与 40% 标注下的电池召回率分别达 97.63%（FPR 2.98%）与 99.28%（FPR 2.32%）。需要说明，该阈值扫描在验证集上构造并原地评价，仅用于描述分数排序质量，实际部署仍需在独立校准集上锁定阈值。
 
 ### 3.7　标注比例的影响
 
-为系统考察标注量的影响，在统一固定超参数下（HGB 与逻辑回归参数不随标注比例调整，TCN 不使用验证集挑选轮次）重新运行了 1%～40% 标注下的全部方法，结果见图 7(b) 与表 7。
+为系统考察小样本到全量标注下的性能变化，在统一固定超参数下（HGB 与逻辑回归参数不随标注比例调整，TCN 不使用验证集挑选轮次）运行了 1%～100% 训练标注预算下的对比实验，结果见图 7(b) 与表 7。
 
 <p align="center"><b>表 7　统一协议下不同标注比例的验证集 Macro-F1</b></p>
 
@@ -454,7 +457,7 @@ $$
 
 本文的分析表明，问题主要出在适配方式；预训练表征本身仍有价值。掩码感知池化解决了补零稀释，差分双流补偿了 patch 化编码对局部跳变的平滑，DYN 旁路补回了归一化抹除的幅值信息。
 
-同架构对照显示，预训练权重在双流支路上带来 6.00～9.97 个百分点的增益；原序列 RBF-SVM 在 1% 测试集上的差值为 28.60 个百分点。两组协议不同，但都说明这部分增益来自预训练，编码器容量解释不了；标注越少，预训练的作用越明显。低标注下 MOMENT 也更稳：1% 时 TCN 的跨种子标准差为 7.71 个百分点，MOMENT 双流为 1.99 个百分点；融合模型在 1% 标注下比 TCN 高 27.24 个百分点。长序列和中等噪声下还能看到补充作用：10% 标注时长序列组的融合比 TCN 高 10.32 个百分点，0.25%～1% 噪声下 MOMENT/ΔP 的退化最慢。
+同架构对照显示，预训练权重在双流支路上带来 6.00～18.81 个百分点的增益（1% 标注下 +18.81 个百分点，10% 与 40% 标注下分别为 +9.97 与 +6.00 个百分点）；原序列 RBF-SVM 在 1% 测试集上的差值为 28.60 个百分点。两组协议不同，但都说明这部分增益来自预训练，编码器容量解释不了；标注越少，预训练的作用越明显。小样本下 MOMENT 也更稳：1% 时 TCN 的跨种子标准差为 7.71 个百分点，MOMENT 双流为 1.99 个百分点；融合模型在 1% 标注下比 TCN 高 27.24 个百分点。长序列和中等噪声下还能看到补充作用：10% 标注时长序列组的融合比 TCN 高 10.17 个百分点，0.25%～1% 噪声下 MOMENT/ΔP 的退化最慢。
 
 三路融合的优势来自这种互补：MOMENT 提供跨领域形态先验与长程上下文，DYN 提供物理含义明确的幅值与粗糙度信息，TCN 在标注充足时提供更精细的局部判别。三条支路的错误有互补，交叉拟合堆叠才能按 OOF 表现分配权重。
 
@@ -480,7 +483,7 @@ $$
 
 1）MOMENT 默认分类头的补零稀释是冻结表征表现差的首要原因。掩码感知 patch 池化使线性探测测试集 Macro-F1 由 69.46% 提高到 77.41%，并使表征与补零区间严格无关；结合特征缓存，分类头单轮训练由约 2 min 降至约 2 s。
 
-2）冻结骨干下的一阶差分双流在不增加骨干参数的前提下，使单支路 Macro-F1 提高 9.66～13.38 个百分点。40% 标注下，电池类召回率由 89.42% 提高到 93.36%，充电器类由 77.87% 提高到 94.31%。同架构对照中，双流支路的预训练增益为 6.00～9.97 个百分点；原序列 RBF-SVM 在 1% 测试集上的增益为 28.60 个百分点，两组协议不同，应分开报告。差分输入与预训练先验的增益可以叠加。
+2）冻结骨干下的一阶差分双流在不增加骨干参数的前提下，使单支路 Macro-F1 提高 9.66～13.38 个百分点。40% 标注下，电池类召回率由 89.42% 提高到 93.36%，充电器类由 77.87% 提高到 94.31%。同架构对照中，双流支路在 1%～40% 标注下的预训练增益为 6.00～18.81 个百分点；原序列 RBF-SVM 在 1% 测试集上的增益为 28.60 个百分点，两组协议不同，应分开报告。差分输入与预训练先验的增益可以叠加。
 
 3）60 维原尺度动力学特征有效补回了归一化损失的幅值信息，40% 标注下单独使用即达 95.00%；其中局部粗糙度与转折类特征贡献最大。
 
@@ -489,6 +492,18 @@ $$
 5）完整方法在 RTX 4080 上的端到端推理耗时为 11.13 ms/样本（批大小 32），可满足离线批量诊断需求；算力受限时可退化为 TCN+DYN 运行点。
 
 后续工作将从三方面展开：一是改进动力学特征的数值稳定性并引入噪声增广训练；二是收集多站点、多时段数据开展外推验证；三是探索将随机卷积核特征纳入融合框架，并研究面向边缘侧部署的模型压缩方法。
+
+## 声明（Statements and Declarations）
+
+**数据可用性声明（Data Availability Statement）**：本文实验所用的匿名化充电功率序列数据来自合作运营平台，受商业运营协议限制暂不直接公开原始全量记录；模型训练、特征提取、交叉拟合堆叠、统计检验与图表复现代码及审计汇总文件可根据合理学术请求向通信作者获取。
+
+**伦理声明（Ethical Statement）**：本研究仅使用匿名化的设备级充电功率数值序列与运维状态标签，不涉及人类受试者、人体生物样本、个人身份信息或动物实验，无需伦理委员会审批。研究过程与结果报告遵循出版伦理规范（IOP Publishing Ethical Policy），所有验证集与测试集使用边界、负向结果及适用局限均已在正文中如实披露。
+
+**利益冲突声明（Conflict of Interest）**：全体作者声明不存在与本文研究内容相关的商业或财务利益冲突。
+
+**作者贡献声明（Author Contributions）**：参照 CRediT 分类标准——第一作者：方法设计（Methodology）、软件实现（Software）、实验验证（Validation）、数据分析（Formal analysis）与初稿撰写（Writing – original draft）；第二作者：数据整理（Data curation）、可视化（Visualization）与结果复核（Investigation）；通信作者：研究构思（Conceptualization）、监督指导（Supervision）与审阅修订（Writing – review & editing）。
+
+**基金项目与致谢（Funding and Acknowledgments）**：基金项目信息待正式投稿时按署名单位补充；感谢合作充电运营平台提供匿名化运行记录与业务标签口径说明。
 
 ## 参考文献
 
