@@ -70,6 +70,10 @@
 - MOMENT logistic C=1.0；TCN 50 epoch、5折OOF+全量、无validation选模；meta C在OOF内选。
 - MultiRocket 2000 features、MiniRocket 10000 features；interp_z 256；RidgeCV {100,1000} 训练内3折。
 - 所有方法共用同seed训练子集和validation行；validation未用于超参选择（meta C用OOF）。
+## 100% 全标签补充
+
+导师要求补的 100% 已在独立 suite 完成：TCN+DYN 98.54%、Full 98.53%、TCN 98.33%、MultiRocket 97.67%、MiniRocket 94.94%。100% 时 TCN+DYN 与 Full 基本相同，完整融合的 MOMENT 分支没有净增益。详见 `docs/experiment_records/e18_low_label_100p_results_20261020.md`。
+
 ## 补充实验
 
 - E18b：TCN+同型 meta、TCN+MOMENT、TCN+MOMENT/ΔP 的全预算控制；同型 meta 只解释 +0–2.1pp，DYN 仍是 TCN 最佳搭档。

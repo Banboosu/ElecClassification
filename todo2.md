@@ -12,6 +12,7 @@
 - **E12已完成10%/40%**：5折交叉拟合、TCN固定50轮cosine、meta只在OOF上拟合；40% validation stack **98.09±0.23%**（相对同轮TCN full +0.56pp/4/4、相对无TCN stack +2.07pp/4/4），10% **95.02±0.33%**（相对同折无TCN stack +0.76pp/4/4）；两个suite各16条件/56160行审计0误差，无test。10%的TCN端点为固定50轮无选模的89.04%，不能把stack−tcn_full +5.98pp当成对强TCN的领先。
 - **E10已完成（P0修正）**：40% stack ECE 0.56%、温度1.001（无需缩放）；10%为**欠自信**（平均置信度92.21%<精度95.01%），温度0.853锐化后ECE 3.52%→0.94%、NLL 0.1717→0.1518，精度不变；McNemar 40%四seed p<0.05、10% p<0.001（10%须结合TCN端点较弱解释）；电池固定FPR 1%时40%召回97.67%、10%仅89.66%（均为validation内选阈值的描述性工作点，不是部署保证）；99%召回对应FPR 4.86%/13.55%。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界。
 - **E12b已完成（P1.1，修正版）**：4seed×2预算×8方法/64条件/224,640行；补`tcn_meta`，MD validation统一C=1.0。40% `TCN+DYN` 97.93±0.22、完整三路98.09±0.23，MOMENT净增益仅+0.16±0.12pp（3/4）；`tcn_meta` 97.65（+0.12/4/4），完整−`tcn_meta` +0.44。10%完整三路95.02±0.33，相对最好两路+0.76±0.45pp（4/4）。MOMENT价值是条件性的：40%大部分信息已被TCN+DYN覆盖，10%才稳健。
+- **E18-100已完成（导师要求补全标签）**：新主机RTX5090，4seed×12方法=48条件/168,480行、0 test；TCN+DYN **98.54±0.18%**、Full **98.53±0.16%**、TCN98.33、MultiRocket97.67、MiniRocket94.94、DYN96.06。100%时TCN+DYN与Full基本相同，MOMENT分支无净增益；较40% Full仅+0.39pp。
 - **E16b已完成（随机归因补1/5/20%）**：72条件/252,720行；预训练dual−随机 +18.81/+12.51/+7.57pp（4/4）；orig +22.77/+22.33/+21.34；diff +15.57/+11.47/+7.44。预训练价值未随预算消失，但20%相对增益缩小。
 - **E18b/c/d已完成（补P0控制）**：E18b TCN+meta/TCN+MOM/TCN+MOMΔP全预算60条件；E18c选模TCN20条件；E18d 5/20% SVM16条件。同型meta只解释+0–2.1pp；选模TCN 1%仍64.89%、10%91.28%；5/20% SVM仍低于HGB。
 - **E18 deep已完成**：逐类F1/电池AP/配对95%区间/长度分层；20/40% Full vs TCN+DYN区间跨0，40% Full电池FPR0.90高于TCN+DYN0.59。
@@ -43,7 +44,7 @@ N1固定复核和已有权重诊断已完成，支持legacy masked作为主要TC
 | E15 | MiniRocket 对照 | 更轻的卷积核基线是否同样强？ | 已完成：10% 92.89%（与DYN持平）；40% 94.42%（低于DYN/TCN/Full） |
 | E16 | 预训练 vs 随机初始化归因 | 预训练权重是否不可替代？ | 已完成：预训练全流优于随机（4/4）；dual +9.97/+6.00；随机40% 86.77% vs 92.77% |
 | E17 | 同机端到端成本 | 40%多0.16pp是否值得？ | 已完成：batch1 46.3ms、batch32 10.9ms/sample、GPU2.5GB；Full−TCN+DYN +0.16pp/3/4但成本5.3× |
-| E18 | 统一低标签全模型基准 | 1/5/10/20/40% 各模型曲线 | 已完成：MultiRocket 1–10%最强；20%与Full持平；40%Full最高98.14 |
+| E18 | 统一低标签全模型基准 | 1/5/10/20/40% 各模型曲线 | 已完成：MultiRocket 1–10%最强；20%与Full持平；40%Full最高98.14；100% TCN+DYN/Full 98.54/98.53 |
 | N3 | 受限validation标签 | 将验证标签也计入成本，低标签结论是否成立？ | 若保留标签效率主张则必做 |
 | N4 | 同硬件成本与统一predict | 准确率、训练成本和部署成本如何取舍？ | E10已完成校准/风险；同机端到端成本仍可选 |
 | N5 | 强头LoRA四seed复制 | +0.727pp是否在多个seed上保留，是否值得额外成本？ | E07已完成：+0.4475pp、4/4正向但门槛失败；停止追加 |
@@ -626,6 +627,14 @@ tail -f artifacts/logs/e01_20261017_v2.log
 - [x] 电池固定工作点（四seed均值）：40%下0.5%/1%/2% FPR对应recall95.58/97.67/98.46%，99% recall对应4.86% FPR；10%下1% FPR仅89.66% recall、99% recall对应13.55% FPR。50% alert的FPR≈21%接近36.92%正类占比的20.73%下界，不是模型缺陷；未调阈值、不是部署保证。
 - 报告/图：`docs/experiment_records/e10_calibration_safety_results_20261020.md`、`docs/figures/e10_{reliability,risk_coverage}_{10p,40p}_20261020.svg`；本地保全`artifacts/imports/e10_calibration_safety_20261020/`；远端根`artifacts/improvements/e10_calibration_safety/`。
 - 边界：OOF/validation分布不完全一致；ECE/Brier描述性；四seed split重叠；无test/鲁棒性/端到端成本。
+
+### E18-100：全标签补充（2026-10-20，已完成）
+
+- [x] 导师要求补 100%；新主机RTX5090，4seed×12方法=48条件/168,480行、0 test；同E18固定配置。
+- [x] 100%：TCN+DYN **98.54±0.18%**、Full **98.53±0.16%**、TCN98.33±0.11%、MultiRocket97.67±0.25%、MiniRocket94.94±0.33%、DYN96.06±0.20%、MOMENT双流93.03±0.31%。
+- [x] 与40%比：Full +0.39、TCN+DYN +0.45、TCN +0.71、DYN +1.06、Multi +0.42；100%时TCN+DYN≈Full，MOMENT分支无净增益。
+- 报告：`docs/experiment_records/e18_low_label_100p_results_20261020.md`；本地`artifacts/imports/e18_low_label_100p_20261020/`（13.2MB/168,480行）；远端`ubuntu:~/workspace/banboosu_ws/ElecClassification/artifacts/improvements/e18_low_label_100p/e18_low_label_100p_20261020_v1/`；协议`configs/experiments/improvements/e18_low_label_100p_protocol.json`。
+- 边界：同E18；新主机/新torch与旧4080不混列；固定超参不是全标签上限；0 test。
 
 ### E18：统一低标签全模型基准（2026-10-20，已完成）
 

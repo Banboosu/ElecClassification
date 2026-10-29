@@ -1,0 +1,54 @@
+{
+  "experiment_id": "E18",
+  "title": "Full-label (100%) unified benchmark",
+  "date": "2026-10-20",
+  "suite": "e18_low_label_100p_20261020_v1",
+  "output_dir": "artifacts/improvements/e18_low_label_100p",
+  "dataset": "data/raw/\u6700\u65b0\u591a.csv",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "fractions": [
+    1.0
+  ],
+  "e08_suite": "artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1",
+  "e01_cache": "artifacts/improvements/e01_20261017_v2_features",
+  "e09_cache": "artifacts/improvements/e09_diff_features",
+  "methods": [
+    "f15_hgb",
+    "dyn_hgb",
+    "moment_logit",
+    "diff_logit",
+    "moment_diff_logit",
+    "tcn",
+    "tcn_dyn",
+    "dyn_moment",
+    "dyn_moment_diff",
+    "full",
+    "multirocket",
+    "minirocket"
+  ],
+  "hgb_params": {
+    "max_iter": 400,
+    "learning_rate": 0.08,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 20,
+    "l2_regularization": 1.0
+  },
+  "logistic_c": 1.0,
+  "tcn_epochs": 50,
+  "tcn_folds": 5,
+  "multirocket_features": 2000,
+  "minirocket_features": 10000,
+  "interp_length": 256,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Full 100% training labels (24,569) for all 12 E18 methods; same fixed hyperparameters and splits.",
+    "TCN uses 5-fold OOF plus full-subset model, fixed 50 epochs, no validation checkpoint selection.",
+    "MOMENT orig/diff caches frozen; logistic C=1.0; Multi/Mini interp_z 256; 0 test."
+  ]
+}

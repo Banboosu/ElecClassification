@@ -163,7 +163,9 @@ def run(protocol_path: Path) -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("E18 requires CUDA")
     summary = {"test_evaluated": False, "protocol_sha256": _sha(protocol_path), "conditions": []}
-    for seed in SEEDS:
+    fractions = tuple(float(value) for value in p.get("fractions", FRACTIONS))
+    seeds = tuple(int(value) for value in p.get("seeds", SEEDS))
+    for seed in seeds:
         config = with_random_seed(load_config(Path("configs/moment.yaml")), seed)
         raw = load_dataset(replace(config.data, normalize="none"))
         with np.load(E08 / f"seed{seed}" / "features.npz", allow_pickle=False) as archive:
@@ -177,7 +179,7 @@ def run(protocol_path: Path) -> None:
         md_val = np.hstack([moment_val, diff_val])
         x_interp_train = _interp_z(raw.x_train, raw.mask_train)
         x_interp_val = _interp_z(raw.x_val, raw.mask_val)
-        for fraction in FRACTIONS:
+        for fraction in fractions:
             tag = _tag(fraction)
             indices = stratified_train_subset_indices(raw.y_train, raw.ids_train, fraction, seed)
             y_train = raw.y_train[indices]
@@ -239,12 +241,12 @@ def run(protocol_path: Path) -> None:
                 atomic_write_json(root / f"seed{seed}" / "conditions" / tag / method / "metrics.json", record)
                 print(f"E18 {seed} {tag} {method}: {100*result['macro_f1']:.2f}", flush=True)
             atomic_write_json(root / f"seed{seed}" / f"seed_{tag}.json", {"fraction": fraction, "tag": tag, "n_train": len(indices)})
-    _summarize(root, summary)
+    _summarize(root, summary, fractions)
 
 
-def _summarize(root: Path, summary: dict[str, Any]) -> None:
+def _summarize(root: Path, summary: dict[str, Any], fractions: tuple[float, ...]) -> None:
     rows = []
-    for fraction in FRACTIONS:
+    for fraction in fractions:
         tag = _tag(fraction)
         for method in METHODS:
             selected = [c for c in summary["conditions"] if c["tag"] == tag and c["method"] == method]
@@ -259,12 +261,13 @@ def _summarize(root: Path, summary: dict[str, Any]) -> None:
     summary["audit"] = {"conditions": len(summary["conditions"]), "rows": len(summary["conditions"]) * 3510,
                         "test_rows": 0}
     atomic_write_json(root / "summary.json", summary)
+    budget_cells = " | ".join(f"{int(round(value * 100))}%" for value in fractions)
     lines = ["# E18：统一下采样低标签基准（validation-only）", "",
-             "**1%/5%/10%/20%/40%；4 seed；固定超参；0 test。**", "",
-             "| 方法 | 1% | 5% | 10% | 20% | 40% |", "|---|---:|---:|---:|---:|---:|"]
+             "**预算：" + "/".join(f"{int(round(value * 100))}%" for value in fractions) + "；4 seed；固定超参；0 test。**", "",
+             f"| 方法 | {budget_cells} |", "|---|" + "---:|" * len(fractions)]
     lookup = {(r["tag"], r["method"]): r for r in rows}
     for method in METHODS:
-        cells = [f"{lookup[(_tag(f), method)]['mean']:.2f} ± {lookup[(_tag(f), method)]['sample_sd']:.2f}" for f in FRACTIONS]
+        cells = [f"{lookup[(_tag(f), method)]['mean']:.2f} ± {lookup[(_tag(f), method)]['sample_sd']:.2f}" for f in fractions]
         lines.append(f"| {method} | " + " | ".join(cells) + " |")
     lines += ["", "## 审计", "", f"- {summary['audit']['conditions']} 条件 / {summary['audit']['rows']} 行；0 test。", "",
               "## 固定设置", "",
