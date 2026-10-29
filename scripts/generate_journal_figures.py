@@ -141,158 +141,90 @@ def draw_arrow(
 
 
 def plot_fig1_overall_framework() -> None:
+    """Clean three-branch framework diagram.
+
+    The figure carries only the minimum labels needed to read the flow.
+    Branch details, dimensions and training settings belong in the LaTeX
+    caption, not in the artwork.
+    """
     setup_chinese_journal_style()
-    fig, ax = plt.subplots(figsize=(12.2, 6.2))
+    plt.rcParams.update({"pdf.fonttype": 42, "font.family": "DejaVu Sans"})
+    fig, ax = plt.subplots(figsize=(7.2, 3.9))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
 
-    # Branch containers (pure monochrome grayscale + distinct border line styles)
+    # Input
+    draw_box(
+        ax,
+        0.012,
+        0.31,
+        0.145,
+        0.38,
+        "Input\n$x_i,\\ m_i$",
+        fc="#F2F2F2",
+        ec="#111111",
+        lw=1.4,
+        fontsize=9.8,
+        fontweight="bold",
+    )
+
+    # Branch containers
     containers = [
-        (0.66, 0.31, "#F7F7F7", "#111111", "-", "分支 I  预训练时序大模型双流表征（创新 1、创新 2）"),
-        (0.35, 0.27, "#FAFAFA", "#333333", "--", "分支 II  原尺度动力学特征旁路（创新 3）"),
-        (0.04, 0.27, "#F2F2F2", "#555555", "-.", "分支 III  任务专用掩码 TCN"),
+        (0.74, 0.22, "-", "#111111"),
+        (0.40, 0.22, "--", "#333333"),
+        (0.06, 0.22, "-.", "#555555"),
     ]
-    for y0, h, fc, ec, ls, title in containers:
-        draw_box(ax, 0.20, y0, 0.53, h, "", fc=fc, ec=ec, lw=1.4, ls=ls, radius=0.02)
-        ax.text(0.212, y0 + h - 0.018, title, fontsize=9.6, fontweight="bold", color="#111111", va="top")
+    for y0, h, ls, ec in containers:
+        draw_box(ax, 0.19, y0, 0.55, h, "", fc="#FAFAFA", ec=ec, lw=1.2, ls=ls, radius=0.015)
 
-    draw_box(
-        ax,
-        0.015,
-        0.30,
-        0.15,
-        0.40,
-        "变长充电功率序列\nx ∈ R^L\n（18 ≤ L ≤ 816）\n右侧补零至长度 1024\n────────────\n有效观测掩码\nm ∈ {0, 1}^1024",
-        fc="#EDEDED",
-        ec="#111111",
-        lw=1.5,
-        fontsize=8.8,
-        fontweight="bold",
-    )
+    # Branch I: P and dP -> frozen MOMENT -> mask-aware pooling -> p_MD
+    draw_box(ax, 0.205, 0.855, 0.085, 0.075, "$P$", fc="#FFFFFF", ec="#222222", lw=1.0, fontsize=10.5)
+    draw_box(ax, 0.205, 0.765, 0.085, 0.075, "$\\Delta P$", fc="#FFFFFF", ec="#222222", lw=1.0, ls="--", fontsize=10.5)
+    draw_box(ax, 0.315, 0.765, 0.135, 0.165, "Frozen\nMOMENT", fc="#E9E9E9", ec="#111111", lw=1.2, fontsize=10.5, fontweight="bold")
+    draw_box(ax, 0.475, 0.765, 0.135, 0.165, "Mask-aware\npooling", fc="#FFFFFF", ec="#111111", lw=1.2, fontsize=10.0)
+    draw_box(ax, 0.635, 0.765, 0.085, 0.165, "$p^{MD}$", fc="#FFFFFF", ec="#111111", lw=1.2, fontsize=11.0, fontweight="bold")
 
-    # Branch I
-    draw_box(ax, 0.215, 0.795, 0.13, 0.10, "原序列流 P\n逐序列 z-score", fc="#FFFFFF", ec="#222222", fontsize=8.5)
-    draw_box(ax, 0.215, 0.675, 0.13, 0.10, "一阶差分流 ΔP\nΔP_t = P_t − P_(t−1)", fc="#FFFFFF", ec="#222222", ls="--", fontsize=8.5)
-    draw_box(
-        ax,
-        0.372,
-        0.675,
-        0.17,
-        0.22,
-        "冻结 MOMENT-1-large\n（24 层编码器，patch = 8）\n────────────\n创新 1：掩码感知 patch 池化\n仅聚合完整有效 patch",
-        fc="#E8E8E8",
-        ec="#111111",
-        fontsize=8.3,
-        fontweight="bold",
-    )
-    draw_box(
-        ax,
-        0.567,
-        0.675,
-        0.148,
-        0.22,
-        "创新 2：双流表征拼接\n[h_P ‖ h_ΔP]（2048 维）\n───────────\n多项逻辑回归\n输出概率 p^MD",
-        fc="#FFFFFF",
-        ec="#111111",
-        fontsize=8.2,
-    )
+    # Branch II: 60-D dynamics -> HGB -> p_DYN
+    draw_box(ax, 0.205, 0.425, 0.195, 0.165, "60-D\ndynamics", fc="#EDEDED", ec="#333333", lw=1.0, fontsize=10.5)
+    draw_box(ax, 0.430, 0.425, 0.120, 0.165, "HGB", fc="#FFFFFF", ec="#333333", lw=1.0, fontsize=11.0, fontweight="bold")
+    draw_box(ax, 0.635, 0.425, 0.085, 0.165, "$p^{DYN}$", fc="#FFFFFF", ec="#333333", lw=1.0, fontsize=11.0, fontweight="bold")
 
-    # Branch II
-    draw_box(
-        ax,
-        0.215,
-        0.38,
-        0.31,
-        0.18,
-        "60 维原尺度动力学特征（仅在 m_t = 1 区间计算）\n"
-        "幅值与分位 17 · 粗糙度与转折 12 · 分段趋势 18\n"
-        "频谱与自相关 7 · 形状 4 · 长度 2",
-        fc="#ECECEC",
-        ec="#333333",
-        fontsize=8.3,
-    )
-    draw_box(
-        ax,
-        0.55,
-        0.38,
-        0.165,
-        0.18,
-        "直方图梯度提升树\n（HGB）\n──────────\n输出概率 p^DYN",
-        fc="#FFFFFF",
-        ec="#333333",
-        fontsize=8.5,
-        fontweight="bold",
-    )
+    # Branch III: masked TCN -> p_TCN
+    draw_box(ax, 0.205, 0.095, 0.195, 0.165, "Masked\nTCN", fc="#E5E5E5", ec="#555555", lw=1.0, ls="-", fontsize=10.5)
+    draw_box(ax, 0.635, 0.095, 0.085, 0.165, "$p^{TCN}$", fc="#FFFFFF", ec="#555555", lw=1.0, fontsize=11.0, fontweight="bold")
 
-    # Branch III
-    draw_box(
-        ax,
-        0.215,
-        0.07,
-        0.31,
-        0.18,
-        "掩码因果膨胀卷积网络（Masked TCN）\n"
-        "6 层，k = 3，d = 1, 2, 4, …, 32，128 通道\n"
-        "感受野 127；掩码均值池化（与补零长度无关）",
-        fc="#E5E5E5",
-        ec="#444444",
-        fontsize=8.3,
-    )
-    draw_box(
-        ax,
-        0.55,
-        0.07,
-        0.165,
-        0.18,
-        "Softmax 分类层\n固定 50 轮余弦退火\n──────────\n输出概率 p^TCN",
-        fc="#FFFFFF",
-        ec="#444444",
-        fontsize=8.5,
-        fontweight="bold",
-    )
-
-    # Meta learner
-    draw_box(
-        ax,
-        0.758,
-        0.17,
-        0.232,
-        0.66,
-        "创新 4：交叉拟合概率堆叠\n"
-        "══════════════\n"
-        "训练子集内 5 折 OOF 概率\n"
-        "z = [p^TCN, p^DYN, p^MD]\nz ∈ R^9\n"
-        "──────────────\n"
-        "多项逻辑回归元学习器\n"
-        "（可选温度缩放 τ）\n"
-        "──────────────\n"
-        "三分类输出（原始标签顺序）\n"
-        "0：正常\n1：电池异常\n2：充电器故障",
-        fc="#EFEFEF",
-        ec="#000000",
-        lw=1.8,
-        fontsize=8.6,
-        fontweight="bold",
-        text_color="#000000",
-    )
+    # Fusion column
+    draw_box(ax, 0.775, 0.615, 0.185, 0.140, "5-fold OOF\nstacking", fc="#F2F2F2", ec="#111111", lw=1.2, fontsize=10.0)
+    draw_box(ax, 0.775, 0.405, 0.185, 0.140, "Logistic\nmeta-learner", fc="#FFFFFF", ec="#111111", lw=1.2, fontsize=10.0)
+    draw_box(ax, 0.775, 0.195, 0.185, 0.140, "3-class\noutput", fc="#EDEDED", ec="#111111", lw=1.4, fontsize=10.5, fontweight="bold")
 
     # Input -> branches
-    draw_arrow(ax, (0.172, 0.62), (0.21, 0.845), color="#111111", lw=1.5, ls="-")
-    draw_arrow(ax, (0.172, 0.58), (0.21, 0.725), color="#222222", lw=1.5, ls="--")
-    draw_arrow(ax, (0.172, 0.50), (0.21, 0.47), color="#333333", lw=1.5, ls="-.")
-    draw_arrow(ax, (0.172, 0.38), (0.21, 0.16), color="#444444", lw=1.5, ls=":")
-    # Inside branches (left -> right)
-    draw_arrow(ax, (0.349, 0.845), (0.368, 0.82), color="#111111")
-    draw_arrow(ax, (0.349, 0.725), (0.368, 0.75), color="#222222", ls="--")
-    draw_arrow(ax, (0.546, 0.785), (0.563, 0.785), color="#111111")
-    draw_arrow(ax, (0.529, 0.47), (0.546, 0.47), color="#333333")
-    draw_arrow(ax, (0.529, 0.16), (0.546, 0.16), color="#444444")
-    # Branch outputs -> meta learner
-    draw_arrow(ax, (0.72, 0.785), (0.76, 0.66), color="#000000", lw=1.6, ls="-")
-    draw_arrow(ax, (0.72, 0.47), (0.76, 0.50), color="#222222", lw=1.6, ls="--")
-    draw_arrow(ax, (0.72, 0.16), (0.76, 0.34), color="#444444", lw=1.6, ls="-.")
+    for y in (0.855, 0.505, 0.175):
+        draw_arrow(ax, (0.157, 0.50), (0.19, y), color="#222222", lw=1.2)
+    # Branch I
+    draw_arrow(ax, (0.292, 0.893), (0.315, 0.865), color="#111111", lw=1.1)
+    draw_arrow(ax, (0.292, 0.803), (0.315, 0.803), color="#111111", lw=1.1, ls="--")
+    draw_arrow(ax, (0.450, 0.848), (0.475, 0.848), color="#111111", lw=1.1)
+    draw_arrow(ax, (0.610, 0.848), (0.635, 0.848), color="#111111", lw=1.1)
+    # Branch II
+    draw_arrow(ax, (0.400, 0.507), (0.430, 0.507), color="#333333", lw=1.1)
+    draw_arrow(ax, (0.550, 0.507), (0.635, 0.507), color="#333333", lw=1.1)
+    # Branch III
+    draw_arrow(ax, (0.400, 0.177), (0.635, 0.177), color="#555555", lw=1.1, ls="-.")
+    # Branch outputs share a short bus before entering the meta-learner.
+    for y in (0.848, 0.507, 0.177):
+        ax.plot([0.720, 0.755], [y, y], color="#222222", lw=1.2, zorder=4)
+    ax.plot([0.755, 0.755], [0.177, 0.848], color="#222222", lw=1.2, zorder=4)
+    draw_arrow(ax, (0.755, 0.680), (0.775, 0.680), color="#111111", lw=1.3)
+    # Fusion internal
+    draw_arrow(ax, (0.867, 0.615), (0.867, 0.545), color="#111111", lw=1.1)
+    draw_arrow(ax, (0.867, 0.405), (0.867, 0.335), color="#111111", lw=1.1)
 
+    out_dirs = [FIG_DIR, FIG_DIR / "label_semantics_v2" / "paper"]
+    for d in out_dirs:
+        d.mkdir(parents=True, exist_ok=True)
+        fig.savefig(d / "fig2_overall_framework.pdf", bbox_inches="tight")
     save_both(fig, "fig2_overall_framework", extra_dir=FIG_DIR / "label_semantics_v2" / "paper")
 
 
