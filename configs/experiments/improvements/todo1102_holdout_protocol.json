@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "experiment_id": "TODO1102-1A",
+  "title": "Sealed cluster-aware hold-out evaluation of the main systems",
+  "date": "2026-11-02",
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "sealed": {
+    "fraction": 0.1,
+    "seed": 42,
+    "cluster_prefix_chars": 6,
+    "unit": "charging_station_id cluster (no cluster straddles the boundary)",
+    "evaluated_once": true,
+    "used_for": "final scoring only; never for fitting, tuning, early stopping, thresholding or calibration"
+  },
+  "remaining_partition": {
+    "train_fraction": 0.8,
+    "validation_fraction": 0.2,
+    "seeds": [42, 44, 45, 46],
+    "unit": "cluster-aware stratified split"
+  },
+  "budgets": [0.1, 0.4],
+  "systems": ["dyn", "md", "tcn", "tcn_dyn", "full"],
+  "training": {
+    "tcn_epochs": 50,
+    "tcn_schedule": "cosine, fixed; no validation-based checkpoint selection",
+    "stacking_folds": 5,
+    "meta": "L2 logistic regression, C selected on in-training OOF only",
+    "hgb_params": "frozen E08 selected_params per seed and budget; not retuned on the new rows",
+    "moment_logistic": "C=1.0, as in E12"
+  },
+  "labels": {
+    "classes": ["0", "1", "2"],
+    "battery_label": "1",
+    "charger_label": "2",
+    "min_length": 18,
+    "max_length": 1024
+  },
+  "no_test_access": true,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "The historical test split is not read; the sealed set replaces it for this audit.",
+    "Reusing E08 hyper-parameters is deliberate: no new tuning is performed on the new rows.",
+    "Sealed rows come from the same distribution; this responds to selection leakage, not to distribution shift.",
+    "All three branches are refitted from scratch on the new partition."
+  ]
+}

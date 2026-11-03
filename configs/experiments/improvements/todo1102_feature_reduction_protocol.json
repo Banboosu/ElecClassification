@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "experiment_id": "TODO1102-6A",
+  "title": "Group-level DYN feature-budget search on frozen E08 features",
+  "date": "2026-11-02",
+  "source_suite": "artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "label_fraction": 0.4,
+  "tag": "40p",
+  "target_feature_range": [
+    30,
+    40
+  ],
+  "selection": {
+    "criterion": "highest mean validation Macro-F1 among subsets with 30-40 features",
+    "tie_break": "smallest subset within 0.10 percentage points of the best eligible subset",
+    "report_tolerance_pp": 0.2,
+    "tie_tolerance_pp": 0.1
+  },
+  "model": "HistGradientBoostingClassifier",
+  "hgb_params_source": "E08 seed_results dyn_hgb/40p selected_params; fixed per seed, no re-tuning",
+  "feature_groups_source": "tcn_moment.dynamics_features.FEATURE_GROUPS",
+  "no_test_access": true,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Uses only cached train/validation features from E08; no raw-sequence rescan and no model retraining beyond HGB.",
+    "The 40% training subset is the frozen E08 train_ids_40p.npy for each seed.",
+    "All 63 non-empty combinations of the six frozen feature groups are evaluated.",
+    "Validation-only analysis; test split is neither read nor scored.",
+    "This is a feature-budget screen, not a replacement for the full E08/E12 protocol."
+  ],
+  "source_suite_import_fallback": "artifacts/imports/e08_strong_features_20261020/e08_strong_features_20261020_v1"
+}

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "experiment_id": "TODO1102-4A",
+  "title": "Feature-side noise augmentation for the DYN branch",
+  "date": "2026-11-02",
+  "dataset": "data/raw/最新多.csv",
+  "dataset_sha256": "5615a96a7894caed5d14463c77167af8098bdc1e1ebf32a33a89a12c3c5cf6e6",
+  "delimiter": " ",
+  "source_suite": "artifacts/improvements/e08_strong_features/e08_strong_features_20261020_v1",
+  "seeds": [
+    42,
+    44,
+    45,
+    46
+  ],
+  "label_fractions": [
+    0.1,
+    0.4
+  ],
+  "classes": [
+    "0",
+    "1",
+    "2"
+  ],
+  "id_column": "charging_station_id",
+  "sequence_column": "charging_powers_str",
+  "label_column": "InsertedColumn",
+  "max_length": 1024,
+  "augmentation": {
+    "levels": [
+      0.0025,
+      0.005
+    ],
+    "copies": 2,
+    "clip_min": 0.0,
+    "mode": "recompute 60-D features on noisy copies of the labelled training sequences"
+  },
+  "evaluation": {
+    "noise_levels": [
+      0.001,
+      0.0025,
+      0.005,
+      0.01
+    ],
+    "noise_scale": "train_valid_rms",
+    "clean_reference": "E08 cached validation features (no re-extraction)"
+  },
+  "model": "HistGradientBoostingClassifier",
+  "hgb_params_source": "E08 seed_results dyn_hgb selected_params per seed and budget; no re-tuning",
+  "rng": {
+    "training_stream": 1,
+    "validation_stream": 2,
+    "key": "numpy default_rng([seed, stream, level_basis_points, copy_index])"
+  },
+  "no_test_access": true,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "Only the DYN feature branch is touched; MOMENT and TCN are not retrained here.",
+    "The clean-trained arm is rescored under this audit's noise draws, so the paired difference is same-draw.",
+    "E13b results stay valid as the 'clean model, E13 draws' reference and are not overwritten.",
+    "Validation only; the test split is neither read nor scored."
+  ]
+}
