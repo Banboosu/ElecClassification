@@ -197,9 +197,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--arms",
-        choices=("both", "clean"),
+        choices=("both", "clean", "aug"),
         default="both",
         help="Train both the clean and augmented arms, or only the clean arm.",
+    )
+    parser.add_argument(
+        "--budgets", nargs="+", type=float, default=list(BUDGETS),
+        help="Restrict to a subset of label budgets, e.g. --budgets 0.1",
     )
     parser.add_argument(
         "--seeds", nargs="+", type=int, default=list(SEEDS),
@@ -210,6 +214,7 @@ def main() -> None:
     global EVAL_LEVELS
     if args.eval_levels:
         EVAL_LEVELS = tuple(args.eval_levels)
+    budgets = tuple(args.budgets)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "settings.json").write_text(
         json.dumps(
@@ -286,7 +291,7 @@ def main() -> None:
             }
             print(f"seed {seed}: validation level {level:.4f} features ready", flush=True)
 
-        for fraction in BUDGETS:
+        for fraction in budgets:
             tag = _tag(fraction)
             indices = stratified_train_subset_indices(
                 data["y"][train_index], train_ids, fraction, seed
@@ -326,7 +331,9 @@ def main() -> None:
                     "y": np.concatenate([y_train, y_train]),
                 },
             }
-            selected_arms = ("clean",) if args.arms == "clean" else tuple(arms)
+            selected_arms = (
+                ("clean",) if args.arms == "clean" else ("aug",) if args.arms == "aug" else ("clean", "aug")
+            )
             for arm in selected_arms:
                 payload = arms[arm]
                 started = time.perf_counter()
@@ -339,16 +346,23 @@ def main() -> None:
                 oof_md = np.zeros((len(y_train), 3))
                 oof_tcn = np.zeros((len(y_train), 3))
                 n_rows = len(y_train)
+                fold_rows: list[dict[str, int]] = []
                 for fold, (fit_index, hold_index) in enumerate(folds):
+                    # The augmented arm must *train* on the noisy copies; the OOF
+                    # probabilities stay clean-input estimates so that the
+                    # meta-learner learns branch reliability on clean inputs, which
+                    # is what the earlier E12 protocol does.
                     if arm == "aug":
                         fit_rows = np.concatenate([fit_index, fit_index + n_rows])
                     else:
                         fit_rows = fit_index
+                    if arm == "aug" and len(fit_rows) != 2 * len(fit_index):
+                        raise AssertionError("Augmented fold must see both copies")
                     hold_rows = hold_index
                     tcn = _train_tcn(
-                        arm_x[fit_index],
-                        arm_mask[fit_index],
-                        arm_y[fit_index],
+                        arm_x[fit_rows],
+                        arm_mask[fit_rows],
+                        arm_y[fit_rows],
                         epochs=EPOCHS,
                         seed=seed * 100 + fold,
                         device=device,
@@ -356,12 +370,19 @@ def main() -> None:
                     oof_tcn[hold_rows] = _tcn_predict(
                         tcn, x_train[hold_rows], mask_train[hold_rows], device
                     )
-                    hgb = run_e08._hgb_factory(params, seed).fit(dyn_x[fit_index], dyn_y[fit_index])
+                    hgb = run_e08._hgb_factory(params, seed).fit(dyn_x[fit_rows], dyn_y[fit_rows])
                     oof_dyn[hold_rows] = hgb.predict_proba(dyn_clean[hold_rows])
                     logistic = run_e08._logit_factory({"C": 1.0}, seed).fit(
-                        md_x[fit_index], md_y[fit_index]
+                        md_x[fit_rows], md_y[fit_rows]
                     )
                     oof_md[hold_rows] = logistic.predict_proba(md_clean[hold_rows])
+                    fold_rows.append(
+                        {
+                            "fold": fold,
+                            "n_fit_rows": int(len(fit_rows)),
+                            "n_hold_rows": int(len(hold_rows)),
+                        }
+                    )
                 tcn_full = _train_tcn(
                     arm_x, arm_mask, arm_y, epochs=EPOCHS, seed=seed * 100 + 99, device=device
                 )
@@ -391,6 +412,7 @@ def main() -> None:
                                 "method": method,
                                 "noise_fraction": level,
                                 "n_fit": int(len(arm_y)),
+                                "fold_fit_rows": [entry["n_fit_rows"] for entry in fold_rows],
                                 "seconds": time.perf_counter() - started,
                                 "sigma_base": sigma_base,
                                 **metrics,
@@ -399,15 +421,40 @@ def main() -> None:
                 print(f"seed {seed} {tag} {arm}: done in {time.perf_counter() - started:.0f}s", flush=True)
 
     fieldnames = [
-        "seed", "tag", "arm", "method", "noise_fraction", "n_fit", "seconds", "sigma_base",
+        "seed", "tag", "arm", "method", "noise_fraction", "n_fit", "fold_fit_rows_min",
+        "fold_fit_rows_max", "seconds", "sigma_base",
         "macro_f1", "class0_recall", "class0_fpr", "class1_recall", "class1_fpr",
         "class2_recall", "class2_fpr",
     ]
-    with (args.output / "conditions.csv").open("w", newline="", encoding="utf-8") as file:
+    output_csv = args.output / ("conditions.csv" if len(args.seeds) > 1 else f"conditions_seed{args.seeds[0]}.csv")
+    with output_csv.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         for row in rows:
+            row["fold_fit_rows_min"] = min(row["fold_fit_rows"])
+            row["fold_fit_rows_max"] = max(row["fold_fit_rows"])
             writer.writerow({key: row[key] for key in fieldnames})
+
+    merged: list[dict[str, Any]] = []
+    for path in sorted(args.output.glob("conditions_seed*.csv")):
+        with path.open(encoding="utf-8", newline="") as handle:
+            for raw_row in csv.DictReader(handle):
+                merged.append(
+                    {
+                        "tag": raw_row["tag"],
+                        "arm": raw_row["arm"],
+                        "method": raw_row["method"],
+                        "noise_fraction": float(raw_row["noise_fraction"]),
+                        "seed": int(raw_row["seed"]),
+                        "macro_f1": float(raw_row["macro_f1"]),
+                        "class1_recall": float(raw_row["class1_recall"]),
+                        "class1_fpr": float(raw_row["class1_fpr"]),
+                        "n_fit": int(raw_row["n_fit"]),
+                    }
+                )
+    if merged:
+        rows = merged
+        print(f"aggregating {len(merged)} rows from per-seed CSVs", flush=True)
 
     aggregates: list[dict[str, Any]] = []
     for tag in ("10p", "40p"):
@@ -449,7 +496,10 @@ def main() -> None:
                     if row["tag"] == tag and row["arm"] == "aug"
                     and row["method"] == method and row["noise_fraction"] == level
                 }
-                diffs = np.asarray([aug[key] - clean[key] for key in sorted(clean)])
+                shared = sorted(set(clean) & set(aug))
+                if not shared:
+                    continue
+                diffs = np.asarray([aug[key] - clean[key] for key in shared])
                 paired.append(
                     {
                         "tag": tag,
