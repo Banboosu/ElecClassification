@@ -109,27 +109,36 @@
 \newlabel{sec:noise}{{4.10}{14}{Noise sensitivity and noise-augmented training}{subsection.4.10}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080.}}{14}{figure.8}\protected@file@percent }
 \newlabel{fig:robust}{{8}{14}{Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080}{figure.8}{}}
-\citation{hu2022}
 \@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Validation Macro-F1 (\%) of clean-trained and noise-augmented models under additive Gaussian noise (four seeds). Noise levels are percentages of the valid-observation RMS.}}{15}{table.9}\protected@file@percent }
 \newlabel{tab:noiseaug}{{9}{15}{Validation Macro-F1 (\%) of clean-trained and noise-augmented models under additive Gaussian noise (four seeds). Noise levels are percentages of the valid-observation RMS}{table.9}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{15}{section.5}\protected@file@percent }
 \newlabel{sec:discussion}{{5}{15}{Discussion}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Role of the foundation model}{15}{subsection.5.1}\protected@file@percent }
+\citation{tomaszewska2019}
+\citation{park2022,xu2025}
+\citation{kong2018}
+\citation{lu2013,hu2020}
+\citation{feng2018}
+\citation{hu2022}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Correspondence with known fault signatures}{16}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:signatures}{{5.2}{16}{Correspondence with known fault signatures}{subsection.5.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Selected DYN features by class on the training split (24,569 records). Values are medians with interquartile ranges in brackets; AUC is the one-vs-rest area under the ROC curve of the raw feature, and values below 0.5 indicate lower values in that class.}}{16}{table.10}\protected@file@percent }
+\newlabel{tab:signatures}{{10}{16}{Selected DYN features by class on the training split (24,569 records). Values are medians with interquartile ranges in brackets; AUC is the one-vs-rest area under the ROC curve of the raw feature, and values below 0.5 indicate lower values in that class}{table.10}{}}
 \citation{jacob2018}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Alternative adaptation strategies and method selection}{16}{subsection.5.2}\protected@file@percent }
-\newlabel{sec:selection}{{5.2}{16}{Alternative adaptation strategies and method selection}{subsection.5.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Operating guidance derived from the validation results. Latency refers to batch size 32.}}{16}{table.10}\protected@file@percent }
-\newlabel{tab:selection}{{10}{16}{Operating guidance derived from the validation results. Latency refers to batch size 32}{table.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Deployment path}{16}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Limitations}{16}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{17}{section.6}\protected@file@percent }
-\newlabel{sec:conclusion}{{6}{17}{Conclusion}{section.6}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {A}Reduced dynamics feature set}{17}{appendix.A}\protected@file@percent }
-\newlabel{app:reduction}{{A}{17}{Reduced dynamics feature set}{appendix.A}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {A1}{\ignorespaces Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set.}}{17}{table.1}\protected@file@percent }
-\newlabel{tab:reduction}{{A1}{17}{Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set}{table.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {B}TCN export and int8 quantization}{17}{appendix.B}\protected@file@percent }
-\newlabel{app:export}{{B}{17}{TCN export and int8 quantization}{appendix.B}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Alternative adaptation strategies and method selection}{17}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:selection}{{5.3}{17}{Alternative adaptation strategies and method selection}{subsection.5.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Operating guidance derived from the validation results. Latency refers to batch size 32.}}{17}{table.11}\protected@file@percent }
+\newlabel{tab:selection}{{11}{17}{Operating guidance derived from the validation results. Latency refers to batch size 32}{table.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Deployment path}{17}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Limitations}{17}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{18}{section.6}\protected@file@percent }
+\newlabel{sec:conclusion}{{6}{18}{Conclusion}{section.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Reduced dynamics feature set}{18}{appendix.A}\protected@file@percent }
+\newlabel{app:reduction}{{A}{18}{Reduced dynamics feature set}{appendix.A}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {A1}{\ignorespaces Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set.}}{18}{table.1}\protected@file@percent }
+\newlabel{tab:reduction}{{A1}{18}{Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}TCN export and int8 quantization}{18}{appendix.B}\protected@file@percent }
+\newlabel{app:export}{{B}{18}{TCN export and int8 quantization}{appendix.B}{}}
 \bibcite{feng2018}{1}
 \bibcite{zhang2023}{2}
 \bibcite{hu2020}{3}
@@ -138,8 +147,8 @@
 \bibcite{xu2025}{6}
 \bibcite{sun2025}{7}
 \bibcite{chen2021}{8}
-\@writefile{lot}{\contentsline {table}{\numberline {B1}{\ignorespaces Accuracy and latency of the exported TCN at 40\% labels (four seeds).}}{18}{table.1}\protected@file@percent }
-\newlabel{tab:export}{{B1}{18}{Accuracy and latency of the exported TCN at 40\% labels (four seeds)}{table.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {B1}{\ignorespaces Accuracy and latency of the exported TCN at 40\% labels (four seeds).}}{19}{table.1}\protected@file@percent }
+\newlabel{tab:export}{{B1}{19}{Accuracy and latency of the exported TCN at 40\% labels (four seeds)}{table.1}{}}
 \bibcite{xu2026}{9}
 \bibcite{fawaz2019}{10}
 \bibcite{middlehurst2024}{11}
@@ -170,6 +179,9 @@
 \bibcite{nie2023}{36}
 \bibcite{kim2022}{37}
 \bibcite{wen2021}{38}
-\bibcite{hu2022}{39}
-\bibcite{jacob2018}{40}
-\gdef \@abspage@last{20}
+\bibcite{tomaszewska2019}{39}
+\bibcite{kong2018}{40}
+\bibcite{lu2013}{41}
+\bibcite{hu2022}{42}
+\bibcite{jacob2018}{43}
+\gdef \@abspage@last{21}

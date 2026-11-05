@@ -185,7 +185,7 @@ def plot_fig1_dataset_overview() -> None:
         lengths = np.sort(np.asarray([len(s) for s in by_class[cls]]))
         ecdf = np.arange(1, len(lengths) + 1) / len(lengths) * 100.0
         c_col, c_ls, c_mk = class_styles[cls]
-        med = int(np.median(lengths))
+        med = float(np.median(lengths))
         ax.plot(
             lengths,
             ecdf,
@@ -198,7 +198,7 @@ def plot_fig1_dataset_overview() -> None:
             markerfacecolor="white" if c_ls != "-" else c_col,
             markeredgecolor=c_col,
             markeredgewidth=0.9,
-            label=f"{LABEL_NAMES_EN[cls]} (median {med})",
+            label=f"{LABEL_NAMES_EN[cls]} (median {med:g})",
         )
         ax.axvline(med, color=c_col, linestyle=":", linewidth=0.8, alpha=0.8)
 
