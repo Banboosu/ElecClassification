@@ -33,11 +33,18 @@ random-kernel noise tests, 36-D feature screen, ONNX/int8 export; see
 `../../todo1102-report.md`). It needs the TeX packages `multirow` and `cite`
 (`tlmgr install multirow cite` on TinyTeX).
 
-Its figures are the English versions in `figures_en/` (taken from the
-supervisor's draft) and are referenced by explicit path, because LaTeX would
-otherwise pick up the Chinese PNGs with the same names in this folder. The
-English figures are raster images; regenerate them with English labels if the
-journal asks for vector artwork.
+Its figures are vector PDFs in `figures_en/` (with 300-dpi PNG previews; copies
+in `../figures/en/`). They follow the wording and layout of the supervisor's
+draft and are generated from the audited result files by:
+
+```powershell
+$env:PYTHONPATH = "src"; python scripts/generate_journal_figures_en.py
+```
+
+(run from the project root; needs `matplotlib` and `numpy`, and the Arial and
+Times New Roman fonts). The manuscript references them by explicit path,
+because LaTeX would otherwise pick up the Chinese figures with the same names
+in this folder.
 
 On Windows, build directly from this folder:
 

@@ -93,7 +93,7 @@ Figure~\ref{fig:data} shows randomly selected training curves and the empirical 
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.92\textwidth]{figures_en/fig1_dataset_overview.png}
+\includegraphics[width=0.96\textwidth]{figures_en/fig1_dataset_overview.pdf}
 \caption{Examples and valid-length distributions in the training set. Panels (a)--(c) show three randomly selected sequences per class using seed 42. Panel (d) shows empirical cumulative distributions and class medians. The sharp rise near 480 samples reflects a common truncation point in the platform records.}
 \label{fig:data}
 \end{figure}
@@ -117,7 +117,7 @@ The framework in figure~\ref{fig:framework} has three branches. Branch I sends t
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.78\textwidth]{figures_en/fig2_overall_framework.png}
+\includegraphics[width=0.86\textwidth]{figures_en/fig2_overall_framework.pdf}
 \caption{Proposed three-branch framework. The original power sequence $P$ and its first difference $\Delta P$ share a frozen MOMENT encoder. The other branches use raw-scale dynamics features and a masked TCN. Five-fold OOF probabilities train the logistic meta-learner.}
 \label{fig:framework}
 \end{figure}
@@ -271,7 +271,7 @@ Figure~\ref{fig:pooling}(a) summarizes the adaptation sequence. Full fine-tuning
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{figures_en/fig3_pooling_and_head_stabilization.png}
+\includegraphics[width=0.96\textwidth]{figures_en/fig3_pooling_and_head_stabilization.pdf}
 \caption{Effects of pooling and downstream optimization. (a) Test Macro-F1 along the MOMENT adaptation sequence. Error bars show seed standard deviations. (b) Validation convergence of frozen-feature heads, with and without fixed input-scale compensation.}
 \label{fig:pooling}
 \end{figure}
@@ -286,7 +286,7 @@ The restored six-layer architecture is also important. An early four-block resid
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{figures_en/fig4_tcn_and_length_strata.png}
+\includegraphics[width=0.96\textwidth]{figures_en/fig4_tcn_and_length_strata.pdf}
 \caption{TCN architecture, pooling, and length-stratified performance. (a) Validation Macro-F1 for three TCN configurations. (b) Performance by seed-specific training-length terciles (approximately 266 and 399 samples). Long sequences exceed the TCN receptive field and show the largest fusion gain at the 10\% label budget.}
 \label{fig:tcn}
 \end{figure}
@@ -328,8 +328,8 @@ The three test differences have paired 95\% intervals of 22.24--34.97, 20.89--24
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{figures_en/fig5_dual_stream_and_pretraining.png}
-\caption{Difference-stream and pretraining effects. (a) Validation Macro-F1 for original, difference, and dual-stream frozen MOMENT representations, with a DYN stack. (b) Same-architecture comparison of pretrained and randomly initialized weights ($C=1.0$).}
+\includegraphics[width=0.96\textwidth]{figures_en/fig5_dual_stream_and_pretraining.pdf}
+\caption{Difference-stream and pretraining effects. (a) Validation Macro-F1 for original, difference, and dual-stream frozen MOMENT representations, with a DYN stack. (b) Same-architecture comparison of pretrained (solid) and randomly initialized (dashed) weights for the three input streams ($C=1.0$).}
 \label{fig:dual}
 \end{figure}
 
@@ -339,7 +339,7 @@ Figure~\ref{fig:dyn}(a) compares the 60 DYN features with the 15 global statisti
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{figures_en/fig6_dyn_feature_ablation.png}
+\includegraphics[width=0.96\textwidth]{figures_en/fig6_dyn_feature_ablation.pdf}
 \caption{Raw-scale dynamics features. (a) Label-budget performance of F15 and DYN with HGB and RBF-SVM. (b) Grouped keep-one and drop-one analysis at 40\% labels. The vertical dotted line is the complete DYN result.}
 \label{fig:dyn}
 \end{figure}
@@ -379,8 +379,8 @@ Figure~\ref{fig:stack}(a) separates the information gain from the effect of anot
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{figures_en/fig7_stacking_ablation_and_low_label.png}
-\caption{Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol (table~\ref{tab:budget}). Tick labels at 10\% and 40\% are omitted for legibility; both budgets are plotted.}
+\includegraphics[width=0.96\textwidth]{figures_en/fig7_stacking_ablation_and_low_label.pdf}
+\caption{Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol, including MultiRocket (table~\ref{tab:budget}).}
 \label{fig:stack}
 \end{figure}
 
@@ -481,7 +481,7 @@ For a noise sensitivity check, zero-mean Gaussian noise is added only to valid o
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.96\textwidth]{figures_en/fig8_robustness_and_latency.png}
+\includegraphics[width=0.96\textwidth]{figures_en/fig8_robustness_and_latency.pdf}
 \caption{Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref{tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080.}
 \label{fig:robust}
 \end{figure}
