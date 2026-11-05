@@ -21,5 +21,27 @@ PY
 The figure keeps only flow labels; details are in the caption below it.
 
 Important: IOP journals require the body text and references to be in English,
-with CJK characters allowed only in the author list. This file is the Chinese
-review draft using the IOP layout, not yet an IOP-ready submission.
+with CJK characters allowed only in the author list. `manuscript_iop_zh.tex` is
+the Chinese review draft using the IOP layout, not an IOP-ready submission.
+
+## English submission version
+
+`manuscript_iop_en.tex` is the English manuscript for submission. It follows
+the supervisor's English draft (`../导师英文稿.pdf`) and adds the todo1102
+results (sealed hold-out, leave-cluster-out audit, noise-augmented training,
+random-kernel noise tests, 36-D feature screen, ONNX/int8 export; see
+`../../todo1102-report.md`). It needs the TeX packages `multirow` and `cite`
+(`tlmgr install multirow cite` on TinyTeX).
+
+Its figures are the English versions in `figures_en/` (taken from the
+supervisor's draft) and are referenced by explicit path, because LaTeX would
+otherwise pick up the Chinese PNGs with the same names in this folder. The
+English figures are raster images; regenerate them with English labels if the
+journal asks for vector artwork.
+
+On Windows, build directly from this folder:
+
+```powershell
+xelatex -interaction=nonstopmode -halt-on-error manuscript_iop_en.tex
+xelatex -interaction=nonstopmode -halt-on-error manuscript_iop_en.tex
+```

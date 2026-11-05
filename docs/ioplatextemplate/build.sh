@@ -17,3 +17,7 @@ fi
 
 "$XELATEX" -interaction=nonstopmode -halt-on-error manuscript_iop_zh.tex
 "$XELATEX" -interaction=nonstopmode -halt-on-error manuscript_iop_zh.tex
+
+# English submission version (figures from figures_en/)
+"$XELATEX" -interaction=nonstopmode -halt-on-error manuscript_iop_en.tex
+"$XELATEX" -interaction=nonstopmode -halt-on-error manuscript_iop_en.tex
