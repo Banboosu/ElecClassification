@@ -12,7 +12,7 @@
 \citation{bai2018}
 \citation{liu2026,yang2026,jiang2026}
 \citation{wu2023}
-\citation{dempster2020,dempster2021,tan2022,dempster2023}
+\citation{dempster2020,dempster2021,dempster2023}
 \citation{wang2026,yue2022}
 \citation{goswami2024,das2024,ansari2024,woo2024,shi2025}
 \citation{shao2026,zhao2026,yang2026b}
@@ -22,16 +22,17 @@
 \newlabel{eq:task}{{1}{2}{Task definition}{equation.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Dataset}{2}{subsection.2.2}\protected@file@percent }
 \newlabel{sec:dataset}{{2.2}{2}{Dataset}{subsection.2.2}{}}
+\citation{saito2015}
+\citation{guo2017}
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dataset split and class distribution.}}{3}{table.1}\protected@file@percent }
 \newlabel{tab:split}{{1}{3}{Dataset split and class distribution}{table.1}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Examples and valid-length distributions in the training set. Panels (a)--(c) show three randomly selected sequences per class using seed 42. Panel (d) shows empirical cumulative distributions and class medians. The sharp rise near 480 samples reflects a common truncation point in the platform records.}}{3}{figure.1}\protected@file@percent }
 \newlabel{fig:data}{{1}{3}{Examples and valid-length distributions in the training set. Panels (a)--(c) show three randomly selected sequences per class using seed 42. Panel (d) shows empirical cumulative distributions and class medians. The sharp rise near 480 samples reflects a common truncation point in the platform records}{figure.1}{}}
-\citation{saito2015}
-\citation{guo2017}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Evaluation metrics}{3}{subsection.2.3}\protected@file@percent }
+\newlabel{sec:metrics}{{2.3}{3}{Evaluation metrics}{subsection.2.3}{}}
+\newlabel{eq:macrof1}{{2}{3}{Evaluation metrics}{equation.2}{}}
 \citation{nie2023}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Evaluation metrics}{4}{subsection.2.3}\protected@file@percent }
-\newlabel{sec:metrics}{{2.3}{4}{Evaluation metrics}{subsection.2.3}{}}
-\newlabel{eq:macrof1}{{2}{4}{Evaluation metrics}{equation.2}{}}
+\citation{kim2022}
 \@writefile{toc}{\contentsline {section}{\numberline {3}Method}{4}{section.3}\protected@file@percent }
 \newlabel{sec:method}{{3}{4}{Method}{section.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Overview}{4}{subsection.3.1}\protected@file@percent }
@@ -40,21 +41,20 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Mask-aware patch pooling}{4}{subsection.3.2}\protected@file@percent }
 \newlabel{sec:pooling}{{3.2}{4}{Mask-aware patch pooling}{subsection.3.2}{}}
 \newlabel{eq:defaultpool}{{3}{4}{Mask-aware patch pooling}{equation.3}{}}
-\citation{kim2022}
-\newlabel{eq:patchmask}{{4}{5}{Mask-aware patch pooling}{equation.4}{}}
-\newlabel{eq:maskpool}{{5}{5}{Mask-aware patch pooling}{equation.5}{}}
+\newlabel{eq:patchmask}{{4}{4}{Mask-aware patch pooling}{equation.4}{}}
+\newlabel{eq:maskpool}{{5}{4}{Mask-aware patch pooling}{equation.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}First-difference dual-stream representation}{5}{subsection.3.3}\protected@file@percent }
 \newlabel{sec:dual}{{3.3}{5}{First-difference dual-stream representation}{subsection.3.3}{}}
 \newlabel{eq:diff}{{6}{5}{First-difference dual-stream representation}{equation.6}{}}
 \newlabel{eq:md}{{7}{5}{First-difference dual-stream representation}{equation.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Raw-scale dynamics features}{5}{subsection.3.4}\protected@file@percent }
 \newlabel{sec:dyn}{{3.4}{5}{Raw-scale dynamics features}{subsection.3.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Masked temporal convolutional branch}{5}{subsection.3.5}\protected@file@percent }
-\newlabel{sec:tcn}{{3.5}{5}{Masked temporal convolutional branch}{subsection.3.5}{}}
-\newlabel{eq:rf}{{8}{5}{Masked temporal convolutional branch}{equation.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Groups in the 60-dimensional raw-scale dynamics feature vector.}}{5}{table.2}\protected@file@percent }
+\newlabel{tab:dyn}{{2}{5}{Groups in the 60-dimensional raw-scale dynamics feature vector}{table.2}{}}
 \citation{wen2021}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Groups in the 60-dimensional raw-scale dynamics feature vector.}}{6}{table.2}\protected@file@percent }
-\newlabel{tab:dyn}{{2}{6}{Groups in the 60-dimensional raw-scale dynamics feature vector}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Masked temporal convolutional branch}{6}{subsection.3.5}\protected@file@percent }
+\newlabel{sec:tcn}{{3.5}{6}{Masked temporal convolutional branch}{subsection.3.5}{}}
+\newlabel{eq:rf}{{8}{6}{Masked temporal convolutional branch}{equation.8}{}}
 \newlabel{eq:tcnpool}{{9}{6}{Masked temporal convolutional branch}{equation.9}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Cross-fitted probability stacking}{6}{subsection.3.6}\protected@file@percent }
 \newlabel{sec:stack}{{3.6}{6}{Cross-fitted probability stacking}{subsection.3.6}{}}
@@ -63,83 +63,85 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Noise-augmented training}{6}{subsection.3.7}\protected@file@percent }
 \newlabel{sec:aug}{{3.7}{6}{Noise-augmented training}{subsection.3.7}{}}
 \newlabel{eq:aug}{{12}{6}{Noise-augmented training}{equation.12}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments and results}{7}{section.4}\protected@file@percent }
-\newlabel{sec:exp}{{4}{7}{Experiments and results}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Experimental protocol}{7}{subsection.4.1}\protected@file@percent }
-\newlabel{sec:protocol}{{4.1}{7}{Experimental protocol}{subsection.4.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Experiments and results}{6}{section.4}\protected@file@percent }
+\newlabel{sec:exp}{{4}{6}{Experiments and results}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Experimental protocol}{6}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:protocol}{{4.1}{6}{Experimental protocol}{subsection.4.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Baselines and initial frozen-model performance}{7}{subsection.4.2}\protected@file@percent }
 \newlabel{sec:baselines}{{4.2}{7}{Baselines and initial frozen-model performance}{subsection.4.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Test performance with all training labels. Values are mean $\pm $ sample standard deviation over five seeds unless noted.}}{8}{table.3}\protected@file@percent }
-\newlabel{tab:baselines}{{3}{8}{Test performance with all training labels. Values are mean $\pm $ sample standard deviation over five seeds unless noted}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Test performance with all training labels. Values are mean $\pm $ sample standard deviation over five seeds unless noted.}}{7}{table.3}\protected@file@percent }
+\newlabel{tab:baselines}{{3}{7}{Test performance with all training labels. Values are mean $\pm $ sample standard deviation over five seeds unless noted}{table.3}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Effects of pooling and downstream optimization. (a) Test Macro-F1 along the MOMENT adaptation sequence. Error bars show seed standard deviations. (b) Validation convergence of frozen-feature heads, with and without fixed input-scale compensation.}}{8}{figure.3}\protected@file@percent }
 \newlabel{fig:pooling}{{3}{8}{Effects of pooling and downstream optimization. (a) Test Macro-F1 along the MOMENT adaptation sequence. Error bars show seed standard deviations. (b) Validation convergence of frozen-feature heads, with and without fixed input-scale compensation}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Padding sensitivity and TCN restoration}{9}{subsection.4.3}\protected@file@percent }
-\newlabel{sec:padding}{{4.3}{9}{Padding sensitivity and TCN restoration}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Padding sensitivity and TCN restoration}{8}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:padding}{{4.3}{8}{Padding sensitivity and TCN restoration}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Difference stream and contribution of pretraining}{8}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:pretrain}{{4.4}{8}{Difference stream and contribution of pretraining}{subsection.4.4}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces TCN architecture, pooling, and length-stratified performance. (a) Validation Macro-F1 for three TCN configurations. (b) Performance by seed-specific training-length terciles (approximately 266 and 399 samples). Long sequences exceed the TCN receptive field and show the largest fusion gain at the 10\% label budget.}}{9}{figure.4}\protected@file@percent }
 \newlabel{fig:tcn}{{4}{9}{TCN architecture, pooling, and length-stratified performance. (a) Validation Macro-F1 for three TCN configurations. (b) Performance by seed-specific training-length terciles (approximately 266 and 399 samples). Long sequences exceed the TCN receptive field and show the largest fusion gain at the 10\% label budget}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Difference stream and contribution of pretraining}{9}{subsection.4.4}\protected@file@percent }
-\newlabel{sec:pretrain}{{4.4}{9}{Difference stream and contribution of pretraining}{subsection.4.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Dynamics features}{9}{subsection.4.5}\protected@file@percent }
-\newlabel{sec:dynres}{{4.5}{9}{Dynamics features}{subsection.4.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Same-architecture comparison of pretrained and randomly initialized encoders. Macro-F1 values are percentages.}}{10}{table.4}\protected@file@percent }
-\newlabel{tab:pretrain}{{4}{10}{Same-architecture comparison of pretrained and randomly initialized encoders. Macro-F1 values are percentages}{table.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Same-architecture comparison of pretrained and randomly initialized encoders. Macro-F1 values are percentages.}}{9}{table.4}\protected@file@percent }
+\newlabel{tab:pretrain}{{4}{9}{Same-architecture comparison of pretrained and randomly initialized encoders. Macro-F1 values are percentages}{table.4}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Difference-stream and pretraining effects. (a) Validation Macro-F1 for original, difference, and dual-stream frozen MOMENT representations, with a DYN stack. (b) Same-architecture comparison of pretrained (solid) and randomly initialized (dashed) weights for the three input streams ($C=1.0$).}}{10}{figure.5}\protected@file@percent }
 \newlabel{fig:dual}{{5}{10}{Difference-stream and pretraining effects. (a) Validation Macro-F1 for original, difference, and dual-stream frozen MOMENT representations, with a DYN stack. (b) Same-architecture comparison of pretrained (solid) and randomly initialized (dashed) weights for the three input streams ($C=1.0$)}{figure.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Dynamics features}{10}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:dynres}{{4.5}{10}{Dynamics features}{subsection.4.5}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Raw-scale dynamics features. (a) Label-budget performance of F15 and DYN with HGB and RBF-SVM. (b) Grouped keep-one and drop-one analysis at 40\% labels. The vertical dotted line is the complete DYN result.}}{10}{figure.6}\protected@file@percent }
 \newlabel{fig:dyn}{{6}{10}{Raw-scale dynamics features. (a) Label-budget performance of F15 and DYN with HGB and RBF-SVM. (b) Grouped keep-one and drop-one analysis at 40\% labels. The vertical dotted line is the complete DYN result}{figure.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Fusion and complementarity}{11}{subsection.4.6}\protected@file@percent }
 \newlabel{sec:fusion}{{4.6}{11}{Fusion and complementarity}{subsection.4.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Validation results of branch combinations under cross-fitted stacking with the joint dual-stream probability block (nine-dimensional meta-feature; four seeds). All logistic regressions use $C=1.0$ and the TCN uses the epoch-50 endpoint.}}{11}{table.5}\protected@file@percent }
 \newlabel{tab:fusion}{{5}{11}{Validation results of branch combinations under cross-fitted stacking with the joint dual-stream probability block (nine-dimensional meta-feature; four seeds). All logistic regressions use $C=1.0$ and the TCN uses the epoch-50 endpoint}{table.5}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol, including MultiRocket (table~\ref {tab:budget}).}}{12}{figure.7}\protected@file@percent }
-\newlabel{fig:stack}{{7}{12}{Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol, including MultiRocket (table~\ref {tab:budget})}{figure.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Label budgets}{12}{subsection.4.7}\protected@file@percent }
-\newlabel{sec:budget}{{4.7}{12}{Label budgets}{subsection.4.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Label budgets}{11}{subsection.4.7}\protected@file@percent }
+\newlabel{sec:budget}{{4.7}{11}{Label budgets}{subsection.4.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol (table~\ref {tab:budget}).}}{12}{figure.7}\protected@file@percent }
+\newlabel{fig:stack}{{7}{12}{Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol (table~\ref {tab:budget})}{figure.7}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Validation Macro-F1 (\%) across label budgets under the unified fixed-hyperparameter protocol (four seeds).}}{12}{table.6}\protected@file@percent }
 \newlabel{tab:budget}{{6}{12}{Validation Macro-F1 (\%) across label budgets under the unified fixed-hyperparameter protocol (four seeds)}{table.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Sealed hold-out and cluster-level evaluation}{13}{subsection.4.8}\protected@file@percent }
 \newlabel{sec:holdout}{{4.8}{13}{Sealed hold-out and cluster-level evaluation}{subsection.4.8}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Validation and sealed hold-out results of models retrained without the sealed set (four seeds). The sealed set contains 3,677 records from 618 identifier-prefix clusters and is scored once per seed and budget.}}{13}{table.7}\protected@file@percent }
 \newlabel{tab:holdout}{{7}{13}{Validation and sealed hold-out results of models retrained without the sealed set (four seeds). The sealed set contains 3,677 records from 618 identifier-prefix clusters and is scored once per seed and budget}{table.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Inference cost}{13}{subsection.4.9}\protected@file@percent }
-\newlabel{sec:latency}{{4.9}{13}{Inference cost}{subsection.4.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Inference cost}{14}{subsection.4.9}\protected@file@percent }
+\newlabel{sec:latency}{{4.9}{14}{Inference cost}{subsection.4.9}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces End-to-end inference latency on an RTX 4080 for models trained with 40\% of the labels. Values are median milliseconds per record.}}{14}{table.8}\protected@file@percent }
 \newlabel{tab:latency}{{8}{14}{End-to-end inference latency on an RTX 4080 for models trained with 40\% of the labels. Values are median milliseconds per record}{table.8}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.10}Noise sensitivity and noise-augmented training}{14}{subsection.4.10}\protected@file@percent }
 \newlabel{sec:noise}{{4.10}{14}{Noise sensitivity and noise-augmented training}{subsection.4.10}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080.}}{14}{figure.8}\protected@file@percent }
-\newlabel{fig:robust}{{8}{14}{Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080}{figure.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080.}}{15}{figure.8}\protected@file@percent }
+\newlabel{fig:robust}{{8}{15}{Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080}{figure.8}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Validation Macro-F1 (\%) of clean-trained and noise-augmented models under additive Gaussian noise (four seeds). Noise levels are percentages of the valid-observation RMS.}}{15}{table.9}\protected@file@percent }
 \newlabel{tab:noiseaug}{{9}{15}{Validation Macro-F1 (\%) of clean-trained and noise-augmented models under additive Gaussian noise (four seeds). Noise levels are percentages of the valid-observation RMS}{table.9}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{15}{section.5}\protected@file@percent }
-\newlabel{sec:discussion}{{5}{15}{Discussion}{section.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Role of the foundation model}{15}{subsection.5.1}\protected@file@percent }
 \citation{tomaszewska2019}
 \citation{park2022,xu2025}
 \citation{kong2018}
 \citation{lu2013,hu2020}
 \citation{feng2018}
-\citation{hu2022}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{16}{section.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{16}{Discussion}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Role of the foundation model}{16}{subsection.5.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Correspondence with known fault signatures}{16}{subsection.5.2}\protected@file@percent }
 \newlabel{sec:signatures}{{5.2}{16}{Correspondence with known fault signatures}{subsection.5.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Selected DYN features by class on the training split (24,569 records). Values are medians with interquartile ranges in brackets; AUC is the one-vs-rest area under the ROC curve of the raw feature, and values below 0.5 indicate lower values in that class.}}{16}{table.10}\protected@file@percent }
 \newlabel{tab:signatures}{{10}{16}{Selected DYN features by class on the training split (24,569 records). Values are medians with interquartile ranges in brackets; AUC is the one-vs-rest area under the ROC curve of the raw feature, and values below 0.5 indicate lower values in that class}{table.10}{}}
+\citation{hu2022}
 \citation{jacob2018}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Alternative adaptation strategies and method selection}{17}{subsection.5.3}\protected@file@percent }
 \newlabel{sec:selection}{{5.3}{17}{Alternative adaptation strategies and method selection}{subsection.5.3}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Operating guidance derived from the validation results. Latency refers to batch size 32.}}{17}{table.11}\protected@file@percent }
 \newlabel{tab:selection}{{11}{17}{Operating guidance derived from the validation results. Latency refers to batch size 32}{table.11}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Deployment path}{17}{subsection.5.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Limitations}{17}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Deployment path}{18}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Limitations}{18}{subsection.5.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{18}{section.6}\protected@file@percent }
 \newlabel{sec:conclusion}{{6}{18}{Conclusion}{section.6}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {A}Reduced dynamics feature set}{18}{appendix.A}\protected@file@percent }
 \newlabel{app:reduction}{{A}{18}{Reduced dynamics feature set}{appendix.A}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {A1}{\ignorespaces Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set.}}{18}{table.1}\protected@file@percent }
-\newlabel{tab:reduction}{{A1}{18}{Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set}{table.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {B}TCN export and int8 quantization}{18}{appendix.B}\protected@file@percent }
-\newlabel{app:export}{{B}{18}{TCN export and int8 quantization}{appendix.B}{}}
 \bibcite{feng2018}{1}
+\@writefile{lot}{\contentsline {table}{\numberline {A1}{\ignorespaces Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set.}}{19}{table.1}\protected@file@percent }
+\newlabel{tab:reduction}{{A1}{19}{Validation Macro-F1 (\%) of reduced DYN feature sets (four seeds). $\Delta $ is relative to the 60-feature set}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}TCN export and int8 quantization}{19}{appendix.B}\protected@file@percent }
+\newlabel{app:export}{{B}{19}{TCN export and int8 quantization}{appendix.B}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {B1}{\ignorespaces Accuracy and latency of the exported TCN at 40\% labels (four seeds).}}{19}{table.1}\protected@file@percent }
+\newlabel{tab:export}{{B1}{19}{Accuracy and latency of the exported TCN at 40\% labels (four seeds)}{table.1}{}}
 \bibcite{zhang2023}{2}
 \bibcite{hu2020}{3}
 \bibcite{park2022}{4}
@@ -147,8 +149,6 @@
 \bibcite{xu2025}{6}
 \bibcite{sun2025}{7}
 \bibcite{chen2021}{8}
-\@writefile{lot}{\contentsline {table}{\numberline {B1}{\ignorespaces Accuracy and latency of the exported TCN at 40\% labels (four seeds).}}{19}{table.1}\protected@file@percent }
-\newlabel{tab:export}{{B1}{19}{Accuracy and latency of the exported TCN at 40\% labels (four seeds)}{table.1}{}}
 \bibcite{xu2026}{9}
 \bibcite{fawaz2019}{10}
 \bibcite{middlehurst2024}{11}
@@ -162,26 +162,25 @@
 \bibcite{wu2023}{19}
 \bibcite{dempster2020}{20}
 \bibcite{dempster2021}{21}
-\bibcite{tan2022}{22}
-\bibcite{dempster2023}{23}
-\bibcite{wang2026}{24}
-\bibcite{yue2022}{25}
-\bibcite{goswami2024}{26}
-\bibcite{das2024}{27}
-\bibcite{ansari2024}{28}
-\bibcite{woo2024}{29}
-\bibcite{shi2025}{30}
-\bibcite{shao2026}{31}
-\bibcite{zhao2026}{32}
-\bibcite{yang2026b}{33}
-\bibcite{saito2015}{34}
-\bibcite{guo2017}{35}
-\bibcite{nie2023}{36}
-\bibcite{kim2022}{37}
-\bibcite{wen2021}{38}
-\bibcite{tomaszewska2019}{39}
-\bibcite{kong2018}{40}
-\bibcite{lu2013}{41}
-\bibcite{hu2022}{42}
-\bibcite{jacob2018}{43}
+\bibcite{dempster2023}{22}
+\bibcite{wang2026}{23}
+\bibcite{yue2022}{24}
+\bibcite{goswami2024}{25}
+\bibcite{das2024}{26}
+\bibcite{ansari2024}{27}
+\bibcite{woo2024}{28}
+\bibcite{shi2025}{29}
+\bibcite{shao2026}{30}
+\bibcite{zhao2026}{31}
+\bibcite{yang2026b}{32}
+\bibcite{saito2015}{33}
+\bibcite{guo2017}{34}
+\bibcite{nie2023}{35}
+\bibcite{kim2022}{36}
+\bibcite{wen2021}{37}
+\bibcite{tomaszewska2019}{38}
+\bibcite{kong2018}{39}
+\bibcite{lu2013}{40}
+\bibcite{hu2022}{41}
+\bibcite{jacob2018}{42}
 \gdef \@abspage@last{21}

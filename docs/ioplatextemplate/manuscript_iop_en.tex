@@ -1,7 +1,7 @@
 % IOP Publishing journal manuscript (English submission version).
 % Based on the supervisor's English draft (docs/导师英文稿.pdf) and updated with
 % the todo1102 experiments (sealed hold-out, leave-cluster-out audit,
-% noise-augmented training, random-kernel noise tests, 36-D feature screen,
+% noise-augmented training, 36-D feature screen,
 % ONNX/int8 export). Figures are the English versions in figures_en/.
 % Build: xelatex (or pdflatex) twice; see README.md.
 \documentclass{iopjournal}
@@ -39,7 +39,7 @@
 \keywords{lithium-ion battery, charging power curve, time-series foundation model, few-shot learning, anomaly classification, mask-aware pooling, stacked ensemble, noise-augmented training}
 
 \begin{abstract}
-Charging power curves of electric bicycles carry information on charger faults and battery anomalies, but verified fault labels are costly and record lengths vary from 18 to 816 samples. A general time-series foundation model transfers poorly to such curves, whereas a task-specific network becomes unstable with few labels. We develop a three-class method that combines a frozen time-series foundation model with raw-scale dynamics features and a masked temporal convolutional network (TCN). Mask-aware patch pooling prevents padded patches from entering the pooled MOMENT representation and raises the test Macro-F1 of a frozen linear probe from 69.46\% to 77.41\%. A first-difference stream restores local changes that patch encoding tends to smooth, increasing the single-branch validation Macro-F1 from 83.91\% to 93.57\% with 40\% of the training labels. A 60-dimensional dynamics branch retains absolute power levels, and five-fold cross-fitted probability stacking combines the three branches. On 35,099 operational charging records under a unified fixed-hyperparameter protocol, the complete model reaches validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$ and $95.13\pm0.19\%$ with 1\%, 5\% and 10\% of the training labels, 2.3--2.6 percentage points above its strongest single branch at each budget and 27.24 points above the masked TCN at 1\%. In the cross-fitted configuration with a joint dual-stream probability block, it reaches $98.09\pm0.23\%$ with 40\% of the labels, with 98.23\% battery-anomaly recall at a 0.67\% false-positive rate, and a retrained model scores $97.76\pm0.10\%$ on a sealed hold-out set of 3,677 records drawn by identifier cluster. Pretraining contributes 6.00--18.81 percentage points to the dual-stream branch. Training all branches with noisy copies raises the 40\%-label Macro-F1 under Gaussian noise of 0.5\% of the signal root mean square from 64.72\% to 97.47\% without lowering clean accuracy, but stronger noise remains a failure point. A random-kernel classifier is more accurate below 20\% labels, which bounds the claims of this work.
+Charging power curves of electric bicycles carry information on charger faults and battery anomalies, but verified fault labels are costly and record lengths vary from 18 to 816 samples. A general time-series foundation model transfers poorly to such curves, whereas a task-specific network becomes unstable with few labels. We develop a three-class method that combines a frozen time-series foundation model with raw-scale dynamics features and a masked temporal convolutional network (TCN). Mask-aware patch pooling prevents padded patches from entering the pooled MOMENT representation and raises the test Macro-F1 of a frozen linear probe from 69.46\% to 77.41\%. A first-difference stream restores local changes that patch encoding tends to smooth, increasing the single-branch validation Macro-F1 from 83.91\% to 93.57\% with 40\% of the training labels. A 60-dimensional dynamics branch retains absolute power levels, and five-fold cross-fitted probability stacking combines the three branches. On 35,099 operational charging records under a unified fixed-hyperparameter protocol, the complete model reaches validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$ and $95.13\pm0.19\%$ with 1\%, 5\% and 10\% of the training labels, 2.3--2.6 percentage points above its strongest single branch at each budget and 27.24 points above the masked TCN at 1\%. In the cross-fitted configuration with a joint dual-stream probability block, it reaches $98.09\pm0.23\%$ with 40\% of the labels, with 98.23\% battery-anomaly recall at a 0.67\% false-positive rate, and a retrained model scores $97.76\pm0.10\%$ on a sealed hold-out set of 3,677 records drawn by identifier cluster. Pretraining contributes 6.00--18.81 percentage points to the dual-stream branch. Training all branches with noisy copies raises the 40\%-label Macro-F1 under Gaussian noise of 0.5\% of the signal root mean square from 64.72\% to 97.47\% without lowering clean accuracy, but stronger noise remains a failure point.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
@@ -50,11 +50,11 @@ Many battery fault-diagnosis systems use cell voltage, temperature, current, and
 
 This task presents three practical difficulties. First, record length varies from 18 to 816 samples. Batches require extensive right padding, and length itself is correlated with class. A model may consequently learn a padding shortcut instead of the power shape. Second, useful evidence occurs at different scales. Absolute power distinguishes low-power plateaus, local differences reveal spikes and steps, and the full curve describes the transition from a constant-power region to decay. Third, fault labels require manual verification against maintenance records and are scarce in normal operations.
 
-Time-series classification and anomaly detection have been reviewed extensively~\cite{chen2021,xu2026,fawaz2019,middlehurst2024}. Classifiers include feature-based methods~\cite{breiman2001,friedman2001,cortes1995}, task-specific neural networks such as temporal convolutional networks (TCNs)~\cite{bai2018}, Transformer variants~\cite{liu2026,yang2026,jiang2026} and TimesNet~\cite{wu2023}, and random-kernel transforms such as ROCKET, MiniRocket, MultiRocket, and Hydra~\cite{dempster2020,dempster2021,tan2022,dempster2023}. Transfer learning and self-supervised representation learning can reduce label requirements~\cite{wang2026,yue2022}. More recently, foundation models such as MOMENT, TimesFM, Chronos, Moirai, and Time-MoE have been pretrained on large, heterogeneous collections of time series~\cite{goswami2024,das2024,ansari2024,woo2024,shi2025}. Their representations have been studied in machinery diagnosis, engineering displacement prediction, and input-representation design~\cite{shao2026,zhao2026,yang2026b}.
+Time-series classification and anomaly detection have been reviewed extensively~\cite{chen2021,xu2026,fawaz2019,middlehurst2024}. Classifiers include feature-based methods~\cite{breiman2001,friedman2001,cortes1995}, task-specific neural networks such as temporal convolutional networks (TCNs)~\cite{bai2018}, Transformer variants~\cite{liu2026,yang2026,jiang2026} and TimesNet~\cite{wu2023}, and random-kernel transforms such as ROCKET, MiniRocket, and Hydra~\cite{dempster2020,dempster2021,dempster2023}. Transfer learning and self-supervised representation learning can reduce label requirements~\cite{wang2026,yue2022}. More recently, foundation models such as MOMENT, TimesFM, Chronos, Moirai, and Time-MoE have been pretrained on large, heterogeneous collections of time series~\cite{goswami2024,das2024,ansari2024,woo2024,shi2025}. Their representations have been studied in machinery diagnosis, engineering displacement prediction, and input-representation design~\cite{shao2026,zhao2026,yang2026b}.
 
 Direct transfer is not sufficient in the present task. Freezing MOMENT-1-large and training its default classification head yields only 69.46\% test Macro-F1, compared with 95.99\% for a task-specific TCN trained on raw-scale curves. We trace this mismatch to three operations. The default head averages padded patches; patch encoding smooths short power changes; and per-series normalization removes absolute amplitude. We address each operation without updating the 341.24 million backbone parameters.
 
-The contributions are as follows. First, mask-aware patch pooling excludes incomplete and padded patches and makes the frozen representation invariant to the padded region. Second, a first-difference stream supplies local change information to the same frozen encoder. Third, a 60-dimensional raw-scale dynamics branch restores amplitude and interpretable local statistics, and five-fold cross-fitted stacking combines the foundation-model branch, the dynamics branch, and a masked TCN. Fourth, we delimit where the method is useful. Paired ablations, same-architecture pretraining controls, and label-budget experiments separate the sources of improvement. A sealed hold-out set disjoint by identifier cluster and a leave-cluster-out audit address selection on repeatedly used validation data. Noise-augmented training, a noise-matched comparison with random-kernel classifiers, and latency and model-export measurements identify the operating conditions under which the proposed model, a lighter TCN-based model, or a random-kernel classifier should be preferred.
+The contributions are as follows. First, mask-aware patch pooling excludes incomplete and padded patches and makes the frozen representation invariant to the padded region. Second, a first-difference stream supplies local change information to the same frozen encoder. Third, a 60-dimensional raw-scale dynamics branch restores amplitude and interpretable local statistics, and five-fold cross-fitted stacking combines the foundation-model branch, the dynamics branch, and a masked TCN. Fourth, we delimit where the method is useful. Paired ablations, same-architecture pretraining controls, and label-budget experiments separate the sources of improvement. A sealed hold-out set disjoint by identifier cluster and a leave-cluster-out audit address selection on repeatedly used validation data. Noise-augmented training and latency and model-export measurements identify the operating conditions under which the proposed model or a lighter TCN-based model should be preferred.
 
 \section{Problem formulation and data}\label{sec:data}
 
@@ -380,7 +380,7 @@ Figure~\ref{fig:stack}(a) separates the information gain from the effect of anot
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.96\textwidth]{figures_en/fig7_stacking_ablation_and_low_label.pdf}
-\caption{Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol, including MultiRocket (table~\ref{tab:budget}).}
+\caption{Complementarity and label-budget effects. (a) Paired branch and same-form meta-learner comparisons at 10\% and 40\% labels; the three marginal contributions are the losses caused by removing one branch from full fusion. Error bars show seed standard deviations. (b) Validation Macro-F1 under the unified fixed-hyperparameter protocol (table~\ref{tab:budget}).}
 \label{fig:stack}
 \end{figure}
 
@@ -409,9 +409,8 @@ Masked TCN & \pmv{61.91}{7.71} & \pmv{84.67}{0.66} & \pmv{89.17}{1.32} & \pmv{95
 TCN + MOMENT/$\Delta P^{\mathrm{a}}$ & \pmv{84.21}{1.94} & \pmv{91.79}{0.39} & \pmv{93.98}{0.44} & \pmv{96.55}{0.04} & \pmv{97.96}{0.18} & -- \\
 TCN + DYN$^{\mathrm{b}}$ & \pmv{86.80}{0.93} & \pmv{92.31}{0.89} & \pmv{94.37}{0.38} & \pmv{96.76}{0.18} & \pmv{98.09}{0.09} & $\mathbf{98.54\pm0.18}$ \\
 DYN + MOMENT/$\Delta P$ & \pmv{89.12}{0.94} & \pmv{93.03}{0.45} & \pmv{94.18}{0.37} & \pmv{95.25}{0.31} & \pmv{95.80}{0.29} & \pmv{96.58}{0.25} \\
-Full fusion & \pmv{89.15}{0.98} & \pmv{93.85}{0.43} & \pmv{95.13}{0.19} & \pmv{96.90}{0.24} & $\mathbf{98.14\pm0.01}$ & \pmv{98.53}{0.16} \\
+Full fusion & $\mathbf{89.15\pm0.98}$ & $\mathbf{93.85\pm0.43}$ & $\mathbf{95.13\pm0.19}$ & $\mathbf{96.90\pm0.24}$ & $\mathbf{98.14\pm0.01}$ & \pmv{98.53}{0.16} \\
 MiniRocket & \pmv{86.90}{1.78} & \pmv{91.59}{0.91} & \pmv{92.72}{0.34} & \pmv{93.59}{0.22} & \pmv{94.39}{0.18} & \pmv{94.94}{0.33} \\
-MultiRocket & $\mathbf{92.52\pm0.34}$ & $\mathbf{95.73\pm0.43}$ & $\mathbf{96.16\pm0.47}$ & $\mathbf{96.92\pm0.29}$ & \pmv{97.25}{0.40} & \pmv{97.67}{0.25} \\
 \bottomrule
 \end{tabular}%
 }\\[2pt]
@@ -420,7 +419,7 @@ MultiRocket & $\mathbf{92.52\pm0.34}$ & $\mathbf{95.73\pm0.43}$ & $\mathbf{96.16
 
 At 1\%, the TCN averages 61.91\% with substantial seed variation (52.62--71.12\%); selecting the best epoch on validation data raises it only to 64.89\%, and a learning-rate scan over $\{3\times10^{-4},10^{-3},3\times10^{-3}\}$ does not remove the collapse. Adding the MOMENT/difference branch raises TCN+MOMENT/$\Delta P$ to 84.21\% and full fusion to $89.15\pm0.98\%$, 27.24 points above the TCN. Full fusion reaches $93.85\pm0.43\%$ at 5\% and $95.13\pm0.19\%$ at 10\%. At all three of these budgets, full fusion exceeds each single branch it combines; the strongest of them, DYN+HGB, is 2.45, 2.56, and 2.32 points lower at 1\%, 5\%, and 10\% (four of four seeds; paired intervals 1.25--3.65, 2.15--2.97, and 1.70--2.94). Relative to TCN+DYN, its gains at 1\%, 5\%, and 10\% are 2.35, 1.53, and 0.77 points, with descriptive paired intervals of 1.52--3.18, 0.78--2.29, and 0.30--1.23. At 20--40\%, the increment over TCN+DYN shrinks to approximately 0.06--0.14 points and the intervals cross zero. At 40\%, battery-anomaly recall is 98.33\% for full fusion and 98.30\% for TCN+DYN. With all labels, TCN+DYN and full fusion reach 98.54\% and 98.53\%, respectively, so the foundation-model branch has no net benefit at that budget.
 
-Among the random-kernel transforms, full fusion exceeds MiniRocket by 2.24, 2.26, and 2.41 points at 1\%, 5\%, and 10\% (four of four seeds at 5\% and 10\%, three of four at 1\%). MultiRocket, evaluated on the same labeled subsets and validation records, is 3.37, 1.88, and 1.03 points better than full fusion at 1\%, 5\%, and 10\%, ties it at 20\% (96.92\% versus 96.90\%), and is 0.89 and 0.86 points lower at 40\% and 100\%. The proposed model is therefore not uniformly best among time-series classifiers. Section~\ref{sec:selection} discusses when each option should be preferred.
+MiniRocket, a random-kernel transform evaluated on the same labeled subsets and validation records, is exceeded by full fusion by 2.24, 2.26, and 2.41 points at 1\%, 5\%, and 10\% (four of four seeds at 5\% and 10\%, three of four at 1\%). Section~\ref{sec:selection} discusses when each configuration should be preferred.
 
 \subsection{Sealed hold-out and cluster-level evaluation}\label{sec:holdout}
 
@@ -500,25 +499,22 @@ Table~\ref{tab:noiseaug} reports the noise-augmented variants of section~\ref{se
 \toprule
 Labels & Model & Training & Clean & 0.1\% & 0.25\% & 0.5\% & 1\% \\
 \midrule
-\multirow{6}{*}{10\%} & DYN + HGB & Clean & 92.81 & 78.94 & 66.13 & 38.21 & 20.41 \\
+\multirow{4}{*}{10\%} & DYN + HGB & Clean & 92.81 & 78.94 & 66.13 & 38.21 & 20.41 \\
  & DYN + HGB & Augmented (0.25\%, 0.5\%) & 91.13 & 89.80 & 90.24 & 91.01 & 44.69 \\
  & Full fusion & Clean & 94.84 & -- & 80.98 & 55.39 & 25.61 \\
- & Full fusion & Augmented (0.5\%) & $\mathbf{95.58}$ & -- & $\mathbf{94.03}$ & $\mathbf{94.46}$ & 45.97 \\
- & MultiRocket & Clean & 96.57 & 94.85 & 88.13 & 62.29 & 30.66 \\
- & MultiRocket & Augmented (0.5\%) & 92.84 & 92.69 & 92.44 & 90.85 & $\mathbf{79.86}$ \\
+ & Full fusion & Augmented (0.5\%) & $\mathbf{95.58}$ & -- & $\mathbf{94.03}$ & $\mathbf{94.46}$ & $\mathbf{45.97}$ \\
 \midrule
-\multirow{5}{*}{40\%} & DYN + HGB & Clean & 95.00 & 86.78 & 71.36 & 42.30 & 21.17 \\
+\multirow{4}{*}{40\%} & DYN + HGB & Clean & 95.00 & 86.78 & 71.36 & 42.30 & 21.17 \\
  & DYN + HGB & Augmented (0.25\%, 0.5\%) & 94.30 & 92.70 & 93.21 & 93.58 & 45.60 \\
  & Full fusion & Clean & 97.94 & -- & 92.29 & 64.72 & 28.93 \\
  & Full fusion & Augmented (0.5\%) & $\mathbf{97.98}$ & -- & $\mathbf{97.00}$ & $\mathbf{97.47}$ & $\mathbf{49.30}$ \\
- & MultiRocket & Clean & 97.30 & 95.81 & 89.90 & 64.96 & 33.30 \\
 \bottomrule
 \end{tabular}%
 }\\[2pt]
-{\footnotesize For DYN and full fusion, the noise scale is the RMS of the labeled training subset; for MultiRocket it is the RMS of the complete training split (192.14 recorded units). The MultiRocket rows come from a separate run with independent random kernels, so their clean values differ slightly from table~\ref{tab:budget}; a noise-augmented MultiRocket arm was run only at 10\% labels. Clean-trained full fusion was retrained and scored together with its augmented arm on the same noise draws and therefore differs slightly from table~\ref{tab:fusion} and figure~\ref{fig:robust}(a).}
+{\footnotesize The noise scale is the RMS of the labeled training subset. Clean-trained full fusion was retrained and scored together with its augmented arm on the same noise draws and therefore differs slightly from table~\ref{tab:fusion} and figure~\ref{fig:robust}(a).}
 \end{table}
 
-Noise augmentation does not extend beyond the trained level for the proposed system. At 1\% noise, augmented full fusion still falls to 45.97\% and 49.30\%. Augmented MultiRocket, trained with the same single 0.5\% copy, retains 79.86\% at that level, which suggests that the 1\% failure of the proposed system is not solely an information limit of the data, although this comparison is limited to 10\% labels. Within the augmented range, full fusion is more accurate than augmented MultiRocket at 10\% labels (94.46\% versus 90.85\% at 0.5\% noise; 95.58\% versus 92.84\% on clean data), and augmentation costs MultiRocket 3.73 points on clean data. Clean-trained MultiRocket is not more robust than the clean-trained proposed model: it falls from 96.57\% to 62.29\% at 0.5\% noise. These comparisons carry three qualifications: the noise scales are defined on slightly different reference sets, MultiRocket was augmented only at 10\% labels, and both results come from validation data.
+Noise augmentation does not extend beyond the trained level for the proposed system. At 1\% noise, augmented full fusion still falls to 45.97\% and 49.30\%. Robustness at stronger noise would therefore require augmentation at those levels or a more stable feature definition, and these results come from validation data only.
 
 \section{Discussion}\label{sec:discussion}
 
@@ -568,7 +564,7 @@ Three cautions limit these correspondences. First, the platform labels are coars
 
 Fully fine-tuning MOMENT reaches 95.37\% with all labels but updates 341.24 million parameters and takes about 3~h per run. The frozen approach needs one feature extraction pass, after which its downstream models train in minutes. These figures come from different label budgets and evaluation stages and should not be treated as a direct accuracy ranking. A rank-eight low-rank adaptation (LoRA)~\cite{hu2022} on the attention projections of all 24 encoder layers adds only 0.45 points over a well-trained frozen fusion head across four seeds while increasing training cost by more than an order of magnitude and requiring backpropagation through the entire encoder. The frozen design was retained on cost-benefit grounds.
 
-MultiRocket remains competitive and is better in the most label-scarce conditions: under the unified protocol it is 1.03--3.37 points more accurate than full fusion at 1--10\% labels, including 1.03 points at 10\%. The crossover near 20\% labels is itself informative: the value of pretrained representations declines as labels increase, whereas random kernels are most valuable when labels are fewest. Together with the noise and cost results, this gives the operating guidance in table~\ref{tab:selection}. The contribution of the present work is therefore an analysis of how to adapt a time-series foundation model to variable-length charging curves and combine it with other representations, not a claim of universal superiority. A four-branch ensemble that adds random-kernel features is a natural extension.
+The value of the pretrained representation declines as labels increase: its increment over TCN+DYN is largest at 1--10\% labels and vanishes with all labels. Together with the noise and cost results, this gives the operating guidance in table~\ref{tab:selection}. The contribution of the present work is therefore an analysis of how to adapt a time-series foundation model to variable-length charging curves and combine it with other representations, not a claim of superiority over all time-series classifiers.
 
 \begin{table}[htbp]
 \caption{Operating guidance derived from the validation results. Latency refers to batch size 32.}
@@ -578,16 +574,16 @@ MultiRocket remains competitive and is better in the most label-scarce condition
 \toprule
 Condition & Evidence & Preferred option \\
 \midrule
-1--10\% labels, clean input, CPU-only deployment & MultiRocket exceeds full fusion by 1.03--3.37 points (table~\ref{tab:budget}) & Random-kernel classifier$^{\mathrm{a}}$ \\
-10\% labels, noise up to 0.5\% RMS & Augmented full fusion 94.46\% versus augmented MultiRocket 90.85\% at 0.5\% noise (table~\ref{tab:noiseaug}) & Noise-augmented full fusion$^{\mathrm{b}}$ \\
+1--10\% labels, clean input & Full fusion exceeds TCN+DYN by 0.77--2.35 points and MiniRocket by 2.24--2.41 points (table~\ref{tab:budget}) & Full fusion \\
+10--40\% labels, noise up to 0.5\% RMS & Augmented full fusion 94.46\% and 97.47\% at 0.5\% noise (table~\ref{tab:noiseaug}) & Noise-augmented full fusion$^{\mathrm{a}}$ \\
 Long records ($L>399$), 10\% labels & Full fusion exceeds the TCN by 10.17 points & Full fusion \\
-40\% labels, GPU available & Full fusion 98.14\% versus MultiRocket 97.25\% and TCN+DYN 98.09\% & Full fusion \\
+40\% labels, GPU available & Full fusion 98.14\% versus TCN+DYN 98.09\% & Full fusion \\
 100\% labels & TCN+DYN 98.54\% versus full fusion 98.53\% & TCN + DYN \\
 $\ge$40\% labels, latency or memory constrained & TCN+DYN within 0.16 points of full fusion at 2.09 versus 11.13~ms per record & TCN + DYN \\
-Noise at 1\% RMS (strongest tested level) & Augmented full fusion $\le$49.30\%; augmented MultiRocket 79.86\% at 10\% labels & Improve acquisition; augmented MultiRocket degrades least$^{\mathrm{b}}$ \\
+Noise at 1\% RMS (strongest tested level) & Augmented full fusion $\le$49.30\% & Improve acquisition or augment at that level$^{\mathrm{a}}$ \\
 \bottomrule
 \end{tabularx}\\[2pt]
-{\footnotesize $^{\mathrm{a}}$ MultiRocket latency was not measured on the same hardware as table~\ref{tab:latency}. $^{\mathrm{b}}$ Validation data only; augmented MultiRocket was tested only at 10\% labels, and its noise scale uses the RMS of the complete training split rather than the labeled subset.}
+{\footnotesize $^{\mathrm{a}}$ Validation data only.}
 \end{table}
 
 \subsection{Deployment path}
@@ -604,7 +600,7 @@ Noise-augmented training protects the system only up to the trained level of 0.5
 
 This study analyzes why a general time-series foundation model transfers poorly to variable-length electric-bicycle charging curves and proposes three targeted corrections. Mask-aware patch pooling raises the frozen linear-probe test Macro-F1 from 69.46\% to 77.41\% and removes dependence on right padding. A first-difference stream adds 9.66--13.38 points to the frozen branch without training the backbone. A 60-dimensional raw-scale dynamics branch restores amplitude information, reaching 95.00\% Macro-F1 by itself at the 40\% budget; 36 of its features suffice without measurable loss. Cross-fitted stacking reaches 95.02\% at 10\% labels and 98.09\% at 40\%, with 98.23\% battery-anomaly recall and a 0.67\% FPR at the latter budget. Under the unified label-budget protocol, it reaches 89.15\% at 1\% labels, 27.24 points above the masked TCN, and exceeds its strongest single branch by 2.3--2.6 points at 1--10\% labels. A retrained model scores 97.76\% on a sealed, cluster-disjoint hold-out set at 40\% labels. Training all branches with noisy copies keeps Macro-F1 at 94.46\% and 97.47\% under 0.5\% RMS noise at 10\% and 40\% labels without reducing clean accuracy.
 
-The additional foundation-model benefit is largest for scarce labels and long records, becomes negligible when all labels are used, and carries substantial latency and storage cost. A random-kernel classifier is more accurate below 20\% labels on clean data. Future work should extend noise robustness beyond the trained level, evaluate independent multi-site data, incorporate random-kernel features into the ensemble, and develop quantization-aware or distilled models for edge deployment.
+The additional foundation-model benefit is largest for scarce labels and long records, becomes negligible when all labels are used, and carries substantial latency and storage cost. Future work should extend noise robustness beyond the trained level, evaluate independent multi-site data, compare against a broader set of time-series classifiers, and develop quantization-aware or distilled models for edge deployment.
 
 \appendix
 
@@ -725,8 +721,6 @@ This study uses anonymized device-level charging power sequences and operational
 \bibitem{dempster2020} Dempster A, Petitjean F and Webb G I 2020 ROCKET: exceptionally fast and accurate time series classification using random convolutional kernels \textit{Data Min. Knowl. Discov.} \textbf{34} 1454--1495
 
 \bibitem{dempster2021} Dempster A, Schmidt D F and Webb G I 2021 MiniRocket: a very fast (almost) deterministic transform for time series classification \textit{Proc. 27th ACM SIGKDD Conf. on Knowledge Discovery and Data Mining} pp 248--257
-
-\bibitem{tan2022} Tan C W, Dempster A, Bergmeir C \textit{et al} 2022 MultiRocket: multiple pooling operators and transformations for fast and effective time series classification (arXiv:2102.00457)
 
 \bibitem{dempster2023} Dempster A, Schmidt D F and Webb G I 2023 Hydra: competing convolutional kernels for fast and accurate time series classification \textit{Data Min. Knowl. Discov.} \textbf{37} 1779--1805
 

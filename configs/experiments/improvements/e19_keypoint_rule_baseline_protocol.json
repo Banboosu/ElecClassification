@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "experiment_id": "E19",
+  "title": "Charging key-point rule features + simple classifiers as a non-deep-learning baseline",
+  "date": "2026-11-05",
+  "motivation": "Test whether a minimal, domain-motivated description of the charging profile (CC/CV transition, peak power, decay rate, end level, abrupt cut-off) is sufficient at low label budgets. If it approaches full fusion at 1% labels, the necessity of the learned/foundation-model branches is challenged; if it is clearly below DYN/TCN+DYN, the richer feature engineering is supported.",
+  "comparison_suite": {
+    "e18": "artifacts/imports/e18_low_label_20261020/e18_low_label/e18_low_label_20261020_v1",
+    "e18_100p": "artifacts/imports/e18_low_label_100p_20261020/e18_low_label_100p/e18_low_label_100p_20261020_v1"
+  },
+  "seeds": [42, 44, 45, 46],
+  "label_fractions": [0.01, 0.05, 0.1, 0.2, 0.4, 1.0],
+  "data_protocol": {
+    "split": "with_random_seed(load_config('configs/moment.yaml'), seed); normalize='none'; same seed-specific train/validation partition as E18",
+    "training_subset": "tcn_moment.data.stratified_train_subset_indices(y_train, ids_train, fraction, seed), identical to E18",
+    "split_manifest_location": "written under the output directory, not artifacts/splits",
+    "evaluation": "validation only; test split is neither scored nor used"
+  },
+  "key_point_features": {
+    "input": "valid raw-scale observations x[0:L]; no normalization",
+    "smoothing": "centred moving median of width 5 (window truncated at the edges), used to locate key points and levels",
+    "definitions": {
+      "length": "L, number of valid samples",
+      "peak_power": "P_pk = max of smoothed curve (raw units); first maximum defines t_pk (approximate CC-to-CV transition)",
+      "cc_fraction": "t_pk / L",
+      "cc_rise": "(P_pk - P_0) / P_pk, P_0 = median of the first 5 raw samples",
+      "cc_slope": "OLS slope of raw x on [0, t_pk] divided by P_pk (0 if fewer than 3 points)",
+      "cv_slope": "OLS slope of raw x on [t_pk, L-1] divided by P_pk (0 if fewer than 3 points)",
+      "half_decay": "samples from t_pk until the smoothed curve first falls to <= 0.5 P_pk; censored at L - t_pk",
+      "reaches_half": "1 if the smoothed curve falls to <= 0.5 P_pk after t_pk, else 0",
+      "end_ratio": "P_end / P_pk, P_end = median of the last 5 raw samples",
+      "max_drop": "largest single-step decrease of raw x divided by P_pk (abrupt cut-off indicator)",
+      "profile_residual": "RMS of raw x minus the two-segment least-squares line fit split at t_pk, divided by P_pk"
+    },
+    "count": 11
+  },
+  "models": {
+    "primary": "key-point features + StandardScaler + multinomial LogisticRegression; C selected from {0.01, 0.1, 1, 10, 100} by 3-fold stratified CV (macro-F1) on the labelled training subset only",
+    "secondary": [
+      "key-point features + HistGradientBoosting with the fixed E18 DYN parameters (isolates feature information from classifier capacity)",
+      "60-D DYN features + the same logistic regression (isolates classifier choice for DYN)"
+    ],
+    "fidelity_check": "60-D DYN + HGB with fixed E18 parameters must reproduce E18 dyn_hgb per-seed validation macro-F1; validation ids and labels must equal the E18 prediction files"
+  },
+  "hgb_params": {"max_iter": 400, "learning_rate": 0.08, "max_leaf_nodes": 31, "min_samples_leaf": 20, "l2_regularization": 1.0, "early_stopping": false},
+  "metrics": ["macro_f1", "per-class F1", "battery (label 1) recall and FPR"],
+  "paired_comparisons": "per-seed paired differences against E18 full, tcn_dyn, dyn_hgb, f15_hgb and multirocket; mean, sample SD, positive-seed count and descriptive 95% t interval",
+  "interpretation_criteria_fixed_before_running": {
+    "challenges_necessity": "key-point + LR within 1.0 pp of E18 full fusion at the 1% budget (paired mean)",
+    "supports_feature_engineering": "E18 tcn_dyn and dyn_hgb each exceed key-point + LR by at least 2.0 pp at the 1% budget in 4/4 seeds",
+    "otherwise": "report as intermediate without a directional claim"
+  },
+  "no_test_access": true,
+  "test_evaluated": false,
+  "automatic_expansion": false,
+  "notes": [
+    "No hyperparameter or feature definition is changed after results are seen; any change requires a new protocol version.",
+    "CPU only; no MOMENT or TCN retraining."
+  ]
+}

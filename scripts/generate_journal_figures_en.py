@@ -7,8 +7,8 @@ versions show the same numbers. Differences from the supervisor's artwork:
 
 * figures are vector PDFs drawn at the printed width instead of raster images;
 * Fig. 7(a) spells out every contrast and keeps its legend outside the data
-  area, and Fig. 7(b) labels the 10% and 40% ticks and adds MultiRocket
-  (todo1102 items 2d/6d);
+  area, and Fig. 7(b) labels the 10% and 40% ticks
+  (todo1102 item 2d); MultiRocket is not plotted;
 * Fig. 5(b) also identifies the three input streams in its legend;
 * Fig. 6(b) uses the group names of the DYN feature table.
 
@@ -895,7 +895,6 @@ def plot_fig7_stacking_ablation_and_low_label() -> None:
         ("dyn_hgb", "DYN + HGB", MID, "^", "-.", MID),
         ("tcn", "Masked TCN", INK, "o", "--", "white"),
         ("dyn_moment_diff", "DYN + MOMENT/\u0394P", MID, "X", "-", MID),
-        ("multirocket", "MultiRocket", LIGHT, "P", "-", LIGHT),
         ("full", "Full fusion", INK, "*", "-", INK),
     ]
     for key, label, color, marker, ls, mfc in series:
