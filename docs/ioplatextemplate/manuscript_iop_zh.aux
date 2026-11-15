@@ -2,92 +2,199 @@
 \providecommand\hyper@newdestlabel[2]{}
 \providecommand*\HyPL@Entry[1]{}
 \HyPL@Entry{0<</S/D>>}
-\@writefile{toc}{\contentsline {section}{\numberline {1}引　言}{2}{section.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {2}问题描述与数据}{4}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}任务定义}{4}{subsection.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}数据集}{4}{subsection.2.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 数据集划分与类别分布}}{4}{table.1}\protected@file@percent }
-\newlabel{tab1}{{1}{4}{数据集划分与类别分布}{table.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 训练集各类别的样例充电功率曲线与有效长度分布。 (a)--(c) 各类随机抽取 3 条样例（固定随机种子 42，未人工挑选），横轴为采样点序号；(d) 三类有效序列长度的经验累积分布，虚线标出各类中位数（正常 252、电池异常 382、充电器故障 360 个采样点），约 480 点处的集中陡升对应平台单次充电记录的常见截断上限。}}{5}{figure.1}\protected@file@percent }
-\newlabel{fig1}{{1}{5}{训练集各类别的样例充电功率曲线与有效长度分布。 (a)--(c) 各类随机抽取 3 条样例（固定随机种子 42，未人工挑选），横轴为采样点序号；(d) 三类有效序列长度的经验累积分布，虚线标出各类中位数（正常 252、电池异常 382、充电器故障 360 个采样点），约 480 点处的集中陡升对应平台单次充电记录的常见截断上限。}{figure.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}评价指标}{5}{subsection.2.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}方法}{5}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}总体框架}{5}{subsection.3.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 所提方法的总体框架。输入为变长充电功率序列 $x_i$ 及有效观测掩码 $m_i$，右侧补零至 1024 点。自上而下三条支路：第一条将原序列 $P$ 与一阶差分 $\Delta P$ 送入冻结的 MOMENT-1-large，经掩码感知 patch 池化后拼接为 2048 维表征，由多项逻辑回归输出概率 $p^{MD}$；第二条在有效区间提取 60 维原尺度动力学特征，由 HGB 输出 $p^{DYN}$；第三条用 6 层因果膨胀卷积和掩码均值池化输出 $p^{TCN}$。三路概率在训练子集内做 5 折交叉拟合，得到 9 维 OOF 元特征，再由多项逻辑回归元学习器给出正常、电池异常、充电器故障三类结果。图中只保留流程标签，具体维度、层数与训练参数见 3.2--3.6 节。}}{6}{figure.2}\protected@file@percent }
-\newlabel{fig2}{{2}{6}{所提方法的总体框架。输入为变长充电功率序列 $x_i$ 及有效观测掩码 $m_i$，右侧补零至 1024 点。自上而下三条支路：第一条将原序列 $P$ 与一阶差分 $\Delta P$ 送入冻结的 MOMENT-1-large，经掩码感知 patch 池化后拼接为 2048 维表征，由多项逻辑回归输出概率 $p^{MD}$；第二条在有效区间提取 60 维原尺度动力学特征，由 HGB 输出 $p^{DYN}$；第三条用 6 层因果膨胀卷积和掩码均值池化输出 $p^{TCN}$。三路概率在训练子集内做 5 折交叉拟合，得到 9 维 OOF 元特征，再由多项逻辑回归元学习器给出正常、电池异常、充电器故障三类结果。图中只保留流程标签，具体维度、层数与训练参数见 3.2--3.6 节。}{figure.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}掩码感知 patch 池化}{6}{subsection.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}一阶差分双流表征}{7}{subsection.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}原尺度动力学特征旁路}{8}{subsection.3.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces DYN 特征分组及含义}}{8}{table.2}\protected@file@percent }
-\newlabel{tab2}{{2}{8}{DYN 特征分组及含义}{table.2}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}掩码 TCN 支路}{8}{subsection.3.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}交叉拟合概率堆叠}{9}{subsection.3.6}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 算法 1：交叉拟合三路融合的训练与推理流程}}{10}{table.3}\protected@file@percent }
-\newlabel{alg1}{{3}{10}{算法 1：交叉拟合三路融合的训练与推理流程}{table.3}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}实验与分析}{10}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}实验设置}{10}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}基线方法与冻结时序大模型的初始表现}{10}{subsection.4.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 全量标注下各方法的测试集结果（5 种子）}}{11}{table.4}\protected@file@percent }
-\newlabel{tab3}{{4}{11}{全量标注下各方法的测试集结果（5 种子）}{table.4}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 池化方式与冻结分类头训练的影响。 (a) 冻结 MOMENT-1-large 沿适配阶梯的测试集 Macro-F1（5 种子，误差棒为种子间标准差）：默认池化 69.46\%、掩码池化 77.41\%、再解冻 2 层 81.50\%、改用 RBF-SVM 头 85.17\%、完全微调 95.37\%；两条参考线为原始尺度 TCN 基线（95.99\%，虚线）与 F15+随机森林（88.89\%，点线）。简化池化单独带来 7.95 个百分点。(b) 冻结分类头在 200 轮内的验证集收敛轨迹（3 轮滑动平均），实线为施加固定尺度补偿 $\gamma $、虚线为原尺度；补偿后融合头在 30 轮时高出 6.58 个百分点，200 轮内最佳值由 86.94\% 升至 91.72\%。}}{12}{figure.3}\protected@file@percent }
-\newlabel{fig3}{{3}{12}{池化方式与冻结分类头训练的影响。 (a) 冻结 MOMENT-1-large 沿适配阶梯的测试集 Macro-F1（5 种子，误差棒为种子间标准差）：默认池化 69.46\%、掩码池化 77.41\%、再解冻 2 层 81.50\%、改用 RBF-SVM 头 85.17\%、完全微调 95.37\%；两条参考线为原始尺度 TCN 基线（95.99\%，虚线）与 F15+随机森林（88.89\%，点线）。简化池化单独带来 7.95 个百分点。(b) 冻结分类头在 200 轮内的验证集收敛轨迹（3 轮滑动平均），实线为施加固定尺度补偿 $\gamma $、虚线为原尺度；补偿后融合头在 30 轮时高出 6.58 个百分点，200 轮内最佳值由 86.94\% 升至 91.72\%。}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}TCN 的补零敏感性与结构复原}{12}{subsection.4.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces TCN 结构与池化方式的影响，以及按序列长度分层的性能。 (a) 三种 TCN 配置在 1\%～100\% 标注预算下的验证集 Macro-F1。复原平台原有 6 层结构（感受野 127）并采用掩码均值池化后，10\%、40\%、100\% 标注下分别为 93.68\%、97.78\%、98.40\%；早期 4 块残差结构（感受野 61）在 10\% 标注下仅 69.23\%。(b) 按各随机种子训练集长度三分位点（约 266 与 399 个采样点）分层后的分组 Macro-F1，长序列组（$L>399$）在 10\% 标注下完整融合比 Masked TCN 高 10.17 个百分点。补充诊断：固定权重下仅将补零长度由 1024 扩展至 1536，均值池化 TCN 的最大 logit 漂移达 418～531，分别改变 100 条（10\% 标注模型）与 33 条（100\% 标注模型）验证样本的预测类别，掩码池化后漂移严格为 0。}}{13}{figure.4}\protected@file@percent }
-\newlabel{fig4}{{4}{13}{TCN 结构与池化方式的影响，以及按序列长度分层的性能。 (a) 三种 TCN 配置在 1\%～100\% 标注预算下的验证集 Macro-F1。复原平台原有 6 层结构（感受野 127）并采用掩码均值池化后，10\%、40\%、100\% 标注下分别为 93.68\%、97.78\%、98.40\%；早期 4 块残差结构（感受野 61）在 10\% 标注下仅 69.23\%。(b) 按各随机种子训练集长度三分位点（约 266 与 399 个采样点）分层后的分组 Macro-F1，长序列组（$L>399$）在 10\% 标注下完整融合比 Masked TCN 高 10.17 个百分点。补充诊断：固定权重下仅将补零长度由 1024 扩展至 1536，均值池化 TCN 的最大 logit 漂移达 418～531，分别改变 100 条（10\% 标注模型）与 33 条（100\% 标注模型）验证样本的预测类别，掩码池化后漂移严格为 0。}{figure.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}差分双流与预训练归因}{13}{subsection.4.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces 冻结 MOMENT 不同输入流的验证集结果}}{13}{table.5}\protected@file@percent }
-\newlabel{tab4}{{5}{13}{冻结 MOMENT 不同输入流的验证集结果}{table.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces 预训练权重与随机初始化的同架构对照}}{14}{table.6}\protected@file@percent }
-\newlabel{tab5}{{6}{14}{预训练权重与随机初始化的同架构对照}{table.6}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces 差分双流表征与预训练归因的样本效率。 (a) 冻结 MOMENT 在四种输入流下的验证集 Macro-F1（4 种子）。双流拼接相对原序列流在 1\%、10\%、40\% 标注下分别提高 13.38、10.03 和 9.66 个百分点，4/4 种子同向；再与 DYN 概率堆叠在 1\% 标注下达 88.69\%。为与表~\ref {tab5} 完全同协议，验证集上的逻辑回归固定 $C=1.0$。(b) 预训练权重与随机初始化的同架构对照（$C=1.0$），实心为预训练、空心为随机初始化。双流支路在 1\%、5\%、10\%、20\%、40\% 标注下的预训练增益分别为 $+18.81$、$+12.51$、$+9.97$、$+7.57$、$+6.00$ 个百分点，随可用标注减少而单调增大。}}{14}{figure.5}\protected@file@percent }
-\newlabel{fig5}{{5}{14}{差分双流表征与预训练归因的样本效率。 (a) 冻结 MOMENT 在四种输入流下的验证集 Macro-F1（4 种子）。双流拼接相对原序列流在 1\%、10\%、40\% 标注下分别提高 13.38、10.03 和 9.66 个百分点，4/4 种子同向；再与 DYN 概率堆叠在 1\% 标注下达 88.69\%。为与表~\ref {tab5} 完全同协议，验证集上的逻辑回归固定 $C=1.0$。(b) 预训练权重与随机初始化的同架构对照（$C=1.0$），实心为预训练、空心为随机初始化。双流支路在 1\%、5\%、10\%、20\%、40\% 标注下的预训练增益分别为 $+18.81$、$+12.51$、$+9.97$、$+7.57$、$+6.00$ 个百分点，随可用标注减少而单调增大。}{figure.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}原尺度动力学特征分析}{14}{subsection.4.5}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces DYN 特征的样本效率与分组消融。 (a) 15 维基础统计特征（F15）与 60 维原尺度动力学特征（DYN）在 HGB 与 RBF-SVM 两种分类器下的验证集 Macro-F1（4 种子）。DYN 在各标注比例下均优于 F15，HGB 均优于 RBF-SVM；40\% 标注下 DYN+HGB 达 95.00\%，比 F15+HGB 高 4.40 个百分点。(b) 40\% 标注下的分组消融轮廓。空心圆线为仅保留该组特征（Keep-One），实心菱形线为从完整 60 维中剔除该组（Drop-One），点线为完整 DYN 基线 95.00\%。剔除粗糙度与转折组下降最多（4.13 个百分点），该组单独保留即达 90.48\%；其余各组单独剔除的影响均不超过 0.13 个百分点，但单独保留仍有 75\%～78\% 的判别力，说明组间存在信息冗余。}}{15}{figure.6}\protected@file@percent }
-\newlabel{fig6}{{6}{15}{DYN 特征的样本效率与分组消融。 (a) 15 维基础统计特征（F15）与 60 维原尺度动力学特征（DYN）在 HGB 与 RBF-SVM 两种分类器下的验证集 Macro-F1（4 种子）。DYN 在各标注比例下均优于 F15，HGB 均优于 RBF-SVM；40\% 标注下 DYN+HGB 达 95.00\%，比 F15+HGB 高 4.40 个百分点。(b) 40\% 标注下的分组消融轮廓。空心圆线为仅保留该组特征（Keep-One），实心菱形线为从完整 60 维中剔除该组（Drop-One），点线为完整 DYN 基线 95.00\%。剔除粗糙度与转折组下降最多（4.13 个百分点），该组单独保留即达 90.48\%；其余各组单独剔除的影响均不超过 0.13 个百分点，但单独保留仍有 75\%～78\% 的判别力，说明组间存在信息冗余。}{figure.6}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}三路融合消融与互补性分析}{15}{subsection.4.6}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces 支路组合消融的验证集结果}}{16}{table.7}\protected@file@percent }
-\newlabel{tab6}{{7}{16}{支路组合消融的验证集结果}{table.7}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 支路贡献的逐种子配对差值与标注预算曲线。 (a) 配对 Macro-F1 差值（横轴，pp；误差棒为 4 个种子间的标准差）。实点为 10\% 标注、空心方块为 40\% 标注；同型元学习器相对 TCN 仅 $+0.12$ 个百分点，完整融合相对它提高 $+0.44$（40\%）与 $+4.31$（10\%）个百分点；从完整融合中移除 TCN、DYN、MOMENT/$\Delta P$ 分别下降 0.76/2.07、1.21/0.27、0.76/0.16 个百分点。(b) 统一协议下 1\%～100\% 标注比例的验证集 Macro-F1（4 种子）；横轴刻度略去 10\%、40\% 两处以免拥挤，二者均已实际测点绘制。MOMENT 支路沿双流、DYN+MOMENT/$\Delta P$、完整融合逐级抬升，说明互补增益来自异构信息而非额外的分类层。}}{17}{figure.7}\protected@file@percent }
-\newlabel{fig7}{{7}{17}{支路贡献的逐种子配对差值与标注预算曲线。 (a) 配对 Macro-F1 差值（横轴，pp；误差棒为 4 个种子间的标准差）。实点为 10\% 标注、空心方块为 40\% 标注；同型元学习器相对 TCN 仅 $+0.12$ 个百分点，完整融合相对它提高 $+0.44$（40\%）与 $+4.31$（10\%）个百分点；从完整融合中移除 TCN、DYN、MOMENT/$\Delta P$ 分别下降 0.76/2.07、1.21/0.27、0.76/0.16 个百分点。(b) 统一协议下 1\%～100\% 标注比例的验证集 Macro-F1（4 种子）；横轴刻度略去 10\%、40\% 两处以免拥挤，二者均已实际测点绘制。MOMENT 支路沿双流、DYN+MOMENT/$\Delta P$、完整融合逐级抬升，说明互补增益来自异构信息而非额外的分类层。}{figure.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}标注比例的影响}{17}{subsection.4.7}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces 统一协议下不同标注比例的验证集 Macro-F1}}{18}{table.8}\protected@file@percent }
-\newlabel{tab7}{{8}{18}{统一协议下不同标注比例的验证集 Macro-F1}{table.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}推理成本}{18}{subsection.4.8}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces 端到端推理耗时（ms/样本，中位数）}}{19}{table.9}\protected@file@percent }
-\newlabel{tab8}{{9}{19}{端到端推理耗时（ms/样本，中位数）}{table.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}采集噪声敏感性}{19}{subsection.4.9}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 采集噪声敏感性与精度—推理时延权衡（均为 40\% 标注）。 (a) 在验证集有效区间叠加加性高斯噪声后的验证集 Macro-F1，噪声强度按训练集有效观测 RMS（192.31 个原始记录单位）的百分比给出，横轴 1.00 即约 1.92 个记录单位。所有模型仅在干净数据上训练，未做噪声增广。0.1\% 噪声下完整融合为 97.72\%，0.25\% 时降至 92.49\%，0.5\% 时降至 64.00\%；DYN 对噪声最敏感（其“最大上冲”特征以运行最小值为分母），MOMENT/$\Delta P$ 退化最慢。(b) 精度—时延权衡，横轴为 RTX 4080 上的单样本推理时延（对数坐标），实心为批大小 32、空心为批大小 1；灰线为批大小 32 下的帕累托前沿。完整融合与 TCN+DYN 相差 0.16 个百分点，而单样本时延相差约 3.7 倍。}}{19}{figure.8}\protected@file@percent }
-\newlabel{fig8}{{8}{19}{采集噪声敏感性与精度—推理时延权衡（均为 40\% 标注）。 (a) 在验证集有效区间叠加加性高斯噪声后的验证集 Macro-F1，噪声强度按训练集有效观测 RMS（192.31 个原始记录单位）的百分比给出，横轴 1.00 即约 1.92 个记录单位。所有模型仅在干净数据上训练，未做噪声增广。0.1\% 噪声下完整融合为 97.72\%，0.25\% 时降至 92.49\%，0.5\% 时降至 64.00\%；DYN 对噪声最敏感（其“最大上冲”特征以运行最小值为分母），MOMENT/$\Delta P$ 退化最慢。(b) 精度—时延权衡，横轴为 RTX 4080 上的单样本推理时延（对数坐标），实心为批大小 32、空心为批大小 1；灰线为批大小 32 下的帕累托前沿。完整融合与 TCN+DYN 相差 0.16 个百分点，而单样本时延相差约 3.7 倍。}{figure.8}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}讨　论}{20}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}时序大模型在本任务中的作用}{20}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}与相关方法的比较}{20}{subsection.5.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}局限性}{21}{subsection.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}结　论}{21}{section.6}\protected@file@percent }
-\bibcite{ref1}{1}
-\bibcite{ref2}{2}
-\bibcite{ref3}{3}
-\bibcite{ref4}{4}
-\bibcite{ref5}{5}
-\bibcite{ref6}{6}
-\bibcite{ref7}{7}
-\bibcite{ref8}{8}
-\bibcite{ref9}{9}
-\bibcite{ref10}{10}
-\bibcite{ref11}{11}
-\bibcite{ref12}{12}
-\bibcite{ref13}{13}
-\bibcite{ref14}{14}
-\bibcite{ref15}{15}
-\bibcite{ref16}{16}
-\bibcite{ref17}{17}
-\bibcite{ref18}{18}
-\bibcite{ref19}{19}
-\bibcite{ref20}{20}
-\bibcite{ref21}{21}
-\bibcite{ref22}{22}
-\bibcite{ref23}{23}
-\bibcite{ref24}{24}
-\bibcite{ref25}{25}
-\bibcite{ref26}{26}
-\bibcite{ref27}{27}
-\gdef \@abspage@last{24}
+\citation{feng2018}
+\citation{zhang2023,hu2020}
+\citation{park2022,duan2024,xu2025,sun2025}
+\citation{chen2021,xu2026,fawaz2019,middlehurst2024}
+\citation{breiman2001}
+\citation{friedman2001}
+\citation{cortes1995}
+\citation{bai2018}
+\citation{liu2026,yang2026,jiang2026}
+\citation{wu2023}
+\citation{dempster2020,dempster2021,dempster2023}
+\citation{wang2026,yue2022}
+\citation{goswami2024,das2024,ansari2024,woo2024,shi2025}
+\citation{shao2026,zhao2026,yang2026b}
+\@writefile{toc}{\contentsline {section}{\numberline {1}引言}{3}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{3}{引言}{section.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}研究背景与意义}{3}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}国内外研究现状}{3}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}研究内容与主要贡献}{4}{subsection.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4}论文组织结构}{4}{subsection.1.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}问题描述与数据集构建}{5}{section.2}\protected@file@percent }
+\newlabel{sec:data}{{2}{5}{问题描述与数据集构建}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}三分类任务定义}{5}{subsection.2.1}\protected@file@percent }
+\newlabel{eq:task}{{2-1}{5}{三分类任务定义}{equation.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}运行数据集与清洗规范}{5}{subsection.2.2}\protected@file@percent }
+\newlabel{sec:dataset}{{2.2}{5}{运行数据集与清洗规范}{subsection.2.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2-1}{\ignorespaces 数据集划分与类别分布}}{6}{table.2.1}\protected@file@percent }
+\newlabel{tab:split}{{2-1}{6}{数据集划分与类别分布}{table.2.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}功率曲线形态与长度分布特征}{6}{subsection.2.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2-1}{\ignorespaces 训练集充电功率曲线样例与有效长度分布。子图 (a)--(c) 分别展示使用随机种子 42 每类随机抽取的 3 条正常充电、电池异常与充电器故障曲线样例；子图 (d) 展示三类有效长度的经验累积分布及中位数位置，约 480 个采样点处的陡升反映了平台记录的常见截断上限。}}{6}{figure.2.1}\protected@file@percent }
+\newlabel{fig:data}{{2-1}{6}{训练集充电功率曲线样例与有效长度分布。子图 (a)--(c) 分别展示使用随机种子 42 每类随机抽取的 3 条正常充电、电池异常与充电器故障曲线样例；子图 (d) 展示三类有效长度的经验累积分布及中位数位置，约 480 个采样点处的陡升反映了平台记录的常见截断上限。}{figure.2.1}{}}
+\citation{saito2015}
+\citation{guo2017}
+\citation{nie2023}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}评价指标体系}{7}{subsection.2.4}\protected@file@percent }
+\newlabel{sec:metrics}{{2.4}{7}{评价指标体系}{subsection.2.4}{}}
+\newlabel{eq:macrof1}{{2-2}{7}{评价指标体系}{equation.2.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}三分支异构融合分类方法设计}{7}{section.3}\protected@file@percent }
+\newlabel{sec:method}{{3}{7}{三分支异构融合分类方法设计}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}方法总体框架}{7}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}掩码感知分块池化}{7}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:pooling}{{3.2}{7}{掩码感知分块池化}{subsection.3.2}{}}
+\citation{kim2022}
+\@writefile{lof}{\contentsline {figure}{\numberline {3-1}{\ignorespaces 基于冻结时序大模型的三分支异构融合总体框架。原始功率序列 $P$ 与一阶差分序列 $\Delta P$ 共享同一个冻结 MOMENT 编码器；另外两条分支分别采用 60 维原尺度动力学特征与掩码 TCN；五折折外（OOF）预测概率用于训练逻辑回归元学习器。}}{8}{figure.3.1}\protected@file@percent }
+\newlabel{fig:framework}{{3-1}{8}{基于冻结时序大模型的三分支异构融合总体框架。原始功率序列 $P$ 与一阶差分序列 $\Delta P$ 共享同一个冻结 MOMENT 编码器；另外两条分支分别采用 60 维原尺度动力学特征与掩码 TCN；五折折外（OOF）预测概率用于训练逻辑回归元学习器。}{figure.3.1}{}}
+\newlabel{eq:defaultpool}{{3-1}{8}{掩码感知分块池化}{equation.3.1}{}}
+\newlabel{eq:patchmask}{{3-2}{8}{掩码感知分块池化}{equation.3.2}{}}
+\newlabel{eq:maskpool}{{3-3}{8}{掩码感知分块池化}{equation.3.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}一阶差分双流表征}{9}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:dual}{{3.3}{9}{一阶差分双流表征}{subsection.3.3}{}}
+\newlabel{eq:diff}{{3-4}{9}{一阶差分双流表征}{equation.3.4}{}}
+\newlabel{eq:md}{{3-5}{9}{一阶差分双流表征}{equation.3.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}原尺度动力学特征分支}{9}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:dyn}{{3.4}{9}{原尺度动力学特征分支}{subsection.3.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3-1}{\ignorespaces 60 维原尺度动力学特征（DYN）分组及物理含义}}{10}{table.3.1}\protected@file@percent }
+\newlabel{tab:dyn}{{3-1}{10}{60 维原尺度动力学特征（DYN）分组及物理含义}{table.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}掩码时间卷积网络分支}{10}{subsection.3.5}\protected@file@percent }
+\newlabel{sec:tcn}{{3.5}{10}{掩码时间卷积网络分支}{subsection.3.5}{}}
+\newlabel{eq:rf}{{3-6}{10}{掩码时间卷积网络分支}{equation.3.6}{}}
+\newlabel{eq:tcnpool}{{3-7}{10}{掩码时间卷积网络分支}{equation.3.7}{}}
+\citation{guo2017}
+\citation{wen2021}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}五折交叉拟合概率堆叠}{11}{subsection.3.6}\protected@file@percent }
+\newlabel{sec:stack}{{3.6}{11}{五折交叉拟合概率堆叠}{subsection.3.6}{}}
+\newlabel{eq:meta}{{3-8}{11}{五折交叉拟合概率堆叠}{equation.3.8}{}}
+\newlabel{eq:softmax}{{3-9}{11}{五折交叉拟合概率堆叠}{equation.3.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}面向采集扰动的噪声增强训练}{11}{subsection.3.7}\protected@file@percent }
+\newlabel{sec:aug}{{3.7}{11}{面向采集扰动的噪声增强训练}{subsection.3.7}{}}
+\newlabel{eq:aug}{{3-10}{11}{面向采集扰动的噪声增强训练}{equation.3.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}实验设计与分类性能评估}{12}{section.4}\protected@file@percent }
+\newlabel{sec:exp}{{4}{12}{实验设计与分类性能评估}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}实验协议与运行环境}{12}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:protocol}{{4.1}{12}{实验协议与运行环境}{subsection.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}基线对比与冻结大模型初始适配}{13}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:baselines}{{4.2}{13}{基线对比与冻结大模型初始适配}{subsection.4.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4-1}{\ignorespaces 全量训练标注下各基线与 MOMENT 适配策略的测试集性能（5 种子均值 $\pm $ 标准差）}}{13}{table.4.1}\protected@file@percent }
+\newlabel{tab:baselines}{{4-1}{13}{全量训练标注下各基线与 MOMENT 适配策略的测试集性能（5 种子均值 $\pm $ 标准差）}{table.4.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-1}{\ignorespaces 池化方式修正与下游分类头输入尺度优化效果。(a) MOMENT 不同适配策略下的测试集 Macro-F1 对比，误差棒表示跨种子样本标准差；(b) 有无固定输入尺度补偿时冻结特征分类头的验证集收敛曲线对比。}}{14}{figure.4.1}\protected@file@percent }
+\newlabel{fig:pooling}{{4-1}{14}{池化方式修正与下游分类头输入尺度优化效果。(a) MOMENT 不同适配策略下的测试集 Macro-F1 对比，误差棒表示跨种子样本标准差；(b) 有无固定输入尺度补偿时冻结特征分类头的验证集收敛曲线对比。}{figure.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}补齐敏感性诊断与 TCN 结构复原}{14}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:padding}{{4.3}{14}{补齐敏感性诊断与 TCN 结构复原}{subsection.4.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-2}{\ignorespaces TCN 结构配置、池化方式对比及按序列长度分层的分类性能。(a) 三种 TCN 结构与池化配置在不同标注预算下的验证集 Macro-F1；(b) 按各随机种子训练集有效长度三分位点（约 266 与 399 个采样点）划分的短、中、长序列分组性能对比，长序列超出 TCN 感受野，在 10\% 标注预算下表现出最大的融合增益。}}{15}{figure.4.2}\protected@file@percent }
+\newlabel{fig:tcn}{{4-2}{15}{TCN 结构配置、池化方式对比及按序列长度分层的分类性能。(a) 三种 TCN 结构与池化配置在不同标注预算下的验证集 Macro-F1；(b) 按各随机种子训练集有效长度三分位点（约 266 与 399 个采样点）划分的短、中、长序列分组性能对比，长序列超出 TCN 感受野，在 10\% 标注预算下表现出最大的融合增益。}{figure.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}差分双流增益与预训练先验归因}{15}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:pretrain}{{4.4}{15}{差分双流增益与预训练先验归因}{subsection.4.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4-2}{\ignorespaces 预训练权重与随机初始化权重的同架构编码器对照结果（Macro-F1，\%）}}{15}{table.4.2}\protected@file@percent }
+\newlabel{tab:pretrain}{{4-2}{15}{预训练权重与随机初始化权重的同架构编码器对照结果（Macro-F1，\%）}{table.4.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-3}{\ignorespaces 一阶差分双流表征效果与同架构预训练权重归因对比。(a) 原始流、差分流、双流拼接及其与 DYN 堆叠的验证集 Macro-F1；(b) 固定 $C=1.0$ 时三种输入流下预训练权重（实线）与随机初始化权重（虚线）的同架构对比。}}{16}{figure.4.3}\protected@file@percent }
+\newlabel{fig:dual}{{4-3}{16}{一阶差分双流表征效果与同架构预训练权重归因对比。(a) 原始流、差分流、双流拼接及其与 DYN 堆叠的验证集 Macro-F1；(b) 固定 $C=1.0$ 时三种输入流下预训练权重（实线）与随机初始化权重（虚线）的同架构对比。}{figure.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}原尺度动力学特征消融与子集筛选}{16}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:dynres}{{4.5}{16}{原尺度动力学特征消融与子集筛选}{subsection.4.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-4}{\ignorespaces 原尺度动力学特征（DYN）跨预算性能与特征组分贡献消融。(a) F15 与 DYN 分别结合 HGB 和 RBF-SVM 的标注预算曲线；(b) 40\% 标注预算下六个特征组的单组保留（Keep-one）与单组剔除（Drop-one）消融结果，竖直虚线表示完整 60 维 DYN 基准（95.00\%）。}}{16}{figure.4.4}\protected@file@percent }
+\newlabel{fig:dyn}{{4-4}{16}{原尺度动力学特征（DYN）跨预算性能与特征组分贡献消融。(a) F15 与 DYN 分别结合 HGB 和 RBF-SVM 的标注预算曲线；(b) 40\% 标注预算下六个特征组的单组保留（Keep-one）与单组剔除（Drop-one）消融结果，竖直虚线表示完整 60 维 DYN 基准（95.00\%）。}{figure.4.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}三分支融合消融与互补性分析}{17}{subsection.4.6}\protected@file@percent }
+\newlabel{sec:fusion}{{4.6}{17}{三分支融合消融与互补性分析}{subsection.4.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4-3}{\ignorespaces 联合双流概率块设置下不同分支组合的交叉拟合验证集结果（4 种子均值 $\pm $ 标准差）}}{17}{table.4.3}\protected@file@percent }
+\newlabel{tab:fusion}{{4-3}{17}{联合双流概率块设置下不同分支组合的交叉拟合验证集结果（4 种子均值 $\pm $ 标准差）}{table.4.3}{}}
+\citation{dempster2021}
+\@writefile{lof}{\contentsline {figure}{\numberline {4-5}{\ignorespaces 分支互补性配对消融与统一协议下跨标注预算性能曲线。(a) 10\% 与 40\% 标注预算下各分支组合及边际贡献的逐种子配对 Macro-F1 差值；(b) 统一固定超参数协议下各模型在 1\%～100\% 标注预算上的验证集 Macro-F1 变化曲线。}}{18}{figure.4.5}\protected@file@percent }
+\newlabel{fig:stack}{{4-5}{18}{分支互补性配对消融与统一协议下跨标注预算性能曲线。(a) 10\% 与 40\% 标注预算下各分支组合及边际贡献的逐种子配对 Macro-F1 差值；(b) 统一固定超参数协议下各模型在 1\%～100\% 标注预算上的验证集 Macro-F1 变化曲线。}{figure.4.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}统一协议下多标注预算性能比较}{18}{subsection.4.7}\protected@file@percent }
+\newlabel{sec:budget}{{4.7}{18}{统一协议下多标注预算性能比较}{subsection.4.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4-4}{\ignorespaces 统一固定超参数协议下不同训练标注预算的验证集 Macro-F1（\%，4 种子均值 $\pm $ 标准差）}}{19}{table.4.4}\protected@file@percent }
+\newlabel{tab:budget}{{4-4}{19}{统一固定超参数协议下不同训练标注预算的验证集 Macro-F1（\%，4 种子均值 $\pm $ 标准差）}{table.4.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}封存留出集与簇级泛化审计}{19}{subsection.4.8}\protected@file@percent }
+\newlabel{sec:holdout}{{4.8}{19}{封存留出集与簇级泛化审计}{subsection.4.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4-5}{\ignorespaces 排除封存集后重训模型在重划分验证集与封存留出集上的性能（\%，4 种子均值 $\pm $ 标准差）}}{20}{table.4.5}\protected@file@percent }
+\newlabel{tab:holdout}{{4-5}{20}{排除封存集后重训模型在重划分验证集与封存留出集上的性能（\%，4 种子均值 $\pm $ 标准差）}{table.4.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}噪声鲁棒性与工程部署分析}{20}{section.5}\protected@file@percent }
+\newlabel{sec:deploy}{{5}{20}{噪声鲁棒性与工程部署分析}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}干净训练模型的采集噪声敏感性}{20}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:noise}{{5.1}{20}{干净训练模型的采集噪声敏感性}{subsection.5.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5-1}{\ignorespaces 40\% 标注预算下模型的加性高斯噪声敏感性与精度—推理时延折中关系。(a) 仅在干净数据上训练的各模型在叠加不同强度高斯白噪声后的验证集 Macro-F1（噪声增强训练结果见表~\ref {tab:noiseaug}）；(b) RTX 4080 GPU 上批大小 1 与批大小 32 的验证集 Macro-F1 与单条记录推理时延折中关系。}}{21}{figure.5.1}\protected@file@percent }
+\newlabel{fig:robust}{{5-1}{21}{40\% 标注预算下模型的加性高斯噪声敏感性与精度—推理时延折中关系。(a) 仅在干净数据上训练的各模型在叠加不同强度高斯白噪声后的验证集 Macro-F1（噪声增强训练结果见表~\ref {tab:noiseaug}）；(b) RTX 4080 GPU 上批大小 1 与批大小 32 的验证集 Macro-F1 与单条记录推理时延折中关系。}{figure.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}噪声增强训练的改善效果与边界}{21}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5-1}{\ignorespaces 干净训练模型与噪声增强训练模型在加性高斯噪声下的验证集 Macro-F1（\%，4 种子）}}{21}{table.5.1}\protected@file@percent }
+\newlabel{tab:noiseaug}{{5-1}{21}{干净训练模型与噪声增强训练模型在加性高斯噪声下的验证集 Macro-F1（\%，4 种子）}{table.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}端到端推理时延与计算开销测量}{22}{subsection.5.3}\protected@file@percent }
+\newlabel{sec:latency}{{5.3}{22}{端到端推理时延与计算开销测量}{subsection.5.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5-2}{\ignorespaces RTX 4080 GPU 上 40\% 标注模型的端到端单条记录推理时延（中位数，ms/条）}}{22}{table.5.2}\protected@file@percent }
+\newlabel{tab:latency}{{5-2}{22}{RTX 4080 GPU 上 40\% 标注模型的端到端单条记录推理时延（中位数，ms/条）}{table.5.2}{}}
+\citation{jacob2018}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}ONNX 模型导出与静态量化分析}{23}{subsection.5.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}特征物理解释、方案选型与研究局限}{23}{section.6}\protected@file@percent }
+\newlabel{sec:discussion}{{6}{23}{特征物理解释、方案选型与研究局限}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}时序大模型在变长曲线分类中的作用机理}{23}{subsection.6.1}\protected@file@percent }
+\citation{tomaszewska2019}
+\citation{park2022,xu2025}
+\citation{kong2018}
+\citation{hu2020,lu2013}
+\citation{feng2018}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}动力学特征与已知故障形态的对应关系}{24}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:signatures}{{6.2}{24}{动力学特征与已知故障形态的对应关系}{subsection.6.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6-1}{\ignorespaces 训练集（24,569 条记录）上代表性 DYN 特征的按类分布（中位数 [四分位距]）与单特征一对其余 AUC}}{24}{table.6.1}\protected@file@percent }
+\newlabel{tab:signatures}{{6-1}{24}{训练集（24,569 条记录）上代表性 DYN 特征的按类分布（中位数 [四分位距]）与单特征一对其余 AUC}{table.6.1}{}}
+\citation{hu2022}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}适配策略对比与工程选型准则}{25}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:selection}{{6.3}{25}{适配策略对比与工程选型准则}{subsection.6.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6-2}{\ignorespaces 基于验证集实验证据的充电功率曲线分类模型工程选型指南（时延按批大小 32 计）}}{25}{table.6.2}\protected@file@percent }
+\newlabel{tab:selection}{{6-2}{25}{基于验证集实验证据的充电功率曲线分类模型工程选型指南（时延按批大小 32 计）}{table.6.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}研究局限性}{26}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}结论与展望}{26}{section.7}\protected@file@percent }
+\newlabel{sec:conclusion}{{7}{26}{结论与展望}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}全文工作总结}{26}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}后续研究展望}{27}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A}动力学特征缩减补充实验结果}{27}{appendix.A}\protected@file@percent }
+\newlabel{app:reduction}{{A}{27}{动力学特征缩减补充实验结果}{appendix.A}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {A-1}{\ignorespaces DYN 特征子集缩减前后的验证集 Macro-F1 对比（\%，4 种子）}}{28}{table.A.1}\protected@file@percent }
+\newlabel{tab:reduction}{{A-1}{28}{DYN 特征子集缩减前后的验证集 Macro-F1 对比（\%，4 种子）}{table.A.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}TCN 导出与 int8 静态量化补充实验结果}{28}{appendix.B}\protected@file@percent }
+\newlabel{app:export}{{B}{28}{TCN 导出与 int8 静态量化补充实验结果}{appendix.B}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {B-1}{\ignorespaces 40\% 标注下掩码 TCN 模型导出精度与不同后端推理性能（4 种子）}}{28}{table.B.1}\protected@file@percent }
+\newlabel{tab:export}{{B-1}{28}{40\% 标注下掩码 TCN 模型导出精度与不同后端推理性能（4 种子）}{table.B.1}{}}
+\bibcite{feng2018}{1}
+\bibcite{zhang2023}{2}
+\bibcite{hu2020}{3}
+\bibcite{park2022}{4}
+\bibcite{duan2024}{5}
+\bibcite{xu2025}{6}
+\bibcite{sun2025}{7}
+\bibcite{chen2021}{8}
+\bibcite{xu2026}{9}
+\bibcite{fawaz2019}{10}
+\bibcite{middlehurst2024}{11}
+\bibcite{breiman2001}{12}
+\bibcite{friedman2001}{13}
+\bibcite{cortes1995}{14}
+\bibcite{bai2018}{15}
+\bibcite{liu2026}{16}
+\bibcite{yang2026}{17}
+\bibcite{jiang2026}{18}
+\bibcite{wu2023}{19}
+\bibcite{dempster2020}{20}
+\bibcite{dempster2021}{21}
+\bibcite{dempster2023}{22}
+\bibcite{wang2026}{23}
+\bibcite{yue2022}{24}
+\bibcite{goswami2024}{25}
+\bibcite{das2024}{26}
+\bibcite{ansari2024}{27}
+\bibcite{woo2024}{28}
+\bibcite{shi2025}{29}
+\bibcite{shao2026}{30}
+\bibcite{zhao2026}{31}
+\bibcite{yang2026b}{32}
+\bibcite{saito2015}{33}
+\bibcite{guo2017}{34}
+\bibcite{nie2023}{35}
+\bibcite{kim2022}{36}
+\bibcite{wen2021}{37}
+\bibcite{jacob2018}{38}
+\bibcite{tomaszewska2019}{39}
+\bibcite{kong2018}{40}
+\bibcite{lu2013}{41}
+\bibcite{hu2022}{42}
+\gdef \@abspage@last{31}
