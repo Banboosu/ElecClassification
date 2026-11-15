@@ -45,8 +45,8 @@
 
 \articletype{Paper}
 
-\title{基于时序大模型的小样本锂电池充电功率曲线分类方法研究与实现\\[4pt]
-{\fontsize{12}{15}\selectfont Few-shot classification of lithium-ion battery charging power curves with a time-series foundation model}}
+\title{面向变长锂电池充电功率曲线小样本分类的掩码感知时序大模型异构融合方法\\[4pt]
+{\fontsize{12}{15}\selectfont Mask-aware time-series foundation model and heterogeneous fusion for few-shot classification of variable-length lithium-ion battery charging curves}}
 
 \author{钱卓涛$^{1,*}$（Zhuotao Qian） and 冯成化$^1$（Chenghua Feng）}
 
@@ -67,8 +67,8 @@
 \makeatother
 
 \begin{abstract}
-电动自行车锂离子电池充电功率曲线隐含了充电器故障与电池异常等关键安全状态信息，基于单通道功率曲线的自动分类是实现非侵入式充电安全监测的重要途径。然而在实际运维场景中，经人工核验的故障标签获取成本高昂，且单次充电记录的有效长度在 18 至 816 个采样点之间剧烈变化。直接迁移通用时间序列基础模型在该类变长曲线上的表现不佳，而任务专用深度网络在极少标注样本下容易发生跨随机种子退化与失稳。针对上述问题，本文提出一种融合冻结时序大模型、原尺度动力学特征与掩码时间卷积网络（TCN）的小样本充电功率曲线三分类方法。首先，针对 MOMENT 默认分类头将右侧补齐区域计入全局平均池化而稀释有效表征的缺陷，设计了掩码感知分块池化（Mask-aware Patch Pooling），仅聚合完整有效观测对应的分块表征，确保冻结表征对补齐长度与补齐值严格不变，使冻结线性探测在测试集上的 Macro-F1 由 69.46\% 提升至 77.41\%，并结合离线表征缓存将下游分类头单轮训练耗时由约 2~min 降至约 2~s。其次，在不更新 3.4124 亿骨干网络参数的前提下引入一阶差分双流表征，补偿分块编码与实例归一化对局部功率跳变的平滑效应，在 40\% 训练标注下使单分支验证集 Macro-F1 由 83.91\% 提高到 93.57\%。再次，构建 60 维原尺度动力学特征（DYN）分支并结合直方图梯度提升分类器（HGB），显式恢复被逐序列归一化抹除的绝对功率幅值与局部粗糙度信息；分组与全组合筛选表明，其中的 36 维子集即可在不损失精度的条件下保持等效判别力。最后，采用训练子集内五折交叉拟合（Out-of-Fold，OOF）概率堆叠策略，自适应融合冻结双流表征、原尺度动力学特征与六层掩码 TCN 三路异构判别信息。在 35,099 条真实有效电动自行车充电功率记录上的系统实验表明：在统一固定超参数协议下，仅使用 1\%（244 条）、5\%（1,227 条）和 10\%（2,456 条）训练标注时，完整融合模型的验证集 Macro-F1 分别达到 $89.15\pm0.98\%$、$93.85\pm0.43\%$ 和 $95.13\pm0.19\%$，在各预算下均稳定高于最强单一组成支路 2.3～2.6 个百分点，并在 1\% 极低标注下比掩码 TCN 高出 27.24 个百分点。在采用联合双流概率块的交叉拟合配置下，模型在 40\% 标注下取得 $98.09\pm0.23\%$ 的验证集 Macro-F1，电池异常召回率达 98.23\%，误报率（FPR）仅为 0.67\%；排除按标识符前缀簇划分的 3,677 条封存留出集后重新训练，模型在封存留出集上取得 $97.76\pm0.10\%$ 的 Macro-F1（电池异常召回率 98.38\%，误报率 1.02\%）。同架构随机初始化对照证实，预训练权重在 1\%～40\% 标注预算下为双流分支贡献了 6.00～18.81 个百分点的实质性增益。此外，全分支噪声增强训练使 40\% 标注模型在 0.5\% 信号均方根（RMS）高斯噪声下的验证集 Macro-F1 由 64.72\% 提升至 97.47\% 且不损失干净数据精度，同时结合 RTX 4080 端到端推理时延与 ONNX 模型导出测试，明确了完整三分支方案与轻量化 TCN+DYN 方案的适用边界。\\[6pt]
-\noindent\textbf{English Abstract:} Charging power curves of electric bicycles carry information on charger faults and battery anomalies, but verified fault labels are costly and record lengths vary from 18 to 816 samples. A general time-series foundation model transfers poorly to such curves, whereas a task-specific network becomes unstable with few labels. We develop a three-class method that combines a frozen time-series foundation model with raw-scale dynamics features and a masked temporal convolutional network (TCN). Mask-aware patch pooling prevents padded patches from entering the pooled MOMENT representation and raises the test Macro-F1 of a frozen linear probe from 69.46\% to 77.41\%. A first-difference stream restores local changes that patch encoding tends to smooth, increasing the single-branch validation Macro-F1 from 83.91\% to 93.57\% with 40\% of the training labels. A 60-dimensional dynamics branch retains absolute power levels, and five-fold cross-fitted probability stacking combines the three branches. On 35,099 operational charging records under a unified fixed-hyperparameter protocol, the complete model reaches validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$ and $95.13\pm0.19\%$ with 1\%, 5\% and 10\% of the training labels, 2.3--2.6 percentage points above its strongest single branch at each budget and 27.24 points above the masked TCN at 1\%. In the cross-fitted configuration with a joint dual-stream probability block, it reaches $98.09\pm0.23\%$ with 40\% of the labels, with 98.23\% battery-anomaly recall at a 0.67\% false-positive rate, and a retrained model scores $97.76\pm0.10\%$ on a sealed hold-out set of 3,677 records drawn by identifier cluster. Pretraining contributes 6.00--18.81 percentage points to the dual-stream branch. Training all branches with noisy copies raises the 40\%-label Macro-F1 under Gaussian noise of 0.5\% of the signal root mean square from 64.72\% to 97.47\% without lowering clean accuracy, but stronger noise remains a failure point.
+针对电动自行车锂离子电池充电监测中故障标签稀缺、单通道功率曲线有效长度在 18 至 816 个采样点间剧烈变化导致的通用时序大模型迁移失效与任务专用网络低标注失稳问题，本文提出一种融合冻结时序大模型、原尺度动力学特征与掩码时间卷积网络（TCN）的三分支异构分类方法。首先，设计掩码感知分块池化严格排除右侧补齐稀释，并构造一阶差分双流表征以在不微调骨干参数的条件下恢复局部功率突变；其次，提取 60 维原尺度动力学特征保留绝对功率幅值，并通过训练子集内五折交叉拟合概率堆叠自适应融合三路互补信息。在 35,099 条真实充电功率记录上的实验表明：掩码感知池化与一阶差分双流分别使冻结 MOMENT 线性探测测试集 Macro-F1 从 69.46\% 升至 77.41\%、40\% 标注验证集单分支 Macro-F1 从 83.91\% 升至 93.57\%；完整融合模型在 1\%、5\% 和 10\% 训练标注下验证集 Macro-F1 分别达 $89.15\pm0.98\%$、$93.85\pm0.43\%$ 和 $95.13\pm0.19\%$，在 1\% 标注下较掩码 TCN 高出 27.24 个百分点；在 40\% 标注验证集及 3,677 条簇级封存留出集上分别取得 $98.09\pm0.23\%$（电池异常召回率 98.23\%，误报率 0.67\%）与 $97.76\pm0.10\%$。此外，全分支噪声增强训练将 0.5\% RMS 噪声下的 40\% 标注 Macro-F1 由 64.72\% 提至 97.47\%，时延与预算分析明确了高标注或受限算力下 TCN+DYN 方案的适用边界。\\[6pt]
+\noindent\textbf{English Abstract:} Charging power curves of electric bicycles provide non-intrusive safety monitoring cues, yet verified fault labels are scarce and valid sequence lengths vary from 18 to 816 samples. Consequently, direct transfer of general time-series foundation models suffers from padding dilution and scale loss, whereas task-specific networks become unstable under scarce labels. We propose a three-branch heterogeneous method combining a frozen time-series foundation model, raw-scale dynamics features, and a masked temporal convolutional network (TCN). Mask-aware patch pooling excludes padded patches, raising frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, while a first-difference dual stream restores local transients and boosts single-branch validation Macro-F1 at 40\% labels from 83.91\% to 93.57\%. A 60-dimensional dynamics branch preserves absolute power levels, and five-fold cross-fitted stacking fuses the three branches. On 35,099 operational records under a unified fixed-hyperparameter protocol, full fusion achieves validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$, and $95.13\pm0.19\%$ at 1\%, 5\%, and 10\% labels—outperforming the masked TCN by 27.24 points at 1\%—and reaches $98.09\pm0.23\%$ (98.23\% battery-anomaly recall, 0.67\% FPR) at 40\% labels and $97.76\pm0.10\%$ on a 3,677-record cluster-disjoint sealed hold-out set. Full-system noise augmentation further raises 0.5\% RMS noise Macro-F1 at 40\% labels from 64.72\% to 97.47\%, while latency and budget analyses delineate the lightweight TCN+DYN deployment boundary.
 \end{abstract}
 
 \section{引言}\label{sec:intro}
@@ -83,27 +83,25 @@
 
 \subsection{国内外研究现状}
 
-时间序列分类与异常检测方法已在既有文献中得到广泛综述~\cite{chen2021,xu2026,fawaz2019,middlehurst2024}。现有分类器主要涵盖三类技术路线：第一类是基于手工特征的方法，提取时域统计量或频域特征后结合随机森林（Random Forest）~\cite{breiman2001}、梯度提升机（Gradient Boosting Machine）~\cite{friedman2001}或支持向量机（SVM）~\cite{cortes1995}进行分类，具有计算开销低、物理意义清晰的优点；第二类是任务专用深度神经网络，包括时间卷积网络（TCN）~\cite{bai2018}、多尺度与改进型 Transformer 变体~\cite{liu2026,yang2026,jiang2026}以及基于二维周期变化建模的 TimesNet~\cite{wu2023}；第三类是基于随机卷积核变换的方法，如 ROCKET、MiniRocket 与 Hydra~\cite{dempster2020,dempster2021,dempster2023}，能够在较低计算成本下获得较强的局部形状表征能力。
+时间序列分类与异常检测方法已在既有文献中得到广泛综述~\cite{schmidl2022,fawaz2019,middlehurst2024}。现有分类器主要涵盖三类技术路线：第一类是基于手工特征的方法，提取时域统计量或频域特征后结合随机森林（Random Forest）~\cite{breiman2001}、梯度提升机（Gradient Boosting Machine）~\cite{friedman2001}或支持向量机（SVM）~\cite{cortes1995}进行分类，具有计算开销低、物理意义清晰的优点；第二类是任务专用深度神经网络，包括时间卷积网络（TCN）~\cite{bai2018}、基于分块或无监督表征的 Transformer 变体~\cite{zerveas2021,nie2023}以及基于二维周期变化建模的 TimesNet~\cite{wu2023}；第三类是基于随机卷积核变换的方法，如 ROCKET、MiniRocket 与 Hydra~\cite{dempster2020,dempster2021,dempster2023}，能够在较低计算成本下获得较强的局部形状表征能力。
 
-当标注样本受限时，迁移学习与自监督表征学习可有效降低下游任务的标注需求~\cite{wang2026,yue2022}。近年来，MOMENT、TimesFM、Chronos、Moirai 和 Time-MoE 等时间序列基础模型（Time-Series Foundation Models，简称时序大模型）通过在大规模、跨领域的异构时间序列集合上进行预训练，获得了较强的通用表征能力~\cite{goswami2024,das2024,ansari2024,woo2024,shi2025}。围绕此类基础模型的表征迁移，已有学者在旋转机械多场景故障诊断、边坡深部位移预测以及输入表示优化等工程任务中展开探索~\cite{shao2026,zhao2026,yang2026b}。
+当标注样本受限时，迁移学习与自监督对比表征学习可有效降低下游任务的标注需求~\cite{eldele2021,yue2022}。近年来，MOMENT、TimesFM、Chronos、Moirai 和 Time-MoE 等时间序列基础模型（Time-Series Foundation Models，简称时序大模型）通过在大规模、跨领域的异构时间序列集合上进行预训练，获得了较强的通用表征能力~\cite{goswami2024,das2024,ansari2024,woo2024,shi2025}。围绕预训练基础模型在工业监测领域的迁移应用，已有学者在旋转机械故障诊断与寿命预测~\cite{wang2025}、复杂系统故障诊断~\cite{zheng2024}以及锂离子电池健康状态估计~\cite{sun2025b}等任务中展开探索。
 
-然而，在本课题针对的电动自行车变长充电功率曲线分类任务中，直接迁移通用时序大模型的效果并不理想。实验表明，直接冻结 MOMENT-1-large 骨干网络并训练其默认线性分类头，在测试集上仅取得 69.46\% 的 Macro-F1，远低于在原始尺度曲线上从头训练的任务专用 TCN（95.99\%）。本文通过诊断分析发现，这一性能失配主要源于三个具体操作环节：第一，默认分类头在最终池化时对包括右侧补齐在内的全部分块（Patch）求平均，导致短序列的有效表征被严重稀释；第二，分块编码操作平滑了短时功率突变；第三，逐序列标准化抹除了绝对功率幅值信息。
+然而，在本课题针对的电动自行车变长充电功率曲线分类任务中，若直接冻结通用时序大模型进行线性迁移，其分类效果并不理想。实验表明，直接冻结 MOMENT-1-large 骨干网络并训练其默认线性分类头，在测试集上仅取得 69.46\% 的 Macro-F1，远低于在原始尺度曲线上从头训练的任务专用 TCN（95.99\%）。本文通过诊断分析发现，这一性能失配主要源于三个具体操作环节：第一，默认分类头在最终池化时对包括右侧补齐在内的全部分块（Patch）求平均，导致短序列的有效表征被严重稀释；第二，分块编码操作平滑了短时功率突变；第三，逐序列标准化抹除了绝对功率幅值信息。
 
 \subsection{研究内容与主要贡献}
 
 针对上述直接迁移失配问题，本文在不更新 MOMENT-1-large 骨干网络全部 3.4124 亿参数的前提下，对池化方式、输入表征和分支融合机制进行系统设计，构建了一种融合冻结时序大模型、原尺度动力学特征与掩码 TCN 的三分类方法。本文的主要研究工作与贡献归纳如下：
 
-（1）提出\textbf{掩码感知分块池化（Mask-aware Patch Pooling）}。在池化阶段严格排除不完整分块与右侧补齐分块，使冻结大模型表征对右侧补齐区域的长度和取值保持不变，消除了补齐稀释效应，并通过离线特征缓存大幅缩短下游分类器的训练时间。
+（1）提出\textbf{掩码感知分块池化与一阶差分双流冻结适配策略}。在池化阶段严格排除不完整分块与右侧补齐分块，消除补齐稀释效应并保障补齐区间不变性；在此基础上，将原始功率序列与有效区间内的一阶差分序列分别送入同一共享权重的冻结 MOMENT 编码器，在不微调骨干参数的前提下恢复局部阶跃与毛刺表征，并通过离线特征缓存大幅缩短下游训练耗时。
 
-（2）构建\textbf{冻结骨干下的一阶差分双流表征（First-difference Dual-stream Representation）}。将原始功率序列与有效区间内的一阶差分序列分别送入同一冻结 MOMENT 编码器并拼接池化特征，在不增加任何可训练骨干参数的条件下，向模型补充了局部阶跃与毛刺等高频变化信息。
+（2）构建\textbf{60 维原尺度动力学特征与五折交叉拟合三分支异构融合框架}。利用原尺度统计与局部动力学特征补回被逐序列标准化抹除的绝对功率幅值与粗糙度信息，并将基础模型双流分支、原尺度动力学特征（DYN）分支与六层掩码 TCN 分支的训练子集五折折外（OOF）预测概率拼接，通过正则化逻辑回归元学习器实现跨归纳偏置的互补融合。
 
-（3）设计 \textbf{60 维原尺度动力学特征（DYN）分支与五折交叉拟合概率堆叠（Cross-fitted Probability Stacking）}。通过原尺度统计与动力学特征恢复绝对幅值和可解释局部动态，利用训练子集内部的五折折外（OOF）预测概率训练逻辑回归元学习器，有效融合基础模型分支、动力学特征分支与掩码 TCN 分支的互补信息。
-
-（4）严格界定方法的有效性与工程适用边界。通过逐随机种子配对消融、同架构随机初始化预训练对照以及 1\%～100\% 标注预算实验拆解各模块的性能贡献；构建按标识符前缀簇划分的封存留出集（Sealed Hold-out Set）并开展留簇审计（Leave-cluster-out Audit），评估验证集重复使用带来的选择偏差；结合噪声增强训练、端到端推理时延测量与 ONNX/int8 模型导出实验，给出不同标注预算、噪声水平和硬件约束下的模型选型准则。
+（3）开展\textbf{系统机制归因与面向工程部署的适用边界评估}。通过逐随机种子配对消融、同架构随机初始化预训练对照、1\%～100\% 标注预算实验以及按标识符前缀簇划分的封存留出集与留簇审计，定量拆解各模块在不同标注规模与序列长度下的净贡献；结合加性高斯噪声鲁棒性评估、噪声增强训练及 RTX 4080 端到端时延与 ONNX FP32/int8 导出测试，明确不同应用场景下的工程选型依据。
 
 \subsection{论文组织结构}
 
-本文共分为七章，各章内容安排如下：第~\ref{sec:intro} 章为引言，阐述电动自行车锂电池充电功率曲线分类的研究背景与意义，综述时间序列分类与时序大模型的研究现状，并概括本文的主要工作与组织结构。第~\ref{sec:data} 章为问题描述与数据集构建，给出变长充电功率序列三分类任务的数学定义，说明实际运行数据的清洗规则、序列长度分布特征、长度捷径风险以及多维度评价指标体系。第~\ref{sec:method} 章为三分支异构融合分类方法设计，详细介绍总体框架、掩码感知分块池化、一阶差分双流表征、60 维原尺度动力学特征、六层掩码 TCN、五折交叉拟合概率堆叠以及噪声增强训练策略。第~\ref{sec:exp} 章为实验设计与分类性能评估，阐述三阶段评估协议，依次报告基线对比、冻结分类头尺度补偿、TCN 补齐敏感性诊断、差分双流与预训练归因、动力学特征消融、三分支融合互补性、多标注预算曲线以及封存留出集实验结果。第~\ref{sec:deploy} 章为噪声鲁棒性与工程部署分析，考察干净训练模型在加性高斯噪声与量化扰动下的退化规律，评估噪声增强训练的改善效果与边界，并测试 RTX 4080 端到端推理时延及 ONNX FP32/int8 导出性能。第~\ref{sec:discussion} 章为特征物理解释、方案选型与研究局限，探讨时序大模型的作用机理，分析动力学特征与文献已知故障形态的对应关系，总结工程部署选型指南，并客观讨论本研究的局限性。第~\ref{sec:conclusion} 章为结论与展望，总结全文核心研究结论，并提出后续研究方向。文末附录给出动力学特征缩减与 TCN 导出量化的详细补充数据。
+本文共分为七章，各章内容安排如下：第~\ref{sec:intro} 章为引言，阐述电动自行车锂电池充电功率曲线分类的研究背景与意义，综述时间序列分类与时序大模型的研究现状，并概括本文的主要工作与组织结构。第~\ref{sec:data} 章为问题描述与数据集构建，给出变长充电功率序列三分类任务的数学定义，说明实际运行数据的清洗规则、序列长度分布特征、长度捷径风险以及多维度评价指标体系。第~\ref{sec:method} 章为三分支异构融合分类方法设计，阐述电动自行车充电监测系统架构与三分支总体框架，并详细介绍掩码感知分块池化、一阶差分双流表征、60 维原尺度动力学特征、六层掩码 TCN、五折交叉拟合概率堆叠以及噪声增强训练策略。第~\ref{sec:exp} 章为实验设计与分类性能评估，阐述三阶段评估协议，依次报告基线对比、冻结分类头尺度补偿、TCN 补齐敏感性诊断、差分双流与预训练归因、动力学特征消融、三分支融合互补性、多标注预算曲线以及封存留出集实验结果。第~\ref{sec:deploy} 章为噪声鲁棒性与工程部署分析，考察干净训练模型在加性高斯噪声与量化扰动下的退化规律，评估噪声增强训练的改善效果与边界，并测试 RTX 4080 端到端推理时延及 ONNX FP32/int8 导出性能。第~\ref{sec:discussion} 章为特征物理解释与方案选型，探讨时序大模型的作用机理，分析动力学特征与文献已知故障形态的对应关系，并总结工程部署选型指南。第~\ref{sec:conclusion} 章为结论与展望，总结全文核心研究结论，并提出后续研究方向。文末附录给出动力学特征缩减与 TCN 导出量化的详细补充数据。
 
 \section{问题描述与数据集构建}\label{sec:data}
 
@@ -122,7 +120,7 @@ f:(\bm{x}_i,\bm{m}_i)\mapsto y_i\in\{0,1,2\}.
 
 上述 18 个采样点的最短长度阈值沿用自既有实验协议，数据提供方未对其给出独立的物理机制解释；同时，原始数据未附带采样时间间隔字段，因此本文所有序列长度均严格以“采样点数（Samples）”为单位进行报告，不换算为分钟或小时等实际充电时长。经严格核查，清洗后的 35,099 条有效序列中不存在重复序列或标签冲突；最长有效序列包含 816 个采样点，在统一补齐长度 $T=1024$ 下无需进行任何截断。
 
-在实验的前两个阶段，数据集按类别分层抽样策略以 $7:1:2$ 的比例划分为训练集、验证集与测试集，各子集的样本分布如表~\ref{tab:split} 所示。前两阶段的所有对比方法均共享完全相同的划分清单文件；第~\ref{sec:protocol} 节与第~\ref{sec:holdout} 节将进一步介绍第三阶段面向封存留出集（Sealed Hold-out Set）的重划分方案。此外，原始数据不包含时间戳、充电站点编号、设备型号或生产批次字段；虽然每条记录的匿名标识符均不相同，但共享前 6 位字符前缀的标识符可自然聚合成 8,075 个分组，本文将其作为部署簇（Deployment Clusters）的代理变量用于第~\ref{sec:holdout} 节的簇级泛化评估。
+在实验的前两个阶段，数据集按类别分层抽样策略以 $7:1:2$ 的比例划分为训练集、验证集与测试集，各子集的样本分布如表~\ref{tab:split} 所示。前两阶段的所有对比方法均共享完全相同的划分清单文件；第~\ref{sec:protocol} 节与第~\ref{sec:holdout} 节将进一步介绍第三阶段面向封存留出集（Sealed Hold-out Set）的重划分方案。此外，全部 35,099 条记录源于单一充电运营平台的一次历史导出，缺失时间戳、充电站点编号、设备型号、生产批次及采样间隔元数据，且目前尚无具有相同三分类语义的公开电动自行车充电功率基准数据集，因此跨站点、跨季节与跨硬件型号的外部泛化能力仍有待多站点独立数据进一步验证；同时，类别 1（电池异常）与类别 2（充电器故障）遵循平台侧粗粒度运维标注约定。虽然每条记录的匿名标识符均不相同，但共享前 6 位字符前缀的标识符可自然聚合成 8,075 个分组，本文将其作为部署簇（Deployment Clusters）的代理变量用于第~\ref{sec:holdout} 节的簇级泛化评估。
 
 \begin{table}[htbp]
 \caption{数据集划分与类别分布}
@@ -168,7 +166,16 @@ f:(\bm{x}_i,\bm{m}_i)\mapsto y_i\in\{0,1,2\}.
 
 \section{三分支异构融合分类方法设计}\label{sec:method}
 
-\subsection{方法总体框架}
+\subsection{系统架构与方法总体框架}
+
+面向电动自行车集中充电场景的非侵入式监测系统架构如图~\ref{fig:system} 所示。在物理采集与信号感知层，电动自行车车载锂离子电池组经由外置充电器连接至智能充电桩，计量模块在单通道模式下持续采集整轮充电过程的端到端有功功率序列 $\bm{x}_i=(x_{i,1},\ldots,x_{i,L_i})$（$18\le L_i\le 816$）；相比侵入式拆解或同步电池管理系统（BMS）通讯，单通道功率监测无需改造现有车辆与充电桩硬件。采集所得的变长功率序列经清洗去重与有效性掩码构建（右侧补齐至统一长度 $T=1024$ 并构造二值有效观测掩码 $\bm{m}_i\in\{0,1\}^T$）后送入服务端或边缘侧三分支异构分类引擎（具体结构详见图~\ref{fig:framework}），最终输出“正常充电、电池异常、充电器故障”三类运行状态判别结果，用于触发平台级断电保护、故障预警与运维派单决策。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\textwidth]{figures_en/fig_system_architecture.pdf}
+\caption{面向电动自行车锂电池充电安全监测的非侵入式系统架构。上层为物理感知层：电能经充电桩交流插座、外置充电器（AC/DC）流向车载锂离子电池组，桩端单通道有功功率计量模块采集功率序列 $P(t)$，无需 BMS 通讯或硬件改造（右侧示意图中的编号与拓扑方框一一对应）。下层为服务端或边缘侧信息分析层：依次完成序列清洗、右侧补齐与有效掩码构建，三分支异构分类（结构详见图~\ref{fig:framework}），以及三类运行状态判别与对应的平台处置动作。灰色粗箭头表示能量流，虚线箭头表示数据流。}
+\label{fig:system}
+\end{figure}
 
 本文提出的三分支异构融合分类框架如图~\ref{fig:framework} 所示。系统由三条具有不同归纳偏置的并行分支及顶层概率堆叠元学习器组成：
 
@@ -528,7 +535,7 @@ MiniRocket 基线 & \pmv{86.90}{1.78} & \pmv{91.59}{0.91} & \pmv{92.72}{0.34} & 
 
 如表~\ref{tab:holdout} 所示，在 40\% 标注预算下，完整融合模型在封存留出集上取得 $97.76\pm0.10\%$ 的 Macro-F1（对应重划分验证集为 $97.86\pm0.11\%$），封存集电池异常召回率达 98.38\%，误报率为 1.02\%；在 10\% 标注预算下，封存留出集与重划分验证集 Macro-F1 分别为 $94.81\pm0.29\%$ 和 $94.65\pm0.15\%$。40\% 预算下的封存集得分比第二阶段验证集估计值（98.09\% 与 98.14\%）低约 0.3～0.4 个百分点，符合反复使用验证集可能带来轻微乐观偏差的统计学预期。同时，各模型在封存留出集上的相对排序保持完全一致：10\% 预算下完整融合比 TCN+DYN 高出 $0.84\pm0.30$ 个百分点（4/4 种子为正），而 40\% 预算下差距缩小至 $0.07\pm0.13$ 个百分点（3/4 种子为正），再次验证了基础模型边际贡献随标注量增加而递减的结论。
 
-此外，为检验顶层堆叠元学习器是否依赖特定的标识符簇，本文开展了\textbf{留簇交叉审计（Leave-cluster-out Audit）}：将每个种子的验证记录按标识符前 6 位分组，贪心划分为 5 个簇间完全不重叠的折；每次在其中 4 个簇分组的 OOF 概率上重新拟合元学习器，并在剩余 1 个未见簇分组上评估（基分支预测复用，以单独隔离堆叠层效应）。跨越 4 个种子共 20 个评估折的结果表明，留簇堆叠在 40\% 和 10\% 预算下分别达到 $98.14\pm0.52\%$（最低折 96.89\%）和 $95.18\pm0.81\%$（最低折 93.60\%），与同分布堆叠均值（$98.12\pm0.16\%$ 和 $95.14\pm0.37\%$）几乎一致，仅折间离散度有所增加。对包含 12～23 条记录（中位数 13 条）的 71 个较大簇（共 121 个种子—簇对）统计单簇准确率发现，40\% 和 10\% 预算下分别有 11 个和 20 个簇的准确率低于 90\%。由于单簇样本量较小，1～2 条错误即可使单簇准确率跌破 90\%，这一尾部现象提示模型在不同部署簇之间仍存在一定波动。
+此外，为检验顶层堆叠元学习器是否依赖特定的标识符簇，本文开展了\textbf{留簇交叉审计（Leave-cluster-out Audit）}：将每个种子的验证记录按标识符前 6 位分组，贪心划分为 5 个簇间完全不重叠的折；每次在其中 4 个簇分组的 OOF 概率上重新拟合元学习器，并在剩余 1 个未见簇分组上评估（基分支预测复用，以单独隔离堆叠层效应）。跨越 4 个种子共 20 个评估折的结果表明，留簇堆叠在 40\% 和 10\% 预算下分别达到 $98.14\pm0.52\%$（最低折 96.89\%）和 $95.18\pm0.81\%$（最低折 93.60\%），与同分布堆叠均值（$98.12\pm0.16\%$ 和 $95.14\pm0.37\%$）几乎一致，仅折间离散度有所增加。对包含 12～23 条记录（中位数 13 条）的 71 个较大簇（共 121 个种子—簇对）统计单簇准确率发现，40\% 和 10\% 预算下分别有 11 个和 20 个簇的准确率低于 90\%。由于单簇样本量较小，1～2 条错误即可使单簇准确率跌破 90\%，这一尾部现象提示模型在不同部署簇之间仍存在一定波动。同时需要说明，标识符前缀仅作为物理站点或设备批次的代理分组，且封存留出集与主划分仍采样自同一历史总体分布（并沿用前期既定结构与超参数），因此正式部署前仍需采集跨站点独立样本作进一步检验。
 
 \section{噪声鲁棒性与工程部署分析}\label{sec:deploy}
 
@@ -581,7 +588,7 @@ MiniRocket 基线 & \pmv{86.90}{1.78} & \pmv{91.59}{0.91} & \pmv{92.72}{0.34} & 
 
 （2）\textbf{全分支协同噪声增强可完全消除干净数据精度代价}。当对三条分支及交叉拟合堆叠器统一引入 $\alpha=0.5\%$ 的噪声副本训练时，完整融合模型在干净验证集上的 Macro-F1 不仅没有下降，反而分别变化了 $+0.74\pm0.21$（10\% 预算，4/4 种子为正）和 $+0.04\pm0.26$（40\% 预算）个百分点；与此同时，在 0.5\% RMS 噪声下的验证集 Macro-F1 分别由 55.39\% 大幅提升至 94.46\%（净增 $+39.07\pm3.85$ 个百分点）、由 64.72\% 提升至 97.47\%（净增 $+32.76\pm1.87$ 个百分点，4/4 种子全部正向提升）。在 0.5\% 噪声下，电池异常召回率也从约 54\%（10\% 预算）和 73.53\%（40\% 预算）成功恢复至 95.43\% 和 98.65\%。
 
-（3）\textbf{噪声增强的保护范围受限于训练噪声水平}。当测试噪声强度翻倍至超出训练覆盖范围的 1.0\% RMS 时，经 0.5\% 噪声增强的完整融合模型仍会跌落至 45.97\%（10\% 预算）和 49.30\%（40\% 预算）。因此，若实际部署环境存在更强的采集噪声，需在对应噪声强度下开展针对性增强或重构比值类特征的数值稳定性定义。
+（3）\textbf{噪声增强的保护范围受限于训练噪声假设与分布覆盖}。本文噪声增强训练仅覆盖零均值加性高斯噪声（$\le 0.5\%$ RMS），尚未涵盖基线漂移、通信丢包或突发脉冲等非高斯采集畸变；当测试高斯噪声强度翻倍至超出训练覆盖范围的 1.0\% RMS 时，经 0.5\% 噪声增强的完整融合模型仍会跌落至 45.97\%（10\% 预算）和 49.30\%（40\% 预算）。因此，若实际部署环境存在更强噪声或非高斯扰动，需在对应扰动条件下开展针对性增强，并对 DYN 分支中以运行最小值为分母的比值类特征引入阻尼或稳健分位数定义。
 
 \subsection{端到端推理时延与计算开销测量}\label{sec:latency}
 
@@ -611,7 +618,7 @@ DYN + HGB & 95.00 & 11.43 & 1.99 & 1.83 \\
 
 然而，当采用 QDQ 格式对导出的 TCN 执行训练后静态 int8 量化（Post-training Static Quantization，使用 256 条训练记录校准）时，单分支 TCN 的验证集 Macro-F1 暴跌至 49.34\%，并拖累融合模型降至 80.08\%，而 CPU 批处理推理仅获得约 1.2 倍的微弱加速。即使进一步尝试熵校准（Entropy）、百分位校准（Percentile）、对称激活量化或逐张量权重量化等 4 种替代配置，种子 42 上的 TCN Macro-F1 仍仅停留在 53.20\%～58.02\% 之间。本文推测，这是因为该六层 TCN 未包含批归一化（BatchNorm）或层归一化（LayerNorm）层，原尺度输入下的内部激活与输出对数几率动态范围过大（FP32 下跨种子最大 Logit 幅值达 300～1,598），超出了单一 int8 线性量化尺度的表达能力。因此，当前工程部署应直接采用无损的 FP32 模型，若需 int8 压缩则必须结合量化感知训练（QAT）~\cite{jacob2018} 或引入归一化层后重新训练。
 
-\section{特征物理解释、方案选型与研究局限}\label{sec:discussion}
+\section{特征物理解释与方案选型}\label{sec:discussion}
 
 \subsection{时序大模型在变长曲线分类中的作用机理}
 
@@ -660,7 +667,7 @@ $\Delta P$ 滞后1阶自相关 & 粗糙度 & 0.218 [0.022, 0.521] & 0.029 [$-0.0
 
 （2）\textbf{充电器故障高度契合功率变换模块输出振荡形态}。表~\ref{tab:signatures} 中充电器故障（类别 2）的方向变化率中位数高达 0.374（约为正常充电的 4 倍，单特征一对其余 AUC 达 0.851），归一化平均绝对步长是正常曲线的 2.85 倍（0.0157 对 0.0055，AUC 达 0.860），且相邻差分呈显著负自相关（$-0.261$），表现为高频的“升—降—升”交替纹波振荡，同时伴随更高的最高频带能量占比与更低的平台占比。既有充电桩故障诊断文献指出，功率变换模块退化或功率级开路故障会直接引发输出电流与功率纹波扰动~\cite{park2022,xu2025}。这恰好解释了为何第~\ref{sec:dynres} 节中“粗糙度与转折点”组会成为 DYN 分支最具判别力的核心特征组。
 
-（3）\textbf{电池异常表现为平滑基底上的稀疏大跳变与尾部慢衰减}。电池异常（类别 1）的平均绝对步长与正常曲线几乎一致（0.0057 对 0.0055），但差分标准差与均值之比却达到正常曲线的 2.5 倍（0.032 对 0.013），说明其并非持续高频振荡，而是在平缓曲线中夹杂了少数大幅度功率跳变；同时其上升比例更高（0.152）、末段衰减更慢（斜率 $-0.060$ 对 $-0.141$）且有效长度更长（中位数 382.5 对 252）。在锂电池故障机理文献中，微短路（Micro-short circuit）产生的漏电流会改变受影响电芯所需的总充电量，并可在恒流与恒功率充电阶段被检出~\cite{kong2018}；内部故障、电芯不一致与老化则会改变充电响应及充电终止行为~\cite{hu2020,lu2013}，而内短路更是热失控的公认前兆~\cite{feng2018}。此外，两类故障的最大回撤中位数均接近 0.984（正常为 0.897），符合保护动作或故障引起的充电中途断崖式跌落特征。
+（3）\textbf{电池异常表现为平滑基底上的稀疏大跳变与尾部慢衰减}。电池异常（类别 1）的平均绝对步长与正常曲线几乎一致（0.0057 对 0.0055），但差分标准差与均值之比却达到正常曲线的 2.5 倍（0.032 对 0.013），说明其并非持续高频振荡，而是在平缓曲线中夹杂了少数大幅度功率跳变；同时其上升比例更高（0.152）、末段衰减更慢（斜率 $-0.060$ 对 $-0.141$）且有效长度更长（中位数 382.5 对 252）。在锂电池故障机理文献中，微短路（Micro-short circuit）产生的漏电流会改变受影响电芯所需的总充电量，并可在恒流与恒功率充电阶段被检出~\cite{kong2018}；内部故障、电芯不一致与老化则会改变充电响应及充电终止行为~\cite{hu2020,lu2013}，而内短路更是热失控的公认前兆~\cite{feng2018}。此外，两类故障的最大回撤中位数均接近 0.984（正常为 0.897），符合保护动作或故障引起的充电中途断崖式跌落特征。同时应当指出，在缺少同步 BMS 电芯状态监测与拆检验证的条件下，上述功率统计特征仅反映宏观表观关联，尚不可直接替代电化学机理级的故障定位诊断。
 
 \subsection{适配策略对比与工程选型准则}\label{sec:selection}
 
@@ -688,45 +695,21 @@ $\ge 40\%$ 标注预算，显存受限或追求低时延 & TCN+DYN 仅比完整�
 {\footnotesize $^{\mathrm{a}}$ 该结论基于验证集噪声扰动实验得出。}
 \end{table}
 
-\subsection{研究局限性}
-
-本研究仍存在以下四方面局限性，需在成果应用时予以明确界定：
-
-（1）\textbf{数据来源与跨平台外推局限}。全部 35,099 条记录均来自单一充电运营平台的一次历史导出，缺失设备型号、站点位置、日历时间戳及采样间隔元数据，且目前尚无具有相同三分类语义的公开电动自行车充电功率基准数据集。因此，模型跨站点、跨季节和跨硬件型号的外部泛化能力尚未得到直接验证。
-
-（2）\textbf{封存留出集与留簇审计的边界}。第三阶段的封存留出集虽按完整标识符前缀簇划分且未参与该阶段调优，但其样本仍取自同一总体分布，部分记录曾出现在前两阶段的训练/验证划分中，且沿用了早期的网络结构与 HGB 超参数；留簇审计仅重新拟合了堆叠层，前缀分组也仅是真实物理站点的代理。正式上线前仍需采集全新的独立外部测试集。
-
-（3）\textbf{噪声模型与特征数值稳定性局限}。噪声增强训练仅在训练覆盖的 $\le 0.5\%$ RMS 加性高斯噪声范围内有效，尚未涵盖基线漂移、通信丢包或突发脉冲等非高斯采集故障；DYN 分支中以运行最小值作分母的极值比值特征在近零区域仍存在数值不稳定性；TCN 在静态 int8 量化下的精度崩溃原因也有待通过混合精度对照试验作进一步因果确认。
-
-（4）\textbf{粗粒度运维标签局限}。原始数据集中的类别 1（电池异常）和类别 2（充电器故障）遵循平台方的粗粒度运维约定，未细分具体的物理失效模式（如内短路、析锂、老化或特定变换器器件故障）。功率曲线形态与特征重要性仅能揭示统计相关性，不能替代结合同步 BMS 数据的物理机理级健康诊断。
-
 \section{结论与展望}\label{sec:conclusion}
 
 \subsection{全文工作总结}
 
-本文围绕变长电动自行车锂电池充电功率曲线的小样本三分类问题，系统剖析了通用时间序列基础模型直接迁移失效的机制原因，提出了融合冻结 MOMENT-1-large 双流表征、60 维原尺度动力学特征与六层掩码 TCN 的异构交叉拟合堆叠方法，并在 35,099 条真实运行记录上完成了多阶段实验验证。全文核心结论如下：
+本文围绕变长电动自行车锂电池充电功率曲线的小样本三分类问题，设计并验证了融合冻结时序大模型、原尺度动力学特征与掩码 TCN 的三分支异构方法，主要结论如下：
 
-（1）掩码感知分块池化彻底消除了右侧补齐分块对冻结表征的稀释效应，使冻结线性探测的测试集 Macro-F1 由 69.46\% 提升至 77.41\%，并严格保证了补齐区域不变性；结合离线表征缓存，下游分类器单轮训练时间由约 2~min 降至约 2~s。
+（1）\textbf{掩码感知池化与一阶差分双流冻结适配}：在池化阶段严格排除不完整与右侧补齐分块，使冻结线性探测 Macro-F1 由 69.46\% 提升至 77.41\% 并严格满足补齐不变性，离线缓存将单轮训练由约 2~min 缩短至约 2~s；引入有效区间一阶差分双流表征后，在不更新 MOMENT-1-large 参数的条件下于 1\%～40\% 预算进一步提升 9.66～13.38 个百分点，同架构随机初始化对照证实跨领域预训练先验贡献了 6.00～18.81 个百分点的实质增益。
 
-（2）一阶差分双流表征在不微调骨干参数的条件下有效恢复了局部功率跳变信息，在 1\%～40\% 标注预算下比单一原始序列流提升 9.66～13.38 个百分点；同架构随机初始化对照证实，跨领域预训练权重为双流分支提供了 6.00～18.81 个百分点的实质性先验增益，且标注越稀缺增益越大。
+（2）\textbf{原尺度动力学特征构建与五折交叉拟合异构融合}：60 维原尺度 DYN 特征补回了被逐序列归一化抹除的绝对功率水平与局部动态（40\% 预算单分支达 95.00\% Macro-F1，且 36 维极简子集即可无损替代）；三分支五折 OOF 概率堆叠在统一超参数协议下于 1\%、5\% 和 10\% 低标注预算分别达到 $89.15\pm0.98\%$、$93.85\pm0.43\%$ 和 $95.13\pm0.19\%$（1\% 预算领先掩码 TCN 27.24 个百分点），40\% 预算在联合配置与 3,677 条封存留出集上分别取得 $98.09\pm0.23\%$ 与 $97.76\pm0.10\%$ 的 Macro-F1。
 
-（3）60 维原尺度动力学特征（DYN）有效补回了被归一化抹除的绝对功率幅值与局部粗糙度信息，在 40\% 标注预算下单独配合 HGB 即可达到 95.00\% 的 Macro-F1；全组合穷举筛选表明，其中由长度、趋势、粗糙度和形状构成的 36 维子集即可实现无损替代表达。
-
-（4）五折交叉拟合三路概率堆叠在联合双流块配置下于 10\% 和 40\% 标注预算分别达到 $95.02\pm0.33\%$ 和 $98.09\pm0.23\%$ 的验证集 Macro-F1（40\% 预算下电池异常召回率达 98.23\%，误报率仅 0.67\%）；在统一固定超参数协议下，1\%、5\% 和 10\% 低标注预算分别达到 $89.15\pm0.98\%$、$93.85\pm0.43\%$ 和 $95.13\pm0.19\%$，在 1\% 预算下比掩码 TCN 高出 27.24 个百分点；在按标识符簇划分的 3,677 条封存留出集上，重训后的 40\% 预算模型取得了 $97.76\pm0.10\%$ 的盲测 Macro-F1。
-
-（5）全分支噪声增强训练使 10\% 和 40\% 预算模型在 0.5\% RMS 高斯噪声下的 Macro-F1 分别保持在 94.46\% 和 97.47\% 且不损失干净数据精度；同时，实测明确了基础模型分支主要在低标注与长序列（$L>399$）场景下提供净增益，而在高标注或算力受限场景下，支持无损 ONNX FP32 导出的 TCN+DYN 双分支方案是更具性价比的工程部署选择。
+（3）\textbf{抗噪边界界定与工程部署选型准则}：全分支 0.5\% RMS 高斯噪声增强可在不损失干净数据精度的前提下，将 10\% 与 40\% 预算模型在对应噪声下的 Macro-F1 分别保持在 94.46\% 与 97.47\%；结合序列长度收益与 RTX 4080 实测时延表明，基础模型分支主要在低标注与长序列（$L>399$）场景提供净增益，而在高标注或算力受限场景下，支持严格无损 FP32 ONNX 导出的 TCN+DYN 双分支（批大小 32 时 2.09~ms/条）更具工程性价比。
 
 \subsection{后续研究展望}
 
-后续研究工作将重点围绕以下四个方向展开：
-
-（1）\textbf{多站点独立外部验证与机理级标注构建}：联合充电运营平台采集包含明确时间戳、采样间隔、站点编号与充电器型号的多站点新数据，并结合拆检或同步 BMS 记录建立细粒度故障机理标签，开展跨站点、跨时期的外部泛化验证及充电早期前缀预警研究。
-
-（2）\textbf{抗噪特征重构与非高斯扰动增强}：对 DYN 分支中以运行极值作分母的敏感特征引入稳健分位数或阻尼分母定义，并将数据增强策略扩展至 $>0.5\%$ RMS 强噪声、基线漂移及随机缺失点等复杂工业采集条件。
-
-（3）\textbf{融合更多样化的轻量级时序变换分支}：探索将 MultiRocket、Hydra 等高性能随机/竞争卷积核特征与原尺度动力学特征相融合，进一步提升极低标注预算下的分类精度上限。
-
-（4）\textbf{面向边缘端部署的量化感知训练与知识蒸馏}：在 TCN 分支中引入归一化与激活范围约束，开展量化感知训练（QAT）以解决静态 int8 量化崩溃问题，并探索将三分支融合系统的暗知识（Dark Knowledge）蒸馏至单一轻量级网络中，从而在边缘网关侧同时兼顾大模型先验精度与毫秒级低开销推理。
+面向实际工程推广，后续工作可围绕多源外部验证、抗畸变特征优化与轻量化边缘部署继续深入。在数据与标签层面，可联合运营平台收集具备设备型号、站点编号、采样间隔及同步 BMS 或拆检记录的多站点数据集，进一步检验跨硬件、跨季节的外部泛化能力并探索充电早期前缀在线预警；在算法与部署层面，可对原尺度比值类特征引入阻尼分母或稳健分位数表达，将噪声增强扩展至基线漂移与通信丢包等非高斯采集故障，并结合量化感知训练（QAT）与跨分支知识蒸馏解决 TCN 静态 int8 量化崩溃问题，从而在边缘网关约束下兼顾低标注先验精度与高吞吐实时监测需求。
 
 \appendix
 
@@ -823,9 +806,7 @@ ONNX Runtime CPU int8 & 1 & 1 & 1.20 & 836 \\
 
 \bibitem{sun2025} Sun Z, Ye W, Mao Y and Sui Y 2025 A hybrid CNN--LSTM--attention mechanism model for anomaly detection in lithium-ion batteries of electric bicycles \textit{Batteries} \textbf{11} 384
 
-\bibitem{chen2021} 陈炜. 基于深度学习的时序数据分类方法研究[D]. 武汉: 华中科技大学, 2021.
-
-\bibitem{xu2026} 许建秋, 胡伟, 靳多思, 等. 时序数据异常检测方法综述[J]. 计算机科学与探索, 2026, 20(6): 1517--1544.
+\bibitem{schmidl2022} Schmidl S, Wenig P and Papenbrock T 2022 Anomaly detection in time series: a comprehensive evaluation \textit{Proc. VLDB Endow.} \textbf{15} 1779--1797
 
 \bibitem{fawaz2019} Ismail Fawaz H, Forestier G, Weber J \textit{et al} 2019 Deep learning for time series classification: a review \textit{Data Min. Knowl. Discov.} \textbf{33} 917--963
 
@@ -839,11 +820,9 @@ ONNX Runtime CPU int8 & 1 & 1 & 1.20 & 836 \\
 
 \bibitem{bai2018} Bai S, Kolter J Z and Koltun V 2018 An empirical evaluation of generic convolutional and recurrent networks for sequence modeling (arXiv:1803.01271)
 
-\bibitem{liu2026} 刘思捷, 孙建彬, 秦宇琪, 等. 基于多尺度Transformer和形态卷积的时间序列分类方法[J]. 系统工程与电子技术, 2026: 1--14.
+\bibitem{zerveas2021} Zerveas G, Jayaraman S, Patel D, Bhamidipaty A and Eickhoff C 2021 A transformer-based framework for multivariate time series representation learning \textit{Proc. 27th ACM SIGKDD Conf. on Knowledge Discovery and Data Mining} pp 2114--2124
 
-\bibitem{yang2026} 杨煜, 胡凯, 黄宇, 等. 基于改进Transformer的甚低频/低频雷电电场时序信号分类方法[J]. 高电压技术, 2026: 1--16.
-
-\bibitem{jiang2026} 江涛. 基于改进Transformer的多变量时间序列预测和分类研究[D]. 淮南: 安徽理工大学, 2026.
+\bibitem{nie2023} Nie Y, Nguyen N H, Sinthong P \textit{et al} 2023 A time series is worth 64 words: long-term forecasting with Transformers \textit{Proc. 11th Int. Conf. on Learning Representations}
 
 \bibitem{wu2023} Wu H, Hu T, Liu Y \textit{et al} 2023 TimesNet: temporal 2D-variation modeling for general time series analysis \textit{Proc. 11th Int. Conf. on Learning Representations}
 
@@ -853,7 +832,7 @@ ONNX Runtime CPU int8 & 1 & 1 & 1.20 & 836 \\
 
 \bibitem{dempster2023} Dempster A, Schmidt D F and Webb G I 2023 Hydra: competing convolutional kernels for fast and accurate time series classification \textit{Data Min. Knowl. Discov.} \textbf{37} 1779--1805
 
-\bibitem{wang2026} 王士同, 杨子伦. 时序数据分类的迁移随机神经网络及其学习方法[J]. 科学技术与工程, 2026, 26(23): 10050--10061.
+\bibitem{eldele2021} Eldele E, Ragab M, Chen Z, Wu M, Kwoh C K, Li X and Guan C 2021 Time-series representation learning via temporal and contextual contrasting \textit{Proc. 30th Int. Joint Conf. on Artificial Intelligence} pp 2352--2359
 
 \bibitem{yue2022} Yue Z, Wang Y, Duan J \textit{et al} 2022 TS2Vec: towards universal representation of time series \textit{Proc. AAAI Conf. Artif. Intell.} \textbf{36} 8980--8987
 
@@ -867,17 +846,15 @@ ONNX Runtime CPU int8 & 1 & 1 & 1.20 & 836 \\
 
 \bibitem{shi2025} Shi X, Wang S, Nie Y \textit{et al} 2025 Time-MoE: billion-scale time series foundation models with mixture of experts \textit{Proc. 13th Int. Conf. on Learning Representations}
 
-\bibitem{shao2026} 邵海东, 王杰, 张家乐, 等. 大模型驱动的旋转机械多场景通用故障诊断[J]. 机械工程学报, 2026: 1--11.
+\bibitem{wang2025} Wang Y, Yu Y, Sun K \textit{et al} 2025 RmGPT: a foundation model with generative pretrained transformer for fault diagnosis and prognosis in rotating machinery \textit{IEEE Internet Things J.} \textbf{12} 41562--41573
 
-\bibitem{zhao2026} 赵雄飞, 李子毅, 王志国, 等. 基于Time-LLM的边坡深部位移预测研究[J]. 湖南交通科技, 2026, 52(4): 29--34.
+\bibitem{zheng2024} Zheng S, Pan K, Liu J and Chen Y 2024 Empirical study on fine-tuning pre-trained large language models for fault diagnosis of complex systems \textit{Reliab. Eng. Syst. Saf.} \textbf{252} 110382
 
-\bibitem{yang2026b} 杨俊杰. 基于大模型输入表示优化的时间序列预测方法研究[D]. 重庆: 重庆理工大学, 2026.
+\bibitem{sun2025b} Sun W, Wu C, Xie C \textit{et al} 2025 Fine-tuning enables state of health estimation in lithium-ion batteries via time series foundation model \textit{Energy} \textbf{318} 134177
 
 \bibitem{saito2015} Saito T and Rehmsmeier M 2015 The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets \textit{PLoS One} \textbf{10} e0118432
 
 \bibitem{guo2017} Guo C, Pleiss G, Sun Y \textit{et al} 2017 On calibration of modern neural networks \textit{Proc. 34th Int. Conf. on Machine Learning (PMLR vol 70)} pp 1321--1330
-
-\bibitem{nie2023} Nie Y, Nguyen N H, Sinthong P \textit{et al} 2023 A time series is worth 64 words: long-term forecasting with Transformers \textit{Proc. 11th Int. Conf. on Learning Representations}
 
 \bibitem{kim2022} Kim T, Kim J, Tae Y \textit{et al} 2022 Reversible instance normalization for accurate time-series forecasting against distribution shift \textit{Proc. 10th Int. Conf. on Learning Representations}
 
