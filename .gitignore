@@ -36,9 +36,10 @@ artifacts/
 
 docs/开题报告.doc
 docs/开题报告写作规范.doc
-docs/理工类专业毕业设计模板-20260623.doc
 docs/开题答辩.pptx
 .gitignore
 .chart*
 outputs
 .codex*
+docs/thesis/毕业设计要求.md
+docs/thesis/理工类专业毕业设计模板-20260623.doc
