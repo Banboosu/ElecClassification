@@ -4,6 +4,7 @@
 % noise-augmented training, 36-D feature screen,
 % ONNX/int8 export). Figures are the English versions in figures_en/.
 % Build: xelatex (or pdflatex) twice; see README.md.
+\RequirePackage{fix-cm}
 \documentclass{iopjournal}
 
 \usepackage{iftex}
@@ -26,7 +27,7 @@
 
 \articletype{Paper}
 
-\title{Few-shot classification of lithium-ion battery charging power curves with a time-series foundation model}
+\title{Mask-aware time-series foundation model and heterogeneous fusion for few-shot classification of variable-length lithium-ion battery charging curves}
 
 \author{Zhuotao Qian$^{1,*}$ and Chenghua Feng$^1$}
 
@@ -39,7 +40,7 @@
 \keywords{lithium-ion battery, charging power curve, time-series foundation model, few-shot learning, anomaly classification, mask-aware pooling, stacked ensemble, noise-augmented training}
 
 \begin{abstract}
-Charging power curves of electric bicycles carry information on charger faults and battery anomalies, but verified fault labels are costly and record lengths vary from 18 to 816 samples. A general time-series foundation model transfers poorly to such curves, whereas a task-specific network becomes unstable with few labels. We develop a three-class method that combines a frozen time-series foundation model with raw-scale dynamics features and a masked temporal convolutional network (TCN). Mask-aware patch pooling prevents padded patches from entering the pooled MOMENT representation and raises the test Macro-F1 of a frozen linear probe from 69.46\% to 77.41\%. A first-difference stream restores local changes that patch encoding tends to smooth, increasing the single-branch validation Macro-F1 from 83.91\% to 93.57\% with 40\% of the training labels. A 60-dimensional dynamics branch retains absolute power levels, and five-fold cross-fitted probability stacking combines the three branches. On 35,099 operational charging records under a unified fixed-hyperparameter protocol, the complete model reaches validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$ and $95.13\pm0.19\%$ with 1\%, 5\% and 10\% of the training labels, 2.3--2.6 percentage points above its strongest single branch at each budget and 27.24 points above the masked TCN at 1\%. In the cross-fitted configuration with a joint dual-stream probability block, it reaches $98.09\pm0.23\%$ with 40\% of the labels, with 98.23\% battery-anomaly recall at a 0.67\% false-positive rate, and a retrained model scores $97.76\pm0.10\%$ on a sealed hold-out set of 3,677 records drawn by identifier cluster. Pretraining contributes 6.00--18.81 percentage points to the dual-stream branch. Training all branches with noisy copies raises the 40\%-label Macro-F1 under Gaussian noise of 0.5\% of the signal root mean square from 64.72\% to 97.47\% without lowering clean accuracy, but stronger noise remains a failure point.
+Charging power curves of electric bicycles provide non-intrusive safety monitoring cues, yet verified fault labels are scarce and valid sequence lengths vary from 18 to 816 samples. Consequently, direct transfer of general time-series foundation models suffers from padding dilution and scale loss, whereas task-specific networks become unstable under scarce labels. We propose a three-branch heterogeneous method combining a frozen time-series foundation model, raw-scale dynamics features, and a masked temporal convolutional network (TCN). Mask-aware patch pooling excludes padded patches, raising frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, while a first-difference dual stream restores local transients and boosts single-branch validation Macro-F1 at 40\% labels from 83.91\% to 93.57\%. A 60-dimensional dynamics branch preserves absolute power levels, and five-fold cross-fitted stacking fuses the three branches. On 35,099 operational records under a unified fixed-hyperparameter protocol, full fusion achieves validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$, and $95.13\pm0.19\%$ at 1\%, 5\%, and 10\% labels---outperforming the masked TCN by 27.24 points at 1\%---and reaches $98.09\pm0.23\%$ (98.23\% battery-anomaly recall, 0.67\% FPR) at 40\% labels and $97.76\pm0.10\%$ on a 3,677-record cluster-disjoint sealed hold-out set. Full-system noise augmentation further raises 0.5\% RMS noise Macro-F1 at 40\% labels from 64.72\% to 97.47\%, while latency and budget analyses delineate the lightweight TCN+DYN deployment boundary.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
@@ -50,11 +51,11 @@ Many battery fault-diagnosis systems use cell voltage, temperature, current, and
 
 This task presents three practical difficulties. First, record length varies from 18 to 816 samples. Batches require extensive right padding, and length itself is correlated with class. A model may consequently learn a padding shortcut instead of the power shape. Second, useful evidence occurs at different scales. Absolute power distinguishes low-power plateaus, local differences reveal spikes and steps, and the full curve describes the transition from a constant-power region to decay. Third, fault labels require manual verification against maintenance records and are scarce in normal operations.
 
-Time-series classification and anomaly detection have been reviewed extensively~\cite{chen2021,xu2026,fawaz2019,middlehurst2024}. Classifiers include feature-based methods~\cite{breiman2001,friedman2001,cortes1995}, task-specific neural networks such as temporal convolutional networks (TCNs)~\cite{bai2018}, Transformer variants~\cite{liu2026,yang2026,jiang2026} and TimesNet~\cite{wu2023}, and random-kernel transforms such as ROCKET, MiniRocket, and Hydra~\cite{dempster2020,dempster2021,dempster2023}. Transfer learning and self-supervised representation learning can reduce label requirements~\cite{wang2026,yue2022}. More recently, foundation models such as MOMENT, TimesFM, Chronos, Moirai, and Time-MoE have been pretrained on large, heterogeneous collections of time series~\cite{goswami2024,das2024,ansari2024,woo2024,shi2025}. Their representations have been studied in machinery diagnosis, engineering displacement prediction, and input-representation design~\cite{shao2026,zhao2026,yang2026b}.
+Time-series classification and anomaly detection have been reviewed extensively~\cite{schmidl2022,fawaz2019,middlehurst2024}. Classifiers include feature-based methods~\cite{breiman2001,friedman2001,cortes1995}, task-specific neural networks such as temporal convolutional networks (TCNs)~\cite{bai2018}, patch-based and unsupervised Transformer variants~\cite{zerveas2021,nie2023} and TimesNet~\cite{wu2023}, and random-kernel transforms such as ROCKET, MiniRocket, and Hydra~\cite{dempster2020,dempster2021,dempster2023}. Transfer learning and self-supervised contrastive representation learning can reduce label requirements~\cite{eldele2021,yue2022}. More recently, foundation models such as MOMENT, TimesFM, Chronos, Moirai, and Time-MoE have been pretrained on large, heterogeneous collections of time series~\cite{goswami2024,das2024,ansari2024,woo2024,shi2025}. In industrial monitoring, pretrained foundation models have been explored for rotating-machinery fault diagnosis and prognosis~\cite{wang2025}, complex-system fault diagnosis~\cite{zheng2024}, and lithium-ion battery state-of-health estimation~\cite{sun2025b}.
 
 Direct transfer is not sufficient in the present task. Freezing MOMENT-1-large and training its default classification head yields only 69.46\% test Macro-F1, compared with 95.99\% for a task-specific TCN trained on raw-scale curves. We trace this mismatch to three operations. The default head averages padded patches; patch encoding smooths short power changes; and per-series normalization removes absolute amplitude. We address each operation without updating the 341.24 million backbone parameters.
 
-The contributions are as follows. First, mask-aware patch pooling excludes incomplete and padded patches and makes the frozen representation invariant to the padded region. Second, a first-difference stream supplies local change information to the same frozen encoder. Third, a 60-dimensional raw-scale dynamics branch restores amplitude and interpretable local statistics, and five-fold cross-fitted stacking combines the foundation-model branch, the dynamics branch, and a masked TCN. Fourth, we delimit where the method is useful. Paired ablations, same-architecture pretraining controls, and label-budget experiments separate the sources of improvement. A sealed hold-out set disjoint by identifier cluster and a leave-cluster-out audit address selection on repeatedly used validation data. Noise-augmented training and latency and model-export measurements identify the operating conditions under which the proposed model or a lighter TCN-based model should be preferred.
+The main contributions are threefold. First, we propose mask-aware patch pooling and a first-difference dual-stream frozen adaptation strategy: incomplete and padded patches are excluded during pooling to enforce invariance to right padding, while original and first-difference sequences share the frozen MOMENT encoder to recover local step and spike cues without backbone fine-tuning and with offline caching to accelerate downstream training. Second, we construct a 60-dimensional raw-scale dynamics (DYN) branch and a five-fold cross-fitted three-branch heterogeneous stacking framework: raw-scale statistics restore absolute amplitude and local roughness lost under per-series normalization, and five-fold out-of-fold (OOF) logistic stacking combines the dual-stream foundation branch, the DYN branch, and a six-layer masked TCN. Third, we systematically attribute module contributions and delimit engineering deployment boundaries via paired ablations, same-architecture random-initialization pretraining controls, 1\%--100\% label-budget experiments, a cluster-disjoint sealed hold-out set and leave-cluster-out audit, noise-augmented training, and RTX 4080 end-to-end latency and ONNX FP32/int8 export measurements.
 
 \section{Problem formulation and data}\label{sec:data}
 
@@ -71,7 +72,7 @@ where labels 0, 1, and 2 denote normal charging, a battery anomaly, and a charge
 
 The data consist of operational records from an electric-bicycle charging platform. Each record contains an anonymized identifier, an operational label, and a charging power sequence. Of 46,535 original records, 11,435 carry the platform's label 5 for an invalid or incomplete record; their median length is one sample. These records were excluded under the platform's established protocol. Records shorter than 18 samples were also removed, leaving 35,099 valid sequences. The threshold of 18 was inherited from the existing experimental protocol; the data provider has not supplied an independent physical interpretation for it. Sampling intervals were not included in the source data, so this study reports sequence length only in samples and does not convert it to elapsed time. No duplicate sequences or label conflicts were found. The longest sequence contains 816 samples and is not truncated at $T=1024$. A stratified 7:1:2 split defines the training, validation, and test sets (table~\ref{tab:split}). In the first two experimental stages, every method uses the same split files; section~\ref{sec:protocol} describes the re-partitioning used for the sealed hold-out stage.
 
-The source data contain no time stamps, site fields, device models, or batch fields. Every identifier is unique, but identifiers sharing their first six characters form 8,075 groups that we use as a proxy for deployment clusters in section~\ref{sec:holdout}.
+All 35,099 records come from a single historical export of one charging platform and lack timestamps, site fields, device models, batch fields, and sampling-interval metadata. Because no public electric-bicycle charging benchmark shares the same three-class semantics, cross-site, cross-season, and cross-hardware generalization remain to be established on independent multi-site data; furthermore, classes 1 (battery anomaly) and 2 (charger fault) follow coarse operational labeling conventions rather than mechanism-level annotations. Every identifier is unique, but identifiers sharing their first six characters form 8,075 groups that we use as a proxy for deployment clusters in section~\ref{sec:holdout}.
 
 \begin{table}[htbp]
 \caption{Dataset split and class distribution.}
@@ -111,7 +112,18 @@ where $P_c$ and $R_c$ are precision and recall for class $c$. Because missing a 
 
 \section{Method}\label{sec:method}
 
-\subsection{Overview}
+\subsection{System architecture and overall framework}
+
+Figure~\ref{fig:system} illustrates the non-intrusive charging safety monitoring system architecture, divided into the \textbf{Charging site} on the left and the \textbf{Monitoring platform} on the right. At the \textbf{Charging site}, electrical energy flows from the \textbf{Charging pile} AC outlet through the \textbf{Power meter} and the inline AC/DC \textbf{Charger} to the e-bike \textbf{Li-ion battery} pack. Installed in the outlet circuit, the single-channel active-power meter records the end-to-end charging power sequence $\bm{P}$ without requiring battery management system (BMS) communication or hardware modification to the vehicle or battery pack, and transmits $\bm{P}$ to the platform.
+
+Within the \textbf{Monitoring platform}, each uploaded sequence passes through three stages: (1) \textbf{Cleaning, padding \& mask}, which removes invalid or short records ($L_i < 18$) and checks for duplicates, right-pads valid variable-length sequences ($18 \le L_i \le 816$) with zeros to $T=1024$, and builds the paired tensor $\bm{x}_i$ and binary validity mask $\bm{m}_i\in\{0,1\}^T$ (1 for valid samples, 0 for padding) to prevent length shortcuts; (2) \textbf{Three-branch classifier}, which feeds $(\bm{x}_i,\bm{m}_i)$ in parallel to the frozen foundation-model dual-stream branch, the 60-D raw-scale dynamics branch, and the masked TCN branch before stacking their probability outputs (detailed in figure~\ref{fig:framework}); and (3) \textbf{Three-class status output}, which classifies each session as \textbf{Normal} (class 0, routine logging and continued charging), \textbf{Battery anomaly} (class 1, safety alarm and power cut-off), or \textbf{Charger fault} (class 2, equipment warning and maintenance dispatch).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.98\textwidth]{figures_en/fig_system_architecture.pdf}
+\caption{Non-intrusive system architecture for electric-bicycle lithium-ion battery charging monitoring. On the charging site (left, shown with the e-bike charging schematic), a single-channel power meter on the charging pile--charger--Li-ion battery path records the charging power sequence $\bm{P}$ without a BMS link. On the monitoring platform (right), the sequence undergoes cleaning, right-padding, and validity masking to form $(\bm{x}_i,\bm{m}_i)$ before entering the three-branch classifier (figure~\ref{fig:framework}) to output normal charging, battery anomaly, or charger fault.}
+\label{fig:system}
+\end{figure}
 
 The framework in figure~\ref{fig:framework} has three branches. Branch I sends the original and first-difference sequences through a shared frozen MOMENT-1-large encoder and uses mask-aware pooling. Branch II extracts 60 raw-scale dynamics (DYN) features and classifies them with a histogram gradient-boosting model (HGB). Branch III applies a six-layer causal dilated TCN and masked mean pooling. Each branch produces three class probabilities. Five-fold out-of-fold (OOF) predictions form a nine-dimensional meta-feature for multinomial logistic regression.
 
@@ -451,7 +463,7 @@ Labels & Method & Validation & Sealed hold-out & Sealed battery recall/FPR \\
 
 The ranking of the systems is unchanged on the sealed set. Full fusion exceeds TCN+DYN by $0.84\pm0.30$ points at 10\% (four of four seeds) but by only $0.07\pm0.13$ points at 40\% (three of four seeds), which agrees with the shrinking foundation-model increment in sections~\ref{sec:fusion} and \ref{sec:budget}. Relative to its validation score, the TCN rises from 88.55\% to 89.41\% on the sealed set at 10\% and falls from 97.41\% to 97.32\% at 40\%; both changes are within its seed variation.
 
-A leave-cluster-out audit tests whether the stacking layer depends on particular clusters. The validation records of each seed are grouped by identifier prefix and greedily divided into five cluster-disjoint groups; for each group, the meta-learner is re-fitted on the OOF probabilities of the other clusters and evaluated on the held-out group. The branch models are reused, so this audit isolates the stacking layer and does not measure encoder-level transfer. Across the 20 folds, leave-cluster-out stacking reaches $98.14\pm0.52\%$ (lowest fold 96.89\%) at 40\% and $95.18\pm0.81\%$ (lowest fold 93.60\%) at 10\%, compared with $98.12\pm0.16\%$ and $95.14\pm0.37\%$ for in-distribution stacking. The mean is stable, but the spread widens. Per-cluster accuracy of the in-distribution stacker, computed for 71 distinct clusters (121 seed--cluster pairs with 12--23 records each, median 13), falls below 90\% for 11 clusters at 40\% and 20 clusters at 10\%. With so few records per cluster, one or two errors suffice to cross this threshold, so the tail indicates limited robustness across deployment clusters rather than systematic failure of specific clusters.
+A leave-cluster-out audit tests whether the stacking layer depends on particular clusters. The validation records of each seed are grouped by identifier prefix and greedily divided into five cluster-disjoint groups; for each group, the meta-learner is re-fitted on the OOF probabilities of the other clusters and evaluated on the held-out group. The branch models are reused, so this audit isolates the stacking layer and does not measure encoder-level transfer. Across the 20 folds, leave-cluster-out stacking reaches $98.14\pm0.52\%$ (lowest fold 96.89\%) at 40\% and $95.18\pm0.81\%$ (lowest fold 93.60\%) at 10\%, compared with $98.12\pm0.16\%$ and $95.14\pm0.37\%$ for in-distribution stacking. The mean is stable, but the spread widens. Per-cluster accuracy of the in-distribution stacker, computed for 71 distinct clusters (121 seed--cluster pairs with 12--23 records each, median 13), falls below 90\% for 11 clusters at 40\% and 20 clusters at 10\%. With so few records per cluster, one or two errors suffice to cross this threshold, so the tail indicates limited robustness across deployment clusters rather than systematic failure of specific clusters. Note also that identifier prefixes are only a proxy for physical sites or device batches, and the sealed hold-out set still draws from the same historical distribution and inherits earlier architecture and hyperparameter settings; independent cross-site evaluation is therefore needed before deployment.
 
 \subsection{Inference cost}\label{sec:latency}
 
@@ -473,7 +485,7 @@ Full fusion & 98.09 & 46.10 & 11.13 & 11.42 \\
 \end{tabular}
 \end{table}
 
-We also examined whether the TCN tier can be compressed further (appendix~\ref{app:export}). Export to ONNX in FP32 is lossless (maximum logit deviation $\le2.4\times10^{-4}$; TCN and fused Macro-F1 unchanged at 97.53\% and 98.11\%). Static int8 post-training quantization, however, reduces the TCN to 49.34\% and the fused model to 80.08\%, while accelerating batched CPU inference by only about 1.2 times. We hypothesize that the network, which has no normalization layer, produces activations whose dynamic range exceeds a single int8 scale (FP32 logit magnitudes reach 300--1,598 across seeds), but a mixed-precision control has not yet confirmed this explanation.
+We also examined whether the TCN tier can be compressed further (appendix~\ref{app:export}). Export to ONNX in FP32 is lossless (maximum logit deviation $\le2.4\times10^{-4}$; TCN and fused Macro-F1 unchanged at 97.53\% and 98.11\%), and at batch size 32 on the RTX 5090 host the TCN processes 1,140 records per second on eight CPU threads and 44,631 records per second on GPU. Static int8 post-training quantization, however, reduces the TCN to 49.34\% and the fused model to 80.08\%, while accelerating batched CPU inference by only about 1.2 times. We hypothesize that the network, which has no normalization layer, produces activations whose dynamic range exceeds a single int8 scale (FP32 logit magnitudes reach 300--1,598 across seeds). Consequently, current deployment should retain the lossless FP32 model, whereas int8 compression would require quantization-aware training~\cite{jacob2018} or architectural normalization.
 
 \subsection{Noise sensitivity and noise-augmented training}\label{sec:noise}
 
@@ -514,7 +526,7 @@ Labels & Model & Training & Clean & 0.1\% & 0.25\% & 0.5\% & 1\% \\
 {\footnotesize The noise scale is the RMS of the labeled training subset. Clean-trained full fusion was retrained and scored together with its augmented arm on the same noise draws and therefore differs slightly from table~\ref{tab:fusion} and figure~\ref{fig:robust}(a).}
 \end{table}
 
-Noise augmentation does not extend beyond the trained level for the proposed system. At 1\% noise, augmented full fusion still falls to 45.97\% and 49.30\%. Robustness at stronger noise would therefore require augmentation at those levels or a more stable feature definition, and these results come from validation data only.
+Noise augmentation covers only zero-mean additive Gaussian noise ($\le 0.5\%$ RMS) and has not been tested against non-Gaussian distortions such as baseline drift, packet dropouts, or impulse spikes; accordingly, it does not extend beyond the trained level for the proposed system. At 1\% noise, augmented full fusion still falls to 45.97\% and 49.30\%. Robustness under stronger or non-Gaussian disturbances would therefore require targeted augmentation at those levels together with damped or quantile-stabilized denominators for extreme-ratio DYN features, and these results come from validation data only.
 
 \section{Discussion}\label{sec:discussion}
 
@@ -586,21 +598,17 @@ Noise at 1\% RMS (strongest tested level) & Augmented full fusion $\le$49.30\% &
 {\footnotesize $^{\mathrm{a}}$ Validation data only.}
 \end{table}
 
-\subsection{Deployment path}
-
-The measured lower-cost path is the TCN+DYN operating point of table~\ref{tab:latency}, which needs no foundation model at inference. Its TCN can be exported to ONNX without loss and processes about 1,140 records per second on eight CPU threads and about 44,600 records per second on an RTX 5090 at batch size 32 (appendix~\ref{app:export}). Further compression has not succeeded. Static int8 quantization destroys the accuracy of the present TCN, and ONNX Runtime is not faster than PyTorch for this small network. Quantization-aware training~\cite{jacob2018} or architectural changes such as normalization or activation clipping would require new training and are left for future work, as is distillation of the fused model into a single network.
-
-\subsection{Limitations}
-
-The data come from one operating platform and one export. They lack device model, site, calendar time, and sampling-interval metadata, and no public benchmark with the same three-class semantics is available; public electric-vehicle charging and battery datasets differ in signal, granularity, or label definition. Cross-site, cross-period, and cross-device generalization has therefore not been established, and we do not claim state-of-the-art performance on other datasets. The sealed hold-out set reduces selection bias within this study, but it is drawn from the same distribution, overlaps earlier development subsets, and inherits earlier architecture and hyperparameter choices. The leave-cluster-out audit re-fits only the stacking layer, and identifier prefixes are only a proxy for deployment groups. A new external test set is required before deployment.
-
-Noise-augmented training protects the system only up to the trained level of 0.5\% RMS, and some extreme-ratio DYN features remain numerically unstable. The noise model is additive and Gaussian; drift, dropouts, and other acquisition faults were not tested. The 36-feature reduction holds for the present groups and HGB settings, and the int8 failure has not been causally attributed. Finally, the operational labels are coarse. Class 1 denotes a battery anomaly and class 2 a charger fault under the provider's convention, but detailed failure modes and the provider's original label specification were not released. Curves and feature importance establish statistical associations, not battery-health mechanisms.
-
 \section{Conclusion}\label{sec:conclusion}
 
-This study analyzes why a general time-series foundation model transfers poorly to variable-length electric-bicycle charging curves and proposes three targeted corrections. Mask-aware patch pooling raises the frozen linear-probe test Macro-F1 from 69.46\% to 77.41\% and removes dependence on right padding. A first-difference stream adds 9.66--13.38 points to the frozen branch without training the backbone. A 60-dimensional raw-scale dynamics branch restores amplitude information, reaching 95.00\% Macro-F1 by itself at the 40\% budget; 36 of its features suffice without measurable loss. Cross-fitted stacking reaches 95.02\% at 10\% labels and 98.09\% at 40\%, with 98.23\% battery-anomaly recall and a 0.67\% FPR at the latter budget. Under the unified label-budget protocol, it reaches 89.15\% at 1\% labels, 27.24 points above the masked TCN, and exceeds its strongest single branch by 2.3--2.6 points at 1--10\% labels. A retrained model scores 97.76\% on a sealed, cluster-disjoint hold-out set at 40\% labels. Training all branches with noisy copies keeps Macro-F1 at 94.46\% and 97.47\% under 0.5\% RMS noise at 10\% and 40\% labels without reducing clean accuracy.
+This study addresses few-shot three-class classification of variable-length electric-bicycle charging power curves by combining a frozen time-series foundation model, raw-scale dynamics features, and a masked TCN. The main conclusions are threefold:
 
-The additional foundation-model benefit is largest for scarce labels and long records, becomes negligible when all labels are used, and carries substantial latency and storage cost. Future work should extend noise robustness beyond the trained level, evaluate independent multi-site data, compare against a broader set of time-series classifiers, and develop quantization-aware or distilled models for edge deployment.
+(1) \textbf{Mask-aware pooling and first-difference dual-stream adaptation}: Excluding incomplete and padded patches raises the frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, enforces strict invariance to right padding, and reduces downstream training to roughly 2~s per epoch via offline caching. Adding a first-difference stream over valid samples adds 9.66--13.38 percentage points across 1\%--40\% label budgets without updating the 341.24 million MOMENT parameters, and same-architecture random-initialization controls confirm a 6.00--18.81 point net pretraining gain.
+
+(2) \textbf{Raw-scale dynamics and cross-fitted heterogeneous stacking}: The 60-dimensional DYN branch restores absolute power levels and local roughness (95.00\% single-branch Macro-F1 at 40\% labels, with a 36-feature subset retaining equivalent accuracy). Five-fold cross-fitted logistic stacking achieves $89.15\pm0.98\%$, $93.85\pm0.43\%$, and $95.13\pm0.19\%$ at 1\%, 5\%, and 10\% labels under the unified protocol (27.24 points above the masked TCN at 1\%), and reaches $98.09\pm0.23\%$ (98.23\% battery-anomaly recall, 0.67\% FPR) at 40\% labels and $97.76\pm0.10\%$ on the 3,677-record cluster-disjoint sealed hold-out set.
+
+(3) \textbf{Noise-robustness bounds and deployment selection}: Full-system 0.5\% RMS Gaussian noise augmentation preserves clean accuracy while keeping 0.5\%-noise Macro-F1 at 94.46\% (10\% labels) and 97.47\% (40\% labels). Combined with length-stratified gains and RTX 4080 latency measurements, the results show that the foundation branch adds the clearest value under scarce labels and long records ($L>399$), whereas TCN+DYN provides a practical lower-cost operating point (2.09~ms per record at batch size 32, with lossless FP32 ONNX export) when labels are abundant or compute is constrained.
+
+Future work should evaluate independent multi-site datasets with device, timestamp, and synchronized BMS or teardown annotations to test cross-hardware generalization and early-prefix online warning, stabilize extreme-ratio DYN features and extend augmentation to non-Gaussian acquisition faults, and apply quantization-aware training~\cite{jacob2018} or cross-branch knowledge distillation to compress the ensemble for low-latency edge deployment.
 
 \appendix
 
@@ -694,9 +702,7 @@ This study uses anonymized device-level charging power sequences and operational
 
 \bibitem{sun2025} Sun Z, Ye W, Mao Y and Sui Y 2025 A hybrid CNN--LSTM--attention mechanism model for anomaly detection in lithium-ion batteries of electric bicycles \textit{Batteries} \textbf{11} 384
 
-\bibitem{chen2021} Chen W 2021 Research on time-series data classification methods based on deep learning \textit{Master's Thesis} (Wuhan: Huazhong University of Science and Technology) (in Chinese)
-
-\bibitem{xu2026} Xu J, Hu W, Jin D \textit{et al} 2026 Review of time-series data anomaly detection methods \textit{Comput. Sci. Explor.} \textbf{20} 1517--1544 (in Chinese)
+\bibitem{schmidl2022} Schmidl S, Wenig P and Papenbrock T 2022 Anomaly detection in time series: a comprehensive evaluation \textit{Proc. VLDB Endow.} \textbf{15} 1779--1797
 
 \bibitem{fawaz2019} Ismail Fawaz H, Forestier G, Weber J \textit{et al} 2019 Deep learning for time series classification: a review \textit{Data Min. Knowl. Discov.} \textbf{33} 917--963
 
@@ -710,11 +716,9 @@ This study uses anonymized device-level charging power sequences and operational
 
 \bibitem{bai2018} Bai S, Kolter J Z and Koltun V 2018 An empirical evaluation of generic convolutional and recurrent networks for sequence modeling (arXiv:1803.01271)
 
-\bibitem{liu2026} Liu S, Sun J, Qin Y \textit{et al} 2026 Time-series classification based on a multiscale Transformer and morphological convolution \textit{Syst. Eng. Electron.} 1--14 (in Chinese)
+\bibitem{zerveas2021} Zerveas G, Jayaraman S, Patel D, Bhamidipaty A and Eickhoff C 2021 A transformer-based framework for multivariate time series representation learning \textit{Proc. 27th ACM SIGKDD Conf. on Knowledge Discovery and Data Mining} pp 2114--2124
 
-\bibitem{yang2026} Yang Y, Hu K, Huang Y \textit{et al} 2026 Classification of VLF/LF lightning electric-field time series using an improved Transformer \textit{High Volt. Eng.} 1--16 (in Chinese)
-
-\bibitem{jiang2026} Jiang T 2026 Research on multivariate time-series forecasting and classification based on an improved Transformer \textit{Master's Thesis} (Huainan: Anhui University of Science and Technology) (in Chinese)
+\bibitem{nie2023} Nie Y, Nguyen N H, Sinthong P \textit{et al} 2023 A time series is worth 64 words: long-term forecasting with Transformers \textit{Proc. 11th Int. Conf. on Learning Representations}
 
 \bibitem{wu2023} Wu H, Hu T, Liu Y \textit{et al} 2023 TimesNet: temporal 2D-variation modeling for general time series analysis \textit{Proc. 11th Int. Conf. on Learning Representations}
 
@@ -724,7 +728,7 @@ This study uses anonymized device-level charging power sequences and operational
 
 \bibitem{dempster2023} Dempster A, Schmidt D F and Webb G I 2023 Hydra: competing convolutional kernels for fast and accurate time series classification \textit{Data Min. Knowl. Discov.} \textbf{37} 1779--1805
 
-\bibitem{wang2026} Wang S and Yang Z 2026 Transfer randomized neural networks and their learning method for time-series classification \textit{Sci. Technol. Eng.} \textbf{26} 10050--10061 (in Chinese)
+\bibitem{eldele2021} Eldele E, Ragab M, Chen Z, Wu M, Kwoh C K, Li X and Guan C 2021 Time-series representation learning via temporal and contextual contrasting \textit{Proc. 30th Int. Joint Conf. on Artificial Intelligence} pp 2352--2359
 
 \bibitem{yue2022} Yue Z, Wang Y, Duan J \textit{et al} 2022 TS2Vec: towards universal representation of time series \textit{Proc. AAAI Conf. Artif. Intell.} \textbf{36} 8980--8987
 
@@ -738,21 +742,21 @@ This study uses anonymized device-level charging power sequences and operational
 
 \bibitem{shi2025} Shi X, Wang S, Nie Y \textit{et al} 2025 Time-MoE: billion-scale time series foundation models with mixture of experts \textit{Proc. 13th Int. Conf. on Learning Representations}
 
-\bibitem{shao2026} Shao H, Wang J, Zhang J \textit{et al} 2026 Large-model-driven general fault diagnosis of rotating machinery in multiple scenarios \textit{J. Mech. Eng.} 1--11 (in Chinese)
+\bibitem{wang2025} Wang Y, Yu Y, Sun K \textit{et al} 2025 RmGPT: a foundation model with generative pretrained transformer for fault diagnosis and prognosis in rotating machinery \textit{IEEE Internet Things J.} \textbf{12} 41562--41573
 
-\bibitem{zhao2026} Zhao X, Li Z, Wang Z \textit{et al} 2026 Deep slope-displacement prediction based on Time-LLM \textit{Hunan Commun. Sci. Technol.} \textbf{52} 29--34 (in Chinese)
+\bibitem{zheng2024} Zheng S, Pan K, Liu J and Chen Y 2024 Empirical study on fine-tuning pre-trained large language models for fault diagnosis of complex systems \textit{Reliab. Eng. Syst. Saf.} \textbf{252} 110382
 
-\bibitem{yang2026b} Yang J 2026 Time-series forecasting through optimized input representations for large models \textit{Master's Thesis} (Chongqing: Chongqing University of Technology) (in Chinese)
+\bibitem{sun2025b} Sun W, Wu C, Xie C \textit{et al} 2025 Fine-tuning enables state of health estimation for lithium-ion batteries via a time series foundation model \textit{Energy} \textbf{318} 134177
 
 \bibitem{saito2015} Saito T and Rehmsmeier M 2015 The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets \textit{PLoS One} \textbf{10} e0118432
 
 \bibitem{guo2017} Guo C, Pleiss G, Sun Y \textit{et al} 2017 On calibration of modern neural networks \textit{Proc. 34th Int. Conf. on Machine Learning (PMLR vol 70)} pp 1321--1330
 
-\bibitem{nie2023} Nie Y, Nguyen N H, Sinthong P \textit{et al} 2023 A time series is worth 64 words: long-term forecasting with Transformers \textit{Proc. 11th Int. Conf. on Learning Representations}
-
 \bibitem{kim2022} Kim T, Kim J, Tae Y \textit{et al} 2022 Reversible instance normalization for accurate time-series forecasting against distribution shift \textit{Proc. 10th Int. Conf. on Learning Representations}
 
 \bibitem{wen2021} Wen Q, Sun L, Yang F \textit{et al} 2021 Time series data augmentation for deep learning: a survey \textit{Proc. 30th Int. Joint Conf. on Artificial Intelligence} pp 4653--4660
+
+\bibitem{jacob2018} Jacob B, Kligys S, Chen B \textit{et al} 2018 Quantization and training of neural networks for efficient integer-arithmetic-only inference \textit{Proc. IEEE Conf. on Computer Vision and Pattern Recognition} pp 2704--2713
 
 \bibitem{tomaszewska2019} Tomaszewska A, Chu Z, Feng X \textit{et al} 2019 Lithium-ion battery fast charging: a review \textit{eTransportation} \textbf{1} 100011
 
@@ -761,8 +765,6 @@ This study uses anonymized device-level charging power sequences and operational
 \bibitem{lu2013} Lu L, Han X, Li J, Hua J and Ouyang M 2013 A review on the key issues for lithium-ion battery management in electric vehicles \textit{J. Power Sources} \textbf{226} 272--288
 
 \bibitem{hu2022} Hu E J, Shen Y, Wallis P \textit{et al} 2022 LoRA: low-rank adaptation of large language models \textit{Proc. 10th Int. Conf. on Learning Representations}
-
-\bibitem{jacob2018} Jacob B, Kligys S, Chen B \textit{et al} 2018 Quantization and training of neural networks for efficient integer-arithmetic-only inference \textit{Proc. IEEE Conf. on Computer Vision and Pattern Recognition} pp 2704--2713
 \end{thebibliography}
 \endgroup
 

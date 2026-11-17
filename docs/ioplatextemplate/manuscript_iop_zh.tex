@@ -2,8 +2,10 @@
 % Compiled with XeLaTeX using iopjournal.cls.
 % Figures reference vector PDFs in figures_en/.
 % Build: xelatex -interaction=nonstopmode -halt-on-error manuscript_iop_zh.tex (twice)
+\RequirePackage{fix-cm}
 \documentclass[12pt]{iopjournal}
 
+\PassOptionsToPackage{no-math}{fontspec}
 \usepackage{xeCJK}
 \usepackage{amsmath,amssymb,bm}
 \usepackage{booktabs}
@@ -15,9 +17,10 @@
 \usepackage{cite}
 
 % Configure Chinese fonts using standard Windows fonts available via XeLaTeX
-\setCJKmainfont[BoldFont=SimHei,ItalicFont=KaiTi]{SimSun}
-\setCJKsansfont{Microsoft YaHei}
-\setCJKmonofont{Consolas}
+\setCJKmainfont[BoldFont=SimHei,ItalicFont=KaiTi,BoldItalicFont=SimHei]{SimSun}
+\setCJKsansfont[BoldFont={Microsoft YaHei Bold},ItalicFont=KaiTi,BoldItalicFont={Microsoft YaHei Bold}]{Microsoft YaHei}
+\setCJKmonofont[BoldFont=SimHei,ItalicFont=KaiTi,BoldItalicFont=SimHei]{FangSong}
+\setmonofont{Consolas}
 \XeTeXlinebreaklocale "zh"
 \XeTeXlinebreakskip = 0pt plus 1pt
 
@@ -39,6 +42,14 @@
 \@addtoreset{equation}{section}
 \@addtoreset{figure}{section}
 \@addtoreset{table}{section}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+                   {-3.25ex\@plus -1ex \@minus -.2ex}%
+                   {1sp}%
+                   {\reset@font\normalsize\bfseries\raggedright}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+                                     {-3.25ex\@plus -1ex \@minus -.2ex}%
+                                     {-1em \@plus .2em}%
+                                     {\reset@font\normalsize\bfseries}}
 \makeatother
 
 \begin{document}
@@ -168,12 +179,16 @@ f:(\bm{x}_i,\bm{m}_i)\mapsto y_i\in\{0,1,2\}.
 
 \subsection{系统架构与方法总体框架}
 
-面向电动自行车集中充电场景的非侵入式监测系统架构如图~\ref{fig:system} 所示。在物理采集与信号感知层，电动自行车车载锂离子电池组经由外置充电器连接至智能充电桩，计量模块在单通道模式下持续采集整轮充电过程的端到端有功功率序列 $\bm{x}_i=(x_{i,1},\ldots,x_{i,L_i})$（$18\le L_i\le 816$）；相比侵入式拆解或同步电池管理系统（BMS）通讯，单通道功率监测无需改造现有车辆与充电桩硬件。采集所得的变长功率序列经清洗去重与有效性掩码构建（右侧补齐至统一长度 $T=1024$ 并构造二值有效观测掩码 $\bm{m}_i\in\{0,1\}^T$）后送入服务端或边缘侧三分支异构分类引擎（具体结构详见图~\ref{fig:framework}），最终输出“正常充电、电池异常、充电器故障”三类运行状态判别结果，用于触发平台级断电保护、故障预警与运维派单决策。
+面向电动自行车集中充电场景的非侵入式安全监测系统架构如图~\ref{fig:system} 所示，整体划分为左侧的\textbf{充电现场（Charging site）}与右侧的\textbf{监测平台（Monitoring platform）}两个部分。
+
+在\textbf{充电现场}，电能经由\textbf{充电桩（Charging pile）}交流插座流出，依次经过\textbf{功率计量模块（Power meter）}与外置 AC/DC \textbf{充电器（Charger）}，最终输送至电动自行车车载\textbf{锂离子电池组（Li-ion battery）}。其中，部署于充电桩插座回路的单通道有功功率计量模块可在不接入电池管理系统（BMS）通信链路、亦不改造现有车辆与电池包硬件的条件下，持续采集整轮充电过程的端到端有功功率序列 $\bm{P}$，并上传至监测平台。
+
+在\textbf{监测平台}，上传的充电功率序列依次经过三个核心模块完成诊断与状态判别：（1）\textbf{序列清洗、补齐与掩码构建模块（Cleaning, padding \& mask）}，依据平台清洗规范剔除无效或长度不足 18 个采样点的记录并检查去重，对有效长度为 $18\le L_i\le 816$ 的变长序列在右侧补零对齐至统一长度 $T=1024$，生成配对的序列张量 $\bm{x}_i$ 与二值有效观测掩码 $\bm{m}_i\in\{0,1\}^T$（有效位置为 1、补齐位置为 0），以阻断模型利用补齐长度作为分类捷径；（2）\textbf{三分支异构分类器（Three-branch classifier）}，并行接收 $(\bm{x}_i,\bm{m}_i)$ 并结合冻结时序大模型双流分支、60 维原尺度动力学特征分支与掩码 TCN 分支的三路概率预测（具体结构详见图~\ref{fig:framework}）；（3）\textbf{三类状态输出（Normal / Battery anomaly / Charger fault）}，分别判别\textbf{正常充电（Normal，类别 0）}、\textbf{电池异常（Battery anomaly，类别 1）}与\textbf{充电器故障（Charger fault，类别 2）}，进而触发常规运行日志记录、安全告警与自动断电保护、或设备预警与运维派单处置。
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.98\textwidth]{figures_en/fig_system_architecture.pdf}
-\caption{面向电动自行车锂电池充电安全监测的非侵入式系统架构。上层为物理感知层：电能经充电桩交流插座、外置充电器（AC/DC）流向车载锂离子电池组，桩端单通道有功功率计量模块采集功率序列 $P(t)$，无需 BMS 通讯或硬件改造（右侧示意图中的编号与拓扑方框一一对应）。下层为服务端或边缘侧信息分析层：依次完成序列清洗、右侧补齐与有效掩码构建，三分支异构分类（结构详见图~\ref{fig:framework}），以及三类运行状态判别与对应的平台处置动作。灰色粗箭头表示能量流，虚线箭头表示数据流。}
+\caption{面向电动自行车锂电池充电安全监测的非侵入式系统架构。左侧为充电现场（含电动自行车充电场景示意图及“充电桩—功率计量模块—充电器—锂离子电池组”硬件链路），单通道功率计量模块采集有功功率序列 $\bm{P}$ 上传至右侧监测平台；监测平台依次经序列清洗、右侧补齐与掩码构建模块输出 $(\bm{x}_i,\bm{m}_i)$，再送入三分支异构分类器（详见图~\ref{fig:framework}）输出正常充电、电池异常与充电器故障三类运行状态。}
 \label{fig:system}
 \end{figure}
 

@@ -25,6 +25,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
@@ -52,8 +53,27 @@ BUDGET_XLABEL = "Training label fraction (log scale)"
 VAL_F1 = "Validation Macro-F1 (%)"
 
 
+def _register_english_windows_fonts() -> None:
+    """Register Windows Arial and Times New Roman fonts when running in WSL."""
+    fonts_dir = Path("/mnt/c/Windows/Fonts")
+    for fname in (
+        "arial.ttf",
+        "arialbd.ttf",
+        "ariali.ttf",
+        "arialbi.ttf",
+        "times.ttf",
+        "timesbd.ttf",
+        "timesi.ttf",
+        "timesbi.ttf",
+    ):
+        fp = fonts_dir / fname
+        if fp.exists():
+            fm.fontManager.addfont(str(fp))
+
+
 def setup_english_journal_style() -> None:
     """Print-ready rcParams with Arial text and matching math glyphs."""
+    _register_english_windows_fonts()
     plt.rcdefaults()
     plt.rcParams.update(
         {

@@ -44,14 +44,14 @@
 \newlabel{sec:method}{{3}{7}{三分支异构融合分类方法设计}{section.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}系统架构与方法总体框架}{7}{subsection.3.1}\protected@file@percent }
 \citation{nie2023}
-\@writefile{lof}{\contentsline {figure}{\numberline {3-1}{\ignorespaces 面向电动自行车锂电池充电安全监测的非侵入式系统架构。上层为物理感知层：电能经充电桩交流插座、外置充电器（AC/DC）流向车载锂离子电池组，桩端单通道有功功率计量模块采集功率序列 $P(t)$，无需 BMS 通讯或硬件改造（右侧示意图中的编号与拓扑方框一一对应）。下层为服务端或边缘侧信息分析层：依次完成序列清洗、右侧补齐与有效掩码构建，三分支异构分类（结构详见图~\ref {fig:framework}），以及三类运行状态判别与对应的平台处置动作。灰色粗箭头表示能量流，虚线箭头表示数据流。}}{8}{figure.3.1}\protected@file@percent }
-\newlabel{fig:system}{{3-1}{8}{面向电动自行车锂电池充电安全监测的非侵入式系统架构。上层为物理感知层：电能经充电桩交流插座、外置充电器（AC/DC）流向车载锂离子电池组，桩端单通道有功功率计量模块采集功率序列 $P(t)$，无需 BMS 通讯或硬件改造（右侧示意图中的编号与拓扑方框一一对应）。下层为服务端或边缘侧信息分析层：依次完成序列清洗、右侧补齐与有效掩码构建，三分支异构分类（结构详见图~\ref {fig:framework}），以及三类运行状态判别与对应的平台处置动作。灰色粗箭头表示能量流，虚线箭头表示数据流。}{figure.3.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}掩码感知分块池化}{8}{subsection.3.2}\protected@file@percent }
-\newlabel{sec:pooling}{{3.2}{8}{掩码感知分块池化}{subsection.3.2}{}}
-\newlabel{eq:defaultpool}{{3-1}{8}{掩码感知分块池化}{equation.3.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3-1}{\ignorespaces 面向电动自行车锂电池充电安全监测的非侵入式系统架构。左侧为充电现场（含电动自行车充电场景示意图及“充电桩—功率计量模块—充电器—锂离子电池组”硬件链路），单通道功率计量模块采集有功功率序列 $\bm  {P}$ 上传至右侧监测平台；监测平台依次经序列清洗、右侧补齐与掩码构建模块输出 $(\bm  {x}_i,\bm  {m}_i)$，再送入三分支异构分类器（详见图~\ref {fig:framework}）输出正常充电、电池异常与充电器故障三类运行状态。}}{8}{figure.3.1}\protected@file@percent }
+\newlabel{fig:system}{{3-1}{8}{面向电动自行车锂电池充电安全监测的非侵入式系统架构。左侧为充电现场（含电动自行车充电场景示意图及“充电桩—功率计量模块—充电器—锂离子电池组”硬件链路），单通道功率计量模块采集有功功率序列 $\bm {P}$ 上传至右侧监测平台；监测平台依次经序列清洗、右侧补齐与掩码构建模块输出 $(\bm {x}_i,\bm {m}_i)$，再送入三分支异构分类器（详见图~\ref {fig:framework}）输出正常充电、电池异常与充电器故障三类运行状态。}{figure.3.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3-2}{\ignorespaces 基于冻结时序大模型的三分支异构融合总体框架。原始功率序列 $P$ 与一阶差分序列 $\Delta P$ 共享同一个冻结 MOMENT 编码器；另外两条分支分别采用 60 维原尺度动力学特征与掩码 TCN；五折折外（OOF）预测概率用于训练逻辑回归元学习器。}}{8}{figure.3.2}\protected@file@percent }
+\newlabel{fig:framework}{{3-2}{8}{基于冻结时序大模型的三分支异构融合总体框架。原始功率序列 $P$ 与一阶差分序列 $\Delta P$ 共享同一个冻结 MOMENT 编码器；另外两条分支分别采用 60 维原尺度动力学特征与掩码 TCN；五折折外（OOF）预测概率用于训练逻辑回归元学习器。}{figure.3.2}{}}
 \citation{kim2022}
-\@writefile{lof}{\contentsline {figure}{\numberline {3-2}{\ignorespaces 基于冻结时序大模型的三分支异构融合总体框架。原始功率序列 $P$ 与一阶差分序列 $\Delta P$ 共享同一个冻结 MOMENT 编码器；另外两条分支分别采用 60 维原尺度动力学特征与掩码 TCN；五折折外（OOF）预测概率用于训练逻辑回归元学习器。}}{9}{figure.3.2}\protected@file@percent }
-\newlabel{fig:framework}{{3-2}{9}{基于冻结时序大模型的三分支异构融合总体框架。原始功率序列 $P$ 与一阶差分序列 $\Delta P$ 共享同一个冻结 MOMENT 编码器；另外两条分支分别采用 60 维原尺度动力学特征与掩码 TCN；五折折外（OOF）预测概率用于训练逻辑回归元学习器。}{figure.3.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}掩码感知分块池化}{9}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:pooling}{{3.2}{9}{掩码感知分块池化}{subsection.3.2}{}}
+\newlabel{eq:defaultpool}{{3-1}{9}{掩码感知分块池化}{equation.3.1}{}}
 \newlabel{eq:patchmask}{{3-2}{9}{掩码感知分块池化}{equation.3.2}{}}
 \newlabel{eq:maskpool}{{3-3}{9}{掩码感知分块池化}{equation.3.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}一阶差分双流表征}{9}{subsection.3.3}\protected@file@percent }
@@ -134,13 +134,13 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.1}时序大模型在变长曲线分类中的作用机理}{24}{subsection.6.1}\protected@file@percent }
 \citation{tomaszewska2019}
 \citation{park2022,xu2025}
+\citation{kong2018}
+\citation{hu2020,lu2013}
+\citation{feng2018}
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.2}动力学特征与已知故障形态的对应关系}{25}{subsection.6.2}\protected@file@percent }
 \newlabel{sec:signatures}{{6.2}{25}{动力学特征与已知故障形态的对应关系}{subsection.6.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {6-1}{\ignorespaces 训练集（24,569 条记录）上代表性 DYN 特征的按类分布（中位数 [四分位距]）与单特征一对其余 AUC}}{25}{table.6.1}\protected@file@percent }
 \newlabel{tab:signatures}{{6-1}{25}{训练集（24,569 条记录）上代表性 DYN 特征的按类分布（中位数 [四分位距]）与单特征一对其余 AUC}{table.6.1}{}}
-\citation{kong2018}
-\citation{hu2020,lu2013}
-\citation{feng2018}
 \citation{hu2022}
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.3}适配策略对比与工程选型准则}{26}{subsection.6.3}\protected@file@percent }
 \newlabel{sec:selection}{{6.3}{26}{适配策略对比与工程选型准则}{subsection.6.3}{}}
