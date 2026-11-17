@@ -49,7 +49,7 @@
 \newlabel{eq:maskpool}{{5}{5}{Mask-aware patch pooling}{equation.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}First-difference dual-stream representation}{5}{subsection.3.3}\protected@file@percent }
 \newlabel{sec:dual}{{3.3}{5}{First-difference dual-stream representation}{subsection.3.3}{}}
-\newlabel{eq:diff}{{6}{5}{First-difference dual-stream representation}{equation.6}{}}
+\newlabel{eq:diff}{{6}{6}{First-difference dual-stream representation}{equation.6}{}}
 \newlabel{eq:md}{{7}{6}{First-difference dual-stream representation}{equation.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Raw-scale dynamics features}{6}{subsection.3.4}\protected@file@percent }
 \newlabel{sec:dyn}{{3.4}{6}{Raw-scale dynamics features}{subsection.3.4}{}}
@@ -75,10 +75,10 @@
 \newlabel{sec:baselines}{{4.2}{8}{Baselines and initial frozen-model performance}{subsection.4.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Test performance with all training labels. Values are mean $\pm $ sample standard deviation over five seeds unless noted.}}{8}{table.3}\protected@file@percent }
 \newlabel{tab:baselines}{{3}{8}{Test performance with all training labels. Values are mean $\pm $ sample standard deviation over five seeds unless noted}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Padding sensitivity and TCN restoration}{8}{subsection.4.3}\protected@file@percent }
-\newlabel{sec:padding}{{4.3}{8}{Padding sensitivity and TCN restoration}{subsection.4.3}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Effects of pooling and downstream optimization. (a) Test Macro-F1 along the MOMENT adaptation sequence. Error bars show seed standard deviations. (b) Validation convergence of frozen-feature heads, with and without fixed input-scale compensation.}}{9}{figure.4}\protected@file@percent }
 \newlabel{fig:pooling}{{4}{9}{Effects of pooling and downstream optimization. (a) Test Macro-F1 along the MOMENT adaptation sequence. Error bars show seed standard deviations. (b) Validation convergence of frozen-feature heads, with and without fixed input-scale compensation}{figure.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Padding sensitivity and TCN restoration}{9}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:padding}{{4.3}{9}{Padding sensitivity and TCN restoration}{subsection.4.3}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces TCN architecture, pooling, and length-stratified performance. (a) Validation Macro-F1 for three TCN configurations. (b) Performance by seed-specific training-length terciles (approximately 266 and 399 samples). Long sequences exceed the TCN receptive field and show the largest fusion gain at the 10\% label budget.}}{9}{figure.5}\protected@file@percent }
 \newlabel{fig:tcn}{{5}{9}{TCN architecture, pooling, and length-stratified performance. (a) Validation Macro-F1 for three TCN configurations. (b) Performance by seed-specific training-length terciles (approximately 266 and 399 samples). Long sequences exceed the TCN receptive field and show the largest fusion gain at the 10\% label budget}{figure.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Difference stream and contribution of pretraining}{9}{subsection.4.4}\protected@file@percent }
@@ -116,14 +116,14 @@
 \newlabel{fig:robust}{{9}{15}{Deployment-related analyses at 40\% labels. (a) Validation Macro-F1 after additive Gaussian noise is applied to valid observations; all models are trained on clean data (see table~\ref {tab:noiseaug} for noise-augmented training). (b) Accuracy--latency trade-off for batch sizes 1 and 32 on an RTX 4080}{figure.9}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Validation Macro-F1 (\%) of clean-trained and noise-augmented models under additive Gaussian noise (four seeds). Noise levels are percentages of the valid-observation RMS.}}{15}{table.9}\protected@file@percent }
 \newlabel{tab:noiseaug}{{9}{15}{Validation Macro-F1 (\%) of clean-trained and noise-augmented models under additive Gaussian noise (four seeds). Noise levels are percentages of the valid-observation RMS}{table.9}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{15}{section.5}\protected@file@percent }
-\newlabel{sec:discussion}{{5}{15}{Discussion}{section.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Role of the foundation model}{15}{subsection.5.1}\protected@file@percent }
 \citation{tomaszewska2019}
 \citation{park2022,xu2025}
 \citation{kong2018}
 \citation{lu2013,hu2020}
 \citation{feng2018}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{16}{section.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{16}{Discussion}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Role of the foundation model}{16}{subsection.5.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Correspondence with known fault signatures}{16}{subsection.5.2}\protected@file@percent }
 \newlabel{sec:signatures}{{5.2}{16}{Correspondence with known fault signatures}{subsection.5.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Selected DYN features by class on the training split (24,569 records). Values are medians with interquartile ranges in brackets; AUC is the one-vs-rest area under the ROC curve of the raw feature, and values below 0.5 indicate lower values in that class.}}{16}{table.10}\protected@file@percent }
@@ -150,6 +150,8 @@
 \bibcite{xu2025}{6}
 \bibcite{sun2025}{7}
 \bibcite{schmidl2022}{8}
+\@writefile{lot}{\contentsline {table}{\numberline {B1}{\ignorespaces Accuracy and latency of the exported TCN at 40\% labels (four seeds).}}{19}{table.1}\protected@file@percent }
+\newlabel{tab:export}{{B1}{19}{Accuracy and latency of the exported TCN at 40\% labels (four seeds)}{table.1}{}}
 \bibcite{fawaz2019}{9}
 \bibcite{middlehurst2024}{10}
 \bibcite{breiman2001}{11}
@@ -160,8 +162,6 @@
 \bibcite{nie2023}{16}
 \bibcite{wu2023}{17}
 \bibcite{dempster2020}{18}
-\@writefile{lot}{\contentsline {table}{\numberline {B1}{\ignorespaces Accuracy and latency of the exported TCN at 40\% labels (four seeds).}}{19}{table.1}\protected@file@percent }
-\newlabel{tab:export}{{B1}{19}{Accuracy and latency of the exported TCN at 40\% labels (four seeds)}{table.1}{}}
 \bibcite{dempster2021}{19}
 \bibcite{dempster2023}{20}
 \bibcite{eldele2021}{21}

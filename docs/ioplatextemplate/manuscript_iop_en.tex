@@ -1,9 +1,6 @@
 % IOP Publishing journal manuscript (English submission version).
-% Based on the supervisor's English draft (docs/导师英文稿.pdf) and updated with
-% the todo1102 experiments (sealed hold-out, leave-cluster-out audit,
-% noise-augmented training, 36-D feature screen,
-% ONNX/int8 export). Figures are the English versions in figures_en/.
-% Build: xelatex (or pdflatex) twice; see README.md.
+% Figures are the English vector PDFs in figures_en/.
+% Build: xelatex (or pdflatex) twice.
 \RequirePackage{fix-cm}
 \documentclass{iopjournal}
 
@@ -29,18 +26,18 @@
 
 \title{Mask-aware time-series foundation model and heterogeneous fusion for few-shot classification of variable-length lithium-ion battery charging curves}
 
-\author{Zhuotao Qian$^{1,*}$ and Chenghua Feng$^1$}
+\author{Zhuotao Qian$^1$ and Chenghua Feng$^{1,*}$}
 
 \affil{$^1$Hangzhou Dianzi University Information Engineering School, Hangzhou 311305, Zhejiang, People's Republic of China}
 
 \affil{$^*$Author to whom any correspondence should be addressed.}
 
-\email{20221009@hdu.edu.cn (Z.Q.); 239500314@hziee.edu.cn (C.F.)}
+\email{239500314@hziee.edu.cn (C.F.); 20221009@hdu.edu.cn (Z.Q.)}
 
 \keywords{lithium-ion battery, charging power curve, time-series foundation model, few-shot learning, anomaly classification, mask-aware pooling, stacked ensemble, noise-augmented training}
 
 \begin{abstract}
-Charging power curves of electric bicycles provide non-intrusive safety monitoring cues, yet verified fault labels are scarce and valid sequence lengths vary from 18 to 816 samples. Consequently, direct transfer of general time-series foundation models suffers from padding dilution and scale loss, whereas task-specific networks become unstable under scarce labels. We propose a three-branch heterogeneous method combining a frozen time-series foundation model, raw-scale dynamics features, and a masked temporal convolutional network (TCN). Mask-aware patch pooling excludes padded patches, raising frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, while a first-difference dual stream restores local transients and boosts single-branch validation Macro-F1 at 40\% labels from 83.91\% to 93.57\%. A 60-dimensional dynamics branch preserves absolute power levels, and five-fold cross-fitted stacking fuses the three branches. On 35,099 operational records under a unified fixed-hyperparameter protocol, full fusion achieves validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$, and $95.13\pm0.19\%$ at 1\%, 5\%, and 10\% labels---outperforming the masked TCN by 27.24 points at 1\%---and reaches $98.09\pm0.23\%$ (98.23\% battery-anomaly recall, 0.67\% FPR) at 40\% labels and $97.76\pm0.10\%$ on a 3,677-record cluster-disjoint sealed hold-out set. Full-system noise augmentation further raises 0.5\% RMS noise Macro-F1 at 40\% labels from 64.72\% to 97.47\%, while latency and budget analyses delineate the lightweight TCN+DYN deployment boundary.
+Charging power curves of electric bicycles provide non-intrusive safety monitoring cues, yet verified fault labels are scarce and valid sequence lengths vary from 18 to 816 samples. Consequently, direct transfer of general time-series foundation models suffers from padding dilution and scale loss, whereas task-specific networks become unstable under scarce labels. We propose a three-branch heterogeneous method combining a frozen time-series foundation model, raw-scale dynamics (DYN) features, and a masked temporal convolutional network (TCN). Mask-aware patch pooling excludes padded patches, raising frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, while a first-difference dual stream restores local transients and boosts single-branch validation Macro-F1 at 40\% labels from 83.91\% to 93.57\%. A 60-dimensional DYN branch preserves absolute power levels, and five-fold cross-fitted stacking fuses the three branches. On 35,099 operational records under a unified fixed-hyperparameter protocol, full fusion achieves validation Macro-F1 scores of $89.15\pm0.98\%$, $93.85\pm0.43\%$, and $95.13\pm0.19\%$ at 1\%, 5\%, and 10\% labels---outperforming the masked TCN by 27.24 points at 1\%---and reaches $98.09\pm0.23\%$ (98.23\% battery-anomaly recall, 0.67\% false-positive rate (FPR)) at 40\% labels and $97.76\pm0.10\%$ on a 3,677-record cluster-disjoint sealed hold-out set. Full-system noise augmentation further raises 0.5\% root-mean-square (RMS) noise Macro-F1 at 40\% labels from 64.72\% to 97.47\%, while latency and budget analyses delineate the lightweight TCN+DYN deployment boundary.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
@@ -55,7 +52,7 @@ Time-series classification and anomaly detection have been reviewed extensively~
 
 Direct transfer is not sufficient in the present task. Freezing MOMENT-1-large and training its default classification head yields only 69.46\% test Macro-F1, compared with 95.99\% for a task-specific TCN trained on raw-scale curves. We trace this mismatch to three operations. The default head averages padded patches; patch encoding smooths short power changes; and per-series normalization removes absolute amplitude. We address each operation without updating the 341.24 million backbone parameters.
 
-The main contributions are threefold. First, we propose mask-aware patch pooling and a first-difference dual-stream frozen adaptation strategy: incomplete and padded patches are excluded during pooling to enforce invariance to right padding, while original and first-difference sequences share the frozen MOMENT encoder to recover local step and spike cues without backbone fine-tuning and with offline caching to accelerate downstream training. Second, we construct a 60-dimensional raw-scale dynamics (DYN) branch and a five-fold cross-fitted three-branch heterogeneous stacking framework: raw-scale statistics restore absolute amplitude and local roughness lost under per-series normalization, and five-fold out-of-fold (OOF) logistic stacking combines the dual-stream foundation branch, the DYN branch, and a six-layer masked TCN. Third, we systematically attribute module contributions and delimit engineering deployment boundaries via paired ablations, same-architecture random-initialization pretraining controls, 1\%--100\% label-budget experiments, a cluster-disjoint sealed hold-out set and leave-cluster-out audit, noise-augmented training, and RTX 4080 end-to-end latency and ONNX FP32/int8 export measurements.
+The main contributions are threefold. First, we propose mask-aware patch pooling and a first-difference dual-stream frozen adaptation strategy: incomplete and padded patches are excluded during pooling to enforce invariance to right padding, while original and first-difference sequences share the frozen MOMENT encoder to recover local step and spike cues without backbone fine-tuning and with offline caching to accelerate downstream training. Second, we construct a 60-dimensional raw-scale dynamics (DYN) branch and a five-fold cross-fitted three-branch heterogeneous stacking framework: raw-scale statistics restore absolute amplitude and local roughness lost under per-series normalization, and five-fold out-of-fold (OOF) logistic stacking combines the dual-stream foundation branch, the DYN branch, and a six-layer masked TCN. Third, we systematically attribute module contributions and delimit engineering deployment boundaries via paired ablations, same-architecture random-initialization pretraining controls, 1--100\% label-budget experiments, a cluster-disjoint sealed hold-out set and leave-cluster-out audit, noise-augmented training, and RTX 4080 end-to-end latency and Open Neural Network Exchange (ONNX) FP32/int8 export measurements.
 
 \section{Problem formulation and data}\label{sec:data}
 
@@ -66,7 +63,7 @@ Let the valid power sequence for record $i$ be $\bm{x}_i=(x_{i,1},x_{i,2},\ldots
 f:(\bm{x}_i,\bm{m}_i)\mapsto y_i\in\{0,1,2\},
 \label{eq:task}
 \end{equation}
-where labels 0, 1, and 2 denote normal charging, a battery anomaly, and a charger fault, respectively. An ideal classifier is invariant to both the amount and the values of right padding.
+where labels 0, 1, and 2 in equation~(\ref{eq:task}) denote normal charging, a battery anomaly, and a charger fault, respectively. An ideal classifier is invariant to both the amount and the values of right padding.
 
 \subsection{Dataset}\label{sec:dataset}
 
@@ -108,7 +105,7 @@ The class counts are similar but not identical. The primary metric is the unweig
 \mathrm{Macro\mbox{-}F1}=\frac{1}{3}\sum_{c=0}^{2}\frac{2P_cR_c}{P_c+R_c},
 \label{eq:macrof1}
 \end{equation}
-where $P_c$ and $R_c$ are precision and recall for class $c$. Because missing a battery anomaly is the most safety-relevant error, we also report recall for class 1 and its false-positive rate (FPR), defined as the proportion of non-battery-anomaly records predicted as class 1. Average precision is used for single-seed analyses because a precision--recall curve is more informative than an ROC curve for an imbalanced binary evaluation~\cite{saito2015}. Probability quality is measured by expected calibration error (ECE)~\cite{guo2017}. Unless a table states otherwise, all tabulated scores are Macro-F1 values in percent.
+where $P_c$ and $R_c$ in equation~(\ref{eq:macrof1}) are precision and recall for class $c$. Because missing a battery anomaly is the most safety-relevant error, we also report recall for class 1 and its false-positive rate (FPR), defined as the proportion of non-battery-anomaly records predicted as class 1. Average precision is used for single-seed analyses because a precision--recall curve is more informative than a receiver operating characteristic (ROC) curve for an imbalanced binary evaluation~\cite{saito2015}. Probability quality is measured by expected calibration error (ECE)~\cite{guo2017}. Unless a table states otherwise, all tabulated scores are Macro-F1 values in percent.
 
 \section{Method}\label{sec:method}
 
@@ -138,7 +135,7 @@ The framework in figure~\ref{fig:framework} has three branches. Branch I sends t
 
 MOMENT-1-large uses the T5-large encoder architecture with 24 Transformer layers, a hidden size of 1024, and 16 attention heads. It contains 341.24 million parameters. Similar to PatchTST~\cite{nie2023}, it divides an input of length $T$ into $N=T/P=128$ non-overlapping patches of size $P=8$, producing representations $\bm{h}_{i,1},\ldots,\bm{h}_{i,N}\in\mathbb{R}^{1024}$.
 
-In momentfm 0.1.4, the default classification head passes the input mask into the encoder but averages all patch representations:
+In momentfm 0.1.4, the default classification head passes the input mask into the encoder but averages all patch representations, as written in equation~(\ref{eq:defaultpool}):
 \begin{equation}
 \bm{z}_i^{\mathrm{default}}=\frac{1}{N}\sum_{n=1}^{N}\bm{h}_{i,n}.
 \label{eq:defaultpool}
@@ -150,7 +147,7 @@ We define a patch-validity mask
 \tilde{m}_{i,n}=\prod_{t=(n-1)P+1}^{nP}m_{i,t},\qquad n=1,\ldots,N,
 \label{eq:patchmask}
 \end{equation}
-and pool only complete patches:
+and use equation~(\ref{eq:patchmask}) to pool only complete patches:
 \begin{equation}
 \bm{z}_i=\frac{\sum_{n=1}^{N}\tilde{m}_{i,n}\bm{h}_{i,n}}{\sum_{n=1}^{N}\tilde{m}_{i,n}}.
 \label{eq:maskpool}
@@ -166,12 +163,12 @@ Patch encoding and instance normalization favor global shape but can smooth the 
 \Delta x_{i,t}=x_{i,t+1}-x_{i,t},\qquad t=1,\ldots,L_i-1.
 \label{eq:diff}
 \end{equation}
-Slow trends move toward zero, whereas abrupt changes become prominent impulses. The original and difference sequences are z-score normalized separately, passed through the same frozen encoder, and pooled using equation~(\ref{eq:maskpool}). Their concatenation is
+Slow trends move toward zero, whereas abrupt changes become prominent impulses in equation~(\ref{eq:diff}). The original and difference sequences are z-score normalized separately, passed through the same frozen encoder, and pooled using equation~(\ref{eq:maskpool}). Their concatenation is
 \begin{equation}
 \bm{z}_i^{\mathrm{MD}}=\left[\bm{z}_i^{P}\,\|\,\bm{z}_i^{\Delta P}\right]\in\mathbb{R}^{2048}.
 \label{eq:md}
 \end{equation}
-An L2-regularized multinomial logistic regression with $C=1.0$ maps this vector to $\bm{p}_i^{\mathrm{MD}}$. The additional cost is one frozen-encoder forward pass per record; no new backbone parameter is trained.
+An L2-regularized multinomial logistic regression with $C=1.0$ maps $\bm{z}_i^{\mathrm{MD}}$ in equation~(\ref{eq:md}) to $\bm{p}_i^{\mathrm{MD}}$. The additional cost is one frozen-encoder forward pass per record; no new backbone parameter is trained.
 
 \subsection{Raw-scale dynamics features}\label{sec:dyn}
 
@@ -206,7 +203,7 @@ The TCN follows the platform's six-layer causal dilated architecture: kernel siz
 R=1+(k-1)\sum_{l=1}^{6}d_l=1+2\times63=127.
 \label{eq:rf}
 \end{equation}
-The original platform network globally averaged the full padded tensor. We replace this operation with
+With this receptive field of 127 samples (equation~(\ref{eq:rf})), the original platform network globally averaged the full padded tensor. We replace this operation with
 \begin{equation}
 \bm{g}_i=\frac{\sum_{t=1}^{T}m_{i,t}\bm{c}_{i,t}}{\sum_{t=1}^{T}m_{i,t}},
 \label{eq:tcnpool}
@@ -222,12 +219,12 @@ Training a meta-learner on in-sample predictions would favor overfitted branches
 \bm{u}_i=\left[\bm{p}_i^{\mathrm{TCN}},\bm{p}_i^{\mathrm{DYN}},\bm{p}_i^{\mathrm{MD}}\right]\in[0,1]^9.
 \label{eq:meta}
 \end{equation}
-An L2-regularized multinomial logistic regression estimates
+An L2-regularized multinomial logistic regression takes $\bm{u}_i$ from equation~(\ref{eq:meta}) and estimates
 \begin{equation}
 P(y_i=c\mid\bm{u}_i)=\frac{\exp(\bm{w}_c^{\top}\bm{u}_i+b_c)}{\sum_{c'=0}^{2}\exp(\bm{w}_{c'}^{\top}\bm{u}_i+b_{c'})}.
 \label{eq:softmax}
 \end{equation}
-Its regularization is selected by an inner three-fold split of the OOF features. Each branch is then retrained on the complete labeled subset for inference. Neither the validation nor the test set enters fitting or hyperparameter selection. The meta-learner has only 30 parameters. When calibrated probabilities are required, a scalar temperature can be fitted on the OOF logits by minimizing negative log likelihood.
+Its regularization in equation~(\ref{eq:softmax}) is selected by an inner three-fold split of the OOF features. Each branch is then retrained on the complete labeled subset for inference. Neither the validation nor the test set enters fitting or hyperparameter selection. The meta-learner has only 30 parameters. When calibrated probabilities are required, a scalar temperature can be fitted on the OOF logits by minimizing negative log likelihood.
 
 \subsection{Noise-augmented training}\label{sec:aug}
 
@@ -236,13 +233,13 @@ The branches above are trained on clean sequences. To test whether sensitivity t
 \tilde{x}_{i,t}=\max\!\left(0,\;x_{i,t}+\epsilon_{i,t}\right),\qquad \epsilon_{i,t}\sim\mathcal{N}\!\left(0,(\alpha\,\sigma_{\mathrm{rms}})^2\right),\qquad t\le L_i,
 \label{eq:aug}
 \end{equation}
-where $\sigma_{\mathrm{rms}}$ is the root mean square (RMS) of valid observations in the labeled training subset and $\alpha$ is the relative noise level. Masks and padding are unchanged. In the full-system variant, all three branches and the cross-fitted stacker are trained on the clean records together with one noisy copy at $\alpha=0.5\%$; within each outer fold, the model is fitted on both copies of the in-fold records, while the noisy copies of held-out records are excluded. In the DYN-only variant, two noisy copies at $\alpha=0.25\%$ and two at $\alpha=0.5\%$ are added, and the 60 features are recomputed from each copy before HGB training. Evaluation in both cases uses clean or separately perturbed validation records.
+where $\sigma_{\mathrm{rms}}$ in equation~(\ref{eq:aug}) is the RMS of valid observations in the labeled training subset and $\alpha$ is the relative noise level. Masks and padding are unchanged. In the full-system variant, all three branches and the cross-fitted stacker are trained on the clean records together with one noisy copy at $\alpha=0.5\%$; within each outer fold, the model is fitted on both copies of the in-fold records, while the noisy copies of held-out records are excluded. In the DYN-only variant, two noisy copies at $\alpha=0.25\%$ and two at $\alpha=0.5\%$ are added, and the 60 features are recomputed from each copy before HGB training. Evaluation in both cases uses clean or separately perturbed validation records.
 
 \section{Experiments and results}\label{sec:exp}
 
 \subsection{Experimental protocol}\label{sec:protocol}
 
-Label budgets of 1\%, 5\%, 10\%, 20\%, 40\%, and 100\% are sampled stratifiably from the training split, corresponding to 244, 1,227, 2,456, 4,913, 9,827, and 24,569 records. Within a seed, every method uses the same labeled subset and evaluation records. Unless stated otherwise, results are the mean and sample standard deviation over seeds 42, 44, 45, and 46. Method comparisons use paired seed differences and report descriptive 95\% paired $t$ intervals. Exact McNemar tests are used for single-seed error-correction analyses.
+Label budgets of 1\%, 5\%, 10\%, 20\%, 40\%, and 100\% are drawn via stratified sampling from the training split, corresponding to 244, 1,227, 2,456, 4,913, 9,827, and 24,569 records. Within a seed, every method uses the same labeled subset and evaluation records. Unless stated otherwise, results are the mean and sample standard deviation over seeds 42, 44, 45, and 46. Method comparisons use paired seed differences and report descriptive 95\% paired $t$ intervals. Exact McNemar tests are used for single-seed error-correction analyses.
 
 The study has three stages. The first stage uses five seeded runs on the same test split to evaluate frozen-MOMENT pooling, adaptation, and pretraining controls. After the test set had been inspected, all further method development and ablation used only the validation set, and the original test partition was not scored again; in the third stage, 753 of its records were reassigned to the sealed hold-out set described below. The four validation splits overlap across seeds and were used repeatedly during development, so paired intervals describe uncertainty within this protocol rather than external generalization.
 
@@ -252,7 +249,7 @@ Experiments use Python 3.11, PyTorch 2.12.1 with CUDA 12.6, momentfm 0.1.4, and 
 
 \subsection{Baselines and initial frozen-model performance}\label{sec:baselines}
 
-Table~\ref{tab:baselines} reports five-seed test results with all training labels. A raw-scale TCN reaches 95.99\% Macro-F1, and a random forest on 15 statistics (F15) reaches 88.89\%. The frozen default MOMENT head yields 69.46\%. Mask-aware pooling alone adds 7.95 percentage points. An RBF-SVM on the corrected representation reaches 85.17\%, unfreezing the final two layers reaches 81.50\%, and full fine-tuning reaches 95.37\% at far higher training cost.
+Table~\ref{tab:baselines} reports five-seed test results with all training labels. A raw-scale TCN reaches 95.99\% Macro-F1, and a random forest on 15 statistics (F15) reaches 88.89\%. The frozen default MOMENT head yields 69.46\%. Mask-aware pooling alone adds 7.95 percentage points. A radial-basis-function support vector machine (RBF-SVM) on the corrected representation reaches 85.17\%, unfreezing the final two layers reaches 81.50\%, and full fine-tuning reaches 95.37\% at far higher training cost.
 
 \begin{table}[htbp]
 \caption{Test performance with all training labels. Values are mean $\pm$ sample standard deviation over five seeds unless noted.}
@@ -288,7 +285,7 @@ Figure~\ref{fig:pooling}(a) summarizes the adaptation sequence. Full fine-tuning
 \label{fig:pooling}
 \end{figure}
 
-Figure~\ref{fig:pooling}(b) exposes a separate optimization issue. When frozen representations and statistics are concatenated and sent to an MLP head, the initial activation root mean square (RMS) is only 0.024--0.029. Multiplying the input by $\gamma=\sqrt{1039/B}$, where 1039 is the input width of the head and $B$ is the number of active branches, restores an RMS of 0.49--0.55. At epoch 30 this scale correction adds 6.58 percentage points, and the best validation Macro-F1 within 200 epochs rises from 86.94\% to 91.72\%. Across four test seeds, the corrected head reaches $91.52\pm0.38\%$, exceeding an RBF-SVM on the same features by 0.56 points (95\% interval 0.52--0.61). A frozen-model comparison is therefore meaningful only when the downstream head has been adequately optimized.
+Figure~\ref{fig:pooling}(b) exposes a separate optimization issue. When frozen representations and statistics are concatenated and sent to a multilayer perceptron (MLP) head, the initial activation RMS is only 0.024--0.029. Multiplying the input by $\gamma=\sqrt{1039/B}$, where 1039 is the input width of the head and $B$ is the number of active branches, restores an RMS of 0.49--0.55. At epoch 30 this scale correction adds 6.58 percentage points, and the best validation Macro-F1 within 200 epochs rises from 86.94\% to 91.72\%. Across four test seeds, the corrected head reaches $91.52\pm0.38\%$, exceeding an RBF-SVM on the same features by 0.56 points (95\% interval 0.52--0.61). A frozen-model comparison is therefore meaningful only when the downstream head has been adequately optimized.
 
 \subsection{Padding sensitivity and TCN restoration}\label{sec:padding}
 
@@ -589,7 +586,7 @@ Condition & Evidence & Preferred option \\
 1--10\% labels, clean input & Full fusion exceeds TCN+DYN by 0.77--2.35 points and MiniRocket by 2.24--2.41 points (table~\ref{tab:budget}) & Full fusion \\
 10--40\% labels, noise up to 0.5\% RMS & Augmented full fusion 94.46\% and 97.47\% at 0.5\% noise (table~\ref{tab:noiseaug}) & Noise-augmented full fusion$^{\mathrm{a}}$ \\
 Long records ($L>399$), 10\% labels & Full fusion exceeds the TCN by 10.17 points & Full fusion \\
-40\% labels, GPU available & Full fusion 98.14\% versus TCN+DYN 98.09\% & Full fusion \\
+40\% labels, GPU available & Full fusion 98.14\% versus TCN+DYN 98.09\% (table~\ref{tab:budget}) & Full fusion \\
 100\% labels & TCN+DYN 98.54\% versus full fusion 98.53\% & TCN + DYN \\
 $\ge$40\% labels, latency or memory constrained & TCN+DYN within 0.16 points of full fusion at 2.09 versus 11.13~ms per record & TCN + DYN \\
 Noise at 1\% RMS (strongest tested level) & Augmented full fusion $\le$49.30\% & Improve acquisition or augment at that level$^{\mathrm{a}}$ \\
@@ -602,7 +599,7 @@ Noise at 1\% RMS (strongest tested level) & Augmented full fusion $\le$49.30\% &
 
 This study addresses few-shot three-class classification of variable-length electric-bicycle charging power curves by combining a frozen time-series foundation model, raw-scale dynamics features, and a masked TCN. The main conclusions are threefold:
 
-(1) \textbf{Mask-aware pooling and first-difference dual-stream adaptation}: Excluding incomplete and padded patches raises the frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, enforces strict invariance to right padding, and reduces downstream training to roughly 2~s per epoch via offline caching. Adding a first-difference stream over valid samples adds 9.66--13.38 percentage points across 1\%--40\% label budgets without updating the 341.24 million MOMENT parameters, and same-architecture random-initialization controls confirm a 6.00--18.81 point net pretraining gain.
+(1) \textbf{Mask-aware pooling and first-difference dual-stream adaptation}: Excluding incomplete and padded patches raises the frozen linear-probe test Macro-F1 from 69.46\% to 77.41\%, enforces strict invariance to right padding, and reduces downstream training to roughly 2~s per epoch via offline caching. Adding a first-difference stream over valid samples adds 9.66--13.38 percentage points across 1--40\% label budgets without updating the 341.24 million MOMENT parameters, and same-architecture random-initialization controls confirm a 6.00--18.81 point net pretraining gain.
 
 (2) \textbf{Raw-scale dynamics and cross-fitted heterogeneous stacking}: The 60-dimensional DYN branch restores absolute power levels and local roughness (95.00\% single-branch Macro-F1 at 40\% labels, with a 36-feature subset retaining equivalent accuracy). Five-fold cross-fitted logistic stacking achieves $89.15\pm0.98\%$, $93.85\pm0.43\%$, and $95.13\pm0.19\%$ at 1\%, 5\%, and 10\% labels under the unified protocol (27.24 points above the masked TCN at 1\%), and reaches $98.09\pm0.23\%$ (98.23\% battery-anomaly recall, 0.67\% FPR) at 40\% labels and $97.76\pm0.10\%$ on the 3,677-record cluster-disjoint sealed hold-out set.
 
@@ -643,7 +640,7 @@ Trend, roughness, spectrum, shape & 41 & 95.05 & $+0.04$ & 92.82 & $+0.01$ & -- 
 \setcounter{table}{0}
 \renewcommand{\thetable}{B\arabic{table}}
 
-The TCN of each 40\% model (0.22~M parameters) was exported to ONNX (opset 17) with dynamic batch size and separate signal and mask inputs. Static int8 quantization used the QDQ format with unsigned 8-bit activations, signed 8-bit per-channel weights, and 256 training records for calibration. For the fused score, only the TCN probability block was replaced and the meta-learner was re-fitted on the OOF features. Four further configurations (entropy or percentile calibration, symmetric activations, per-tensor weights) gave TCN Macro-F1 of 53.20--58.02\% for seed 42, compared with 97.61\% in FP32. Latencies in table~\ref{tab:export} are medians of 11 repetitions on the RTX 5090 host and depend on the thread count; they are not directly comparable with table~\ref{tab:latency}, which was measured on another machine.
+The TCN of each 40\% model (0.22~M parameters) was exported to ONNX (opset 17) with dynamic batch size and separate signal and mask inputs. Static int8 quantization used the quantize--dequantize (QDQ) format with unsigned 8-bit activations, signed 8-bit per-channel weights, and 256 training records for calibration. For the fused score, only the TCN probability block was replaced and the meta-learner was re-fitted on the OOF features. Four further configurations (entropy or percentile calibration, symmetric activations, per-tensor weights) gave TCN Macro-F1 of 53.20--58.02\% for seed 42, compared with 97.61\% in FP32. Latencies in table~\ref{tab:export} are medians of 11 repetitions on the RTX 5090 host and depend on the thread count; they are not directly comparable with table~\ref{tab:latency}, which was measured on another machine.
 
 \begin{table}[htbp]
 \caption{Accuracy and latency of the exported TCN at 40\% labels (four seeds).}
@@ -676,9 +673,11 @@ ONNX Runtime CPU int8 & 1 & 1 & 1.20 & 836 \\
 \section*{Ethical statement and conflict of interest}
 This study uses anonymized device-level charging power sequences and operational status labels. It contains no human participants, human biological material, personally identifying information, or animal experiments; institutional ethics approval was therefore not applicable. The authors declare no conflict of interest.
 
+\ack{The authors thank the collaborating charging-operations platform for supplying the anonymized charging power sequences and maintenance-verified operational status labels, and thank colleagues for helpful discussions during experiment verification and code review.}
+
 \funding{This research was funded by the Scientific Research Fund of Hangzhou Dianzi University Information Engineering School, grant number KYP0223008.}
 
-\roles{Zhuotao Qian: methodology, software, formal analysis, investigation, data curation, visualization, and writing--original draft. Chenghua Feng: conceptualization, validation, resources, supervision, and writing--review and editing. Both authors approved the submitted manuscript.}
+\roles{Zhuotao Qian: conceptualization, methodology, resources, funding acquisition, supervision, and writing--review and editing. Chenghua Feng: methodology, software, formal analysis, investigation, data curation, visualization, and writing--original draft. Both authors approved the submitted manuscript.}
 
 \data{The charging records are not publicly available because they contain proprietary operational data supplied by an industrial platform. Access requests may be directed to the corresponding author and require approval from the data provider. Code for feature extraction, model training, cross-fitted stacking, and the statistical analyses is available from the corresponding author on reasonable request.}
 
